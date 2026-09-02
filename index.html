@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b7a3f">
+<title>Garden Grow — Petty Cash</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --green:#0b7a3f;
+  --green-dark:#0b3d24;
+  --green-light:#e8f5ec;
+  --blue:#1565c0;
+  --blue-light:#e6eefc;
+  --amber:#b8860b;
+  --amber-light:#fdf3dd;
+  --red:#c62828;
+  --red-light:#fde8e8;
+  --ink:#1a2b22;
+  --muted:#5c6b63;
+  --line:#dbe6df;
+  --bg:#f4f8f5;
+  --white:#ffffff;
+  --radius:16px;
+  --radius-sm:10px;
+  --tap:56px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  overscroll-behavior:none;
+}
+button{font-family:inherit;}
+input,select,textarea{font-family:inherit;}
+.app{max-width:520px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:10px;}
+.screen{display:none;}
+.screen.active{display:block; animation:fadein .15s ease;}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* ===== Top bar ===== */
+.topbar{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 16px;background:var(--green-dark);color:#fff;
+  position:sticky;top:0;z-index:20;
+}
+.topbar .back{
+  width:40px;height:40px;border-radius:12px;border:none;background:rgba(255,255,255,.15);
+  color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;
+}
+.topbar h1{font-size:18px;margin:0;flex:1;font-weight:700;}
+.topbar .adminlink{background:none;border:none;color:#fff;opacity:.8;font-size:13px;}
+
+/* ===== Driver Home ===== */
+.home-wrap{padding:18px 16px 100px;}
+.balance-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.bal-card{
+  background:var(--white);border-radius:var(--radius);padding:16px 12px;
+  border:1px solid var(--line);text-align:center;
+}
+.bal-card .lbl{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin-bottom:6px;}
+.bal-card .val{font-size:26px;font-weight:800;color:var(--green-dark);}
+.bal-card.owed .val{color:var(--amber);}
+.bal-card.low .val{color:var(--red);}
+
+.big-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.tile{
+  background:var(--white);border:2px solid var(--line);border-radius:var(--radius);
+  padding:22px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  font-weight:800;font-size:16px;color:var(--ink);
+}
+.tile .ic{font-size:34px;}
+.tile.primary{background:var(--green);color:#fff;border-color:var(--green);}
+.tile.primary .ic{filter:none;}
+.tile:active{transform:scale(.97);}
+
+/* ===== Form screens ===== */
+.form-wrap{padding:16px 16px 140px;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px;}
+.field input[type=date],.field input[type=time],.field input[type=text],.field select,.field textarea{
+  width:100%;padding:14px;border:2px solid var(--line);border-radius:var(--radius-sm);
+  font-size:17px;background:#fff;color:var(--ink);
+}
+.field textarea{resize:vertical;min-height:60px;}
+
+.amount-box{
+  background:var(--white);border:2px solid var(--green);border-radius:var(--radius);
+  padding:18px;text-align:center;margin-bottom:18px;
+}
+.amount-box .cur{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:1px;}
+.amount-box input{
+  width:100%;border:none;outline:none;background:transparent;text-align:center;
+  font-size:52px;font-weight:800;color:var(--green-dark);padding:4px 0;
+}
+.amount-box input::placeholder{color:#bcd3c4;}
+
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+.cat-btn{
+  background:var(--white);border:2px solid var(--line);border-radius:var(--radius-sm);
+  padding:14px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;
+  font-size:12.5px;font-weight:700;color:var(--ink);
+}
+.cat-btn .ic{font-size:26px;}
+.cat-btn.sel{border-color:var(--green);background:var(--green-light);color:var(--green-dark);}
+
+.pay-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px;}
+.pay-btn{
+  background:var(--white);border:2px solid var(--line);border-radius:var(--radius-sm);
+  padding:16px 4px;text-align:center;font-weight:800;font-size:15px;color:var(--ink);
+}
+.pay-btn small{display:block;font-weight:600;font-size:10.5px;color:var(--muted);margin-top:4px;text-transform:none;letter-spacing:0;}
+.pay-btn.sel{border-color:var(--blue);background:var(--blue-light);color:var(--blue);}
+.pay-btn.sel small{color:var(--blue);}
+
+.split-box{display:none;background:var(--blue-light);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;}
+.split-box.show{display:block;}
+.split-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.split-row:last-child{margin-bottom:0;}
+.split-row label{flex:0 0 90px;font-size:13px;font-weight:700;color:var(--ink);}
+.split-row input{flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:16px;text-align:right;}
+
+.msg-banner{border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-weight:700;font-size:14px;display:none;}
+.msg-banner.show{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.msg-banner.err{background:var(--red-light);color:var(--red);}
+.msg-banner.warn{background:var(--amber-light);color:var(--amber);}
+.msg-banner button{background:var(--white);border:none;padding:8px 12px;border-radius:8px;font-weight:800;font-size:12.5px;color:inherit;}
+
+.photo-box{margin-bottom:18px;}
+.photo-btn{
+  width:100%;padding:16px;border:2px dashed var(--line);border-radius:var(--radius-sm);
+  background:var(--white);font-weight:700;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;
+}
+.photo-preview{position:relative;margin-top:10px;}
+.photo-preview img{width:100%;max-height:220px;object-fit:cover;border-radius:var(--radius-sm);border:2px solid var(--line);}
+.photo-remove{
+  position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;border:none;
+  width:32px;height:32px;border-radius:50%;font-size:16px;
+}
+
+.more-toggle{
+  width:100%;padding:14px;background:none;border:none;color:var(--muted);font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;margin-bottom:6px;
+}
+.more-fields{display:none;}
+.more-fields.show{display:block;}
+
+.quick-notes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.qn{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--muted);}
+.qn.sel{background:var(--green-light);border-color:var(--green);color:var(--green-dark);}
+
+.bottom-bar{
+  position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;
+  background:var(--bg);padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line);
+}
+.save-btn{
+  width:100%;padding:18px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);
+  font-size:19px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.save-btn:active{background:var(--green-dark);}
+.save-btn[disabled]{opacity:.5;}
+
+/* ===== Saved screen ===== */
+.saved-wrap{padding:60px 24px;text-align:center;}
+.saved-check{
+  width:100px;height:100px;border-radius:50%;background:var(--green-light);
+  display:flex;align-items:center;justify-content:center;font-size:50px;color:var(--green);
+  margin:0 auto 20px;
+}
+.saved-wrap h2{font-size:26px;color:var(--green-dark);margin:0 0 6px;}
+.saved-wrap p{color:var(--muted);margin:0 0 34px;font-size:15px;}
+.saved-actions{display:flex;flex-direction:column;gap:12px;}
+.saved-actions button{
+  padding:17px;border-radius:var(--radius);border:2px solid var(--line);background:#fff;
+  font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.saved-actions .wa{background:#25D366;border-color:#25D366;color:#fff;}
+.saved-actions .home{background:var(--green-dark);border-color:var(--green-dark);color:#fff;}
+
+/* ===== History / Today ===== */
+.hist-list{padding:10px 16px 100px;}
+.hist-item{
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;
+}
+.hist-item .hi-ic{font-size:26px;width:40px;text-align:center;flex-shrink:0;}
+.hist-item .hi-body{flex:1;min-width:0;}
+.hist-item .hi-top{display:flex;justify-content:space-between;font-weight:800;font-size:15px;}
+.hist-item .hi-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.hist-item .hi-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-block;margin-top:5px;}
+.tag-company{background:var(--blue-light);color:var(--blue);}
+.tag-me{background:var(--amber-light);color:var(--amber);}
+.tag-both{background:#eee3fb;color:#6a3fb0;}
+.tag-cashin{background:var(--green-light);color:var(--green-dark);}
+.tag-reimb{background:#fbe3ef;color:#c2185b;}
+.empty-note{text-align:center;color:var(--muted);padding:60px 20px;font-size:15px;}
+
+/* ===== Admin ===== */
+.admin-tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:56px;z-index:15;}
+.admin-tab{flex:0 0 auto;padding:9px 14px;border-radius:20px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap;}
+.admin-tab.sel{background:var(--green-dark);border-color:var(--green-dark);color:#fff;}
+.admin-panel{display:none;padding:16px;}
+.admin-panel.active{display:block;}
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.stat-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;}
+.stat-card .lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;}
+.stat-card .val{font-size:20px;font-weight:800;margin-top:4px;}
+.filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.filter-row input,.filter-row select{flex:1;min-width:120px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+.admin-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff;}
+table.admin-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.admin-table th{background:var(--green-light);color:var(--green-dark);padding:9px 8px;text-align:left;white-space:nowrap;position:sticky;top:0;}
+table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-space:nowrap;}
+.btn{padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:14px;}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff;}
+.btn.danger{background:var(--red-light);border-color:var(--red);color:var(--red);}
+.btn.block{width:100%;margin-bottom:10px;}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);}
+.settings-row:last-child{border-bottom:none;}
+.diag-line{font-size:12.5px;padding:6px 0;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;}
+.diag-pass{color:var(--green-dark);font-weight:700;}
+.diag-fail{color:var(--red);font-weight:700;}
+.hidden-input{display:none;}
+.section-title{font-size:14px;font-weight:800;color:var(--ink);margin:18px 0 10px;text-transform:uppercase;letter-spacing:.3px;}
+.pill-actions{display:flex;gap:8px;margin-top:8px;}
+.pill-actions button{flex:1;padding:9px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:700;}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+  background:var(--green-dark);color:#fff;padding:12px 20px;border-radius:30px;
+  font-size:14px;font-weight:700;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s, bottom .2s;
+  max-width:90%;text-align:center;
+}
+.toast.show{opacity:1;bottom:120px;}
+
+.install-banner{
+  display:none;position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;
+  background:var(--green-dark);color:#fff;padding:12px 16px;align-items:center;gap:10px;z-index:200;
+}
+.install-banner.show{display:flex;}
+.install-banner span{flex:1;font-size:13px;}
+.install-banner button{padding:9px 14px;border-radius:8px;border:none;font-weight:800;font-size:13px;}
+.install-banner .ok{background:#fff;color:var(--green-dark);}
+.install-banner .no{background:transparent;color:#fff;opacity:.7;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ============ DRIVER HOME ============ -->
+  <div class="screen active" id="screen-home">
+    <div class="topbar">
+      <h1>🌿 Garden Grow — Petty Cash</h1>
+      <button class="adminlink" onclick="goAdmin()">Admin</button>
+    </div>
+    <div class="home-wrap">
+      <div class="balance-cards">
+        <div class="bal-card" id="cashLeftCard">
+          <div class="lbl">Cash Left</div>
+          <div class="val" id="cashLeftVal">AED 0</div>
+        </div>
+        <div class="bal-card owed">
+          <div class="lbl">My Money Used</div>
+          <div class="val" id="myMoneyVal">AED 0</div>
+        </div>
+      </div>
+      <div class="big-tiles">
+        <button class="tile primary" onclick="openExpenseEntry()">
+          <div class="ic">🛒</div> BUY / PAY
+        </button>
+        <button class="tile" onclick="openCashIn()">
+          <div class="ic">💰</div> CASH IN
+        </button>
+        <button class="tile" onclick="openToday()">
+          <div class="ic">📋</div> TODAY
+        </button>
+        <button class="tile" onclick="openSummaryPeriod()">
+          <div class="ic">📱</div> SEND SUMMARY
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ EXPENSE ENTRY (BUY/PAY) ============ -->
+  <div class="screen" id="screen-expense">
+    <div class="topbar">
+      <button class="back" onclick="goBack()">←</button>
+      <h1>🛒 Buy / Pay</h1>
+    </div>
+    <div class="form-wrap">
+
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="exp-date">
+      </div>
+
+      <div class="amount-box">
+        <div class="cur">AED</div>
+        <input type="text" inputmode="decimal" id="exp-amount" placeholder="0" oninput="onAmountInput()">
+      </div>
+
+      <div class="msg-banner" id="exp-warning">
+        <span id="exp-warning-text"></span>
+        <button onclick="switchToBoth()">USE BOTH</button>
+      </div>
+
+      <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">Type</label>
+      <div class="cat-grid" id="cat-grid"></div>
+
+      <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">How Paid?</label>
+      <div class="pay-grid">
+        <button class="pay-btn" data-pay="company" onclick="selectPay('company')">COMPANY<small>Company Cash</small></button>
+        <button class="pay-btn" data-pay="me" onclick="selectPay('me')">ME<small>My Own Money</small></button>
+        <button class="pay-btn" data-pay="both" onclick="selectPay('both')">BOTH<small>Part + Part</small></button>
+      </div>
+
+      <div class="split-box" id="split-box">
+        <div class="split-row">
+          <label>Company</label>
+          <input type="text" inputmode="decimal" id="split-company" oninput="onSplitEdit('company')">
+        </div>
+        <div class="split-row">
+          <label>Me</label>
+          <input type="text" inputmode="decimal" id="split-me" oninput="onSplitEdit('me')">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Note (optional)</label>
+        <input type="text" id="exp-note" placeholder="Short note">
+        <div class="quick-notes" id="quick-notes"></div>
+      </div>
+
+      <div class="photo-box">
+        <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">Photo (optional)</label>
+        <button class="photo-btn" onclick="document.getElementById('exp-photo-input').click()">📷 TAKE / ADD PHOTO</button>
+        <input type="file" accept="image/*" capture="environment" class="hidden-input" id="exp-photo-input" onchange="onPhotoSelected(event)">
+        <div class="photo-preview" id="photo-preview" style="display:none;">
+          <img id="photo-preview-img">
+          <button class="photo-remove" onclick="removePhoto()">✕</button>
+        </div>
+      </div>
+
+      <button class="more-toggle" onclick="toggleMore()">▾ MORE (supplier, site, receipt no.)</button>
+      <div class="more-fields" id="more-fields">
+        <div class="field"><label>Time</label><input type="time" id="exp-time"></div>
+        <div class="field"><label>Supplier</label><input type="text" id="exp-supplier" placeholder="Supplier name"></div>
+        <div class="field"><label>Site</label><input type="text" id="exp-site" placeholder="Site / location" list="site-list"><datalist id="site-list"></datalist></div>
+        <div class="field"><label>Receipt No.</label><input type="text" id="exp-receipt" placeholder="Receipt number"></div>
+        <div class="field"><label>Vehicle No.</label><input type="text" id="exp-vehicle" placeholder="Vehicle number"></div>
+        <div class="field"><label>Remarks</label><textarea id="exp-remarks" placeholder="Any extra remarks"></textarea></div>
+      </div>
+
+    </div>
+    <div class="bottom-bar">
+      <button class="save-btn" onclick="saveExpense()">✓ SAVE</button>
+    </div>
+  </div>
+
+  <!-- ============ CASH IN ============ -->
+  <div class="screen" id="screen-cashin">
+    <div class="topbar">
+      <button class="back" onclick="goBack()">←</button>
+      <h1>💰 Cash In</h1>
+    </div>
+    <div class="form-wrap">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="ci-date">
+      </div>
+      <div class="amount-box">
+        <div class="cur">AED</div>
+        <input type="text" inputmode="decimal" id="ci-amount" placeholder="0">
+      </div>
+      <div class="field">
+        <label>Note (optional)</label>
+        <input type="text" id="ci-note" placeholder="e.g. From office">
+      </div>
+      <button class="more-toggle" onclick="toggleMoreCI()">▾ MORE</button>
+      <div class="more-fields" id="more-fields-ci">
+        <div class="field"><label>Time</label><input type="time" id="ci-time"></div>
+        <div class="field"><label>Given By</label><input type="text" id="ci-givenby" placeholder="Name"></div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="save-btn" onclick="saveCashIn()">✓ SAVE</button>
+    </div>
+  </div>
+
+  <!-- ============ SAVED ============ -->
+  <div class="screen" id="screen-saved">
+    <div class="saved-wrap">
+      <div class="saved-check">✓</div>
+      <h2>SAVED</h2>
+      <p id="saved-sub">Your entry was saved.</p>
+      <div class="saved-actions">
+        <button class="wa" onclick="whatsappLast()">📱 WHATSAPP</button>
+        <button onclick="nextEntry()">➕ NEXT</button>
+        <button class="home" onclick="goBack()">🏠 HOME</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TODAY / HISTORY ============ -->
+  <div class="screen" id="screen-today">
+    <div class="topbar">
+      <button class="back" onclick="goBack()">←</button>
+      <h1>📋 Today</h1>
+    </div>
+    <div class="hist-list" id="today-list"></div>
+  </div>
+
+  <!-- ============ SEND SUMMARY — PERIOD PICKER ============ -->
+  <div class="screen" id="screen-summary-period">
+    <div class="topbar">
+      <button class="back" onclick="goBack()">←</button>
+      <h1>📱 Send Summary</h1>
+    </div>
+    <div class="home-wrap">
+      <p style="color:var(--muted);font-size:14px;margin:0 0 16px;">Pick the period. It will open WhatsApp with the statement ready to send.</p>
+      <div class="big-tiles">
+        <button class="tile primary" onclick="sendPeriodSummary('today')"><div class="ic">📅</div>TODAY</button>
+        <button class="tile" onclick="sendPeriodSummary('week')"><div class="ic">🗓️</div>THIS WEEK</button>
+        <button class="tile" onclick="sendPeriodSummary('month')"><div class="ic">🗓️</div>THIS MONTH</button>
+        <button class="tile" onclick="sendPeriodSummary('all')"><div class="ic">📖</div>SINCE START</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN ============ -->
+  <div class="screen" id="screen-admin">
+    <div class="topbar">
+      <button class="back" onclick="goBack()">←</button>
+      <h1>⚙️ Admin / Management</h1>
+    </div>
+    <div class="admin-tabs">
+      <button class="admin-tab sel" data-tab="dash" onclick="selectAdminTab('dash')">Dashboard</button>
+      <button class="admin-tab" data-tab="txns" onclick="selectAdminTab('txns')">Transactions</button>
+      <button class="admin-tab" data-tab="reimb" onclick="selectAdminTab('reimb')">Reimbursement</button>
+      <button class="admin-tab" data-tab="reports" onclick="selectAdminTab('reports')">Reports</button>
+      <button class="admin-tab" data-tab="backup" onclick="selectAdminTab('backup')">Backup</button>
+      <button class="admin-tab" data-tab="settings" onclick="selectAdminTab('settings')">Settings</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="admin-panel active" data-panel="dash">
+      <div class="admin-grid">
+        <div class="stat-card"><div class="lbl">Company Cash Left</div><div class="val" id="d-cash" style="color:var(--green-dark)">AED 0</div></div>
+        <div class="stat-card"><div class="lbl">Owed To Driver</div><div class="val" id="d-owed" style="color:var(--amber)">AED 0</div></div>
+        <div class="stat-card"><div class="lbl">Total Cash In</div><div class="val" id="d-cashin">AED 0</div></div>
+        <div class="stat-card"><div class="lbl">Total Expenses</div><div class="val" id="d-exp">AED 0</div></div>
+        <div class="stat-card"><div class="lbl">Total Reimbursed</div><div class="val" id="d-reimb">AED 0</div></div>
+        <div class="stat-card"><div class="lbl">Entries</div><div class="val" id="d-count">0</div></div>
+      </div>
+      <div class="section-title">Self-Test (balance logic)</div>
+      <div id="diag-results"></div>
+      <button class="btn block" style="margin-top:10px" onclick="runDiagnostics()">Run Self-Test</button>
+    </div>
+
+    <!-- Transactions -->
+    <div class="admin-panel" data-panel="txns">
+      <div class="filter-row">
+        <input type="text" id="f-search" placeholder="Search note / supplier / site" oninput="renderTxnTable()">
+        <select id="f-type" onchange="renderTxnTable()">
+          <option value="">All Types</option>
+          <option value="expense">Expense</option>
+          <option value="cash_in">Cash In</option>
+          <option value="reimbursement">Reimbursement</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <input type="date" id="f-from" onchange="renderTxnTable()">
+        <input type="date" id="f-to" onchange="renderTxnTable()">
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="txn-table">
+          <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Paid</th><th>Note</th><th>Photo</th><th></th></tr></thead>
+          <tbody id="txn-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Reimbursement -->
+    <div class="admin-panel" data-panel="reimb">
+      <div class="stat-card" style="margin-bottom:16px;">
+        <div class="lbl">Currently Owed To Driver</div>
+        <div class="val" id="r-owed" style="color:var(--amber);font-size:26px;">AED 0</div>
+      </div>
+      <div class="field"><label>Date</label><input type="date" id="r-date"></div>
+      <div class="amount-box"><div class="cur">AED</div><input type="text" inputmode="decimal" id="r-amount" placeholder="0"></div>
+      <div class="field"><label>Note (optional)</label><input type="text" id="r-note" placeholder="e.g. Paid via bank transfer"></div>
+      <button class="btn primary block" onclick="saveReimbursement()">✓ Record Reimbursement</button>
+      <div class="section-title">Reimbursement History</div>
+      <div class="admin-table-wrap">
+        <table class="admin-table"><thead><tr><th>Date</th><th>Amount</th><th>Note</th></tr></thead><tbody id="reimb-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Reports -->
+    <div class="admin-panel" data-panel="reports">
+      <div class="section-title">Export</div>
+      <button class="btn primary block" onclick="exportCSV()">⬇ Export CSV (filtered view)</button>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Uses the filters set in the Transactions tab.</p>
+      <div class="section-title">Statement (Any Period)</div>
+      <div class="filter-row">
+        <button class="btn" style="flex:1;" onclick="setReportPreset('today')">Today</button>
+        <button class="btn" style="flex:1;" onclick="setReportPreset('week')">This Week</button>
+        <button class="btn" style="flex:1;" onclick="setReportPreset('month')">This Month</button>
+        <button class="btn" style="flex:1;" onclick="setReportPreset('all')">Since Start</button>
+      </div>
+      <div class="filter-row">
+        <input type="date" id="rep-from" onchange="renderDailySummary()">
+        <input type="date" id="rep-to" onchange="renderDailySummary()">
+      </div>
+      <div id="daily-summary-box" style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:13px;white-space:pre-wrap;margin-bottom:10px;"></div>
+      <button class="btn primary block" onclick="sendReportWhatsApp()">📱 Send This Statement via WhatsApp</button>
+    </div>
+
+    <!-- Backup -->
+    <div class="admin-panel" data-panel="backup">
+      <div class="stat-card" style="margin-bottom:16px;">
+        <div class="lbl">Auto-Backup — Last Saved</div>
+        <div class="val" id="auto-backup-status" style="font-size:16px;">Not yet</div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 0;">Downloads a backup file automatically to the phone's Downloads folder — after every 5 new entries, or at least once every 24 hours, whichever comes first. No account or internet needed.</p>
+      </div>
+      <div class="section-title">Backup</div>
+      <button class="btn primary block" onclick="backupData()">⬇ Download Backup Now (JSON)</button>
+      <div class="section-title">Restore</div>
+      <button class="btn danger block" onclick="document.getElementById('restore-input').click()">⬆ Restore From Backup File</button>
+      <input type="file" accept="application/json" class="hidden-input" id="restore-input" onchange="restoreData(event)">
+      <p style="font-size:12.5px;color:var(--muted);">Restoring will ask for confirmation twice, and will replace all current data with the backup file's data.</p>
+      <p style="font-size:12.5px;color:var(--muted);">Tip: every so often, move the backup files out of Downloads into Google Drive or email them to yourself — auto-backup protects against app data being cleared, but not against losing or resetting the phone itself.</p>
+    </div>
+
+    <!-- Settings -->
+    <div class="admin-panel" data-panel="settings">
+      <div class="settings-row">
+        <span>Driver Name</span>
+        <input type="text" id="set-driver-name" style="width:160px;padding:8px;border:1px solid var(--line);border-radius:8px;" onchange="saveSetting('driverName', this.value)">
+      </div>
+      <div class="settings-row">
+        <span>WhatsApp Number (for summary)</span>
+        <input type="text" id="set-wa-number" placeholder="9715xxxxxxx" style="width:160px;padding:8px;border:1px solid var(--line);border-radius:8px;" onchange="saveSetting('waNumber', this.value)">
+      </div>
+      <div class="settings-row">
+        <span>Currency</span>
+        <span style="font-weight:700;">AED</span>
+      </div>
+      <div class="settings-row">
+        <span>App Version</span>
+        <span style="font-weight:700;">v1.0</span>
+      </div>
+      <div class="section-title">Danger Zone</div>
+      <button class="btn danger block" onclick="wipeAllData()">🗑 Erase All Data</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="install-banner" id="install-banner">
+  <span>Install this app on your phone for quick offline access.</span>
+  <button class="ok" onclick="doInstall()">Install</button>
+  <button class="no" onclick="dismissInstall()">Later</button>
+</div>
+
+<script>
+/* ================= CATEGORY & QUICK NOTE DATA ================= */
+const CATEGORIES = [
+  {id:'plants', ic:'🌱', lbl:'Plants'},
+  {id:'sand', ic:'🏖️', lbl:'Sand'},
+  {id:'gravel', ic:'🪨', lbl:'Gravel'},
+  {id:'irrigation', ic:'💧', lbl:'Irrigation'},
+  {id:'fuel', ic:'⛽', lbl:'Fuel'},
+  {id:'repair', ic:'🔧', lbl:'Car Repair'},
+  {id:'parking', ic:'🅿️', lbl:'Parking'},
+  {id:'delivery', ic:'🚚', lbl:'Delivery'},
+  {id:'tools', ic:'🧰', lbl:'Tools'},
+  {id:'other', ic:'➕', lbl:'Other'},
+];
+const CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
+const QUICK_NOTES = ['Site Material','Vehicle','Delivery','Nursery','Sand','Repair','Other'];
+
+/* ================= INDEXEDDB LAYER ================= */
+const DB_NAME='ggPettyCashDB', DB_VER=1;
+let dbP=null;
+function openDB(){
+  if(dbP) return dbP;
+  dbP = new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = (e)=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains('transactions')){
+        const s = db.createObjectStore('transactions',{keyPath:'id'});
+        s.createIndex('date','date');
+        s.createIndex('type','type');
+      }
+      if(!db.objectStoreNames.contains('settings')){
+        db.createObjectStore('settings',{keyPath:'key'});
+      }
+    };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+  return dbP;
+}
+async function txAdd(record){
+  const db = await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction('transactions','readwrite');
+    tx.objectStore('transactions').put(record);
+    tx.oncomplete=()=>resolve(record);
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function txGetAll(){
+  const db = await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction('transactions','readonly');
+    const req = tx.objectStore('transactions').getAll();
+    req.onsuccess=()=>resolve(req.result.sort((a,b)=> (a.date+((a.time)||'00:00')).localeCompare(b.date+((b.time)||'00:00')) || (a.createdAt-b.createdAt) ));
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function txDeleteAll(){
+  const db = await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction('transactions','readwrite');
+    tx.objectStore('transactions').clear();
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function settingsGet(key, def){
+  const db = await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction('settings','readonly');
+    const req = tx.objectStore('settings').get(key);
+    req.onsuccess=()=>resolve(req.result ? req.result.value : def);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function settingsSet(key, value){
+  const db = await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction('settings','readwrite');
+    tx.objectStore('settings').put({key,value});
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+
+/* ================= BALANCE LOGIC (pure) ================= */
+function computeBalances(transactions){
+  let companyCash = 0, driverOwed = 0, totalCashIn=0, totalExpense=0, totalReimb=0;
+  for(const t of transactions){
+    if(t.type==='cash_in'){ companyCash += Number(t.amount)||0; totalCashIn += Number(t.amount)||0; }
+    else if(t.type==='expense'){
+      companyCash -= Number(t.companyAmount)||0;
+      driverOwed  += Number(t.meAmount)||0;
+      totalExpense += Number(t.amount)||0;
+    } else if(t.type==='reimbursement'){
+      driverOwed -= Number(t.amount)||0;
+      totalReimb += Number(t.amount)||0;
+    }
+  }
+  return {companyCash, driverOwed, totalCashIn, totalExpense, totalReimb};
+}
+
+/* ================= SELF-TEST ================= */
+function runDiagnostics(){
+  const results = [];
+  function assertEq(label, actual, expected){
+    const pass = Math.abs(actual-expected) < 0.001;
+    results.push({label, pass, actual, expected});
+    return pass;
+  }
+  // Test case from spec: 1000 given, 300 spent (company), 900 split 700/200, then 200 reimbursed
+  const sample = [
+    {type:'cash_in', amount:1000},
+    {type:'expense', amount:300, companyAmount:300, meAmount:0},
+    {type:'expense', amount:900, companyAmount:700, meAmount:200},
+    {type:'reimbursement', amount:200},
+  ];
+  const b = computeBalances(sample);
+  assertEq('After AED1000 cash in, AED300 co. expense, AED900 split(700/200), AED200 reimbursed → Company Cash', b.companyCash, 0);
+  assertEq('...→ Owed To Driver', b.driverOwed, 0);
+
+  // Test 2: only cash in
+  const b2 = computeBalances([{type:'cash_in', amount:500}]);
+  assertEq('Cash in AED500 only → Company Cash', b2.companyCash, 500);
+  assertEq('Cash in AED500 only → Owed', b2.driverOwed, 0);
+
+  // Test 3: pure personal expense, no reimbursement yet
+  const b3 = computeBalances([{type:'cash_in', amount:200},{type:'expense', amount:150, companyAmount:0, meAmount:150}]);
+  assertEq('AED200 in, AED150 fully personal → Company Cash', b3.companyCash, 200);
+  assertEq('AED200 in, AED150 fully personal → Owed', b3.driverOwed, 150);
+
+  // Test 4: auto-split calc function
+  const split = autoSplit(700, 500);
+  assertEq('Auto-split AED700 with AED500 cash left → Company portion', split.company, 500);
+  assertEq('Auto-split AED700 with AED500 cash left → Me portion', split.me, 200);
+
+  const el = document.getElementById('diag-results');
+  el.innerHTML = results.map(r=>`<div class="diag-line"><span>${r.label}</span><span class="${r.pass?'diag-pass':'diag-fail'}">${r.pass? 'PASS':'FAIL ('+r.actual+' ≠ '+r.expected+')'}</span></div>`).join('');
+  return results.every(r=>r.pass);
+}
+function autoSplit(amount, cashLeft){
+  amount = Number(amount)||0; cashLeft = Number(cashLeft)||0;
+  if(cashLeft <= 0) return {company:0, me: round2(amount)};
+  if(amount <= cashLeft) return {company: round2(amount), me: 0};
+  return {company: round2(cashLeft), me: round2(amount-cashLeft)};
+}
+function round2(n){ return Math.round((Number(n)||0)*100)/100; }
+
+/* ================= STATE ================= */
+let ALL_TXNS = [];
+let currentBalances = {companyCash:0, driverOwed:0};
+let expState = { category:null, pay:null, photo:null, noteChip:null };
+let lastSavedTxn = null;
+
+/* ================= INIT ================= */
+async function init(){
+  // Establish the base "home" history entry so the phone's back button
+  // and Chrome's back arrow have a well-defined screen to return to.
+  history.replaceState({screen:'screen-home'}, '', '#screen-home');
+  ALL_TXNS = await txGetAll();
+  currentBalances = computeBalances(ALL_TXNS);
+  renderHome();
+  buildCatGrid();
+  buildQuickNotes();
+  setTodayDefaults();
+  const dn = await settingsGet('driverName','');
+  document.getElementById('set-driver-name').value = dn||'';
+  const wn = await settingsGet('waNumber','');
+  document.getElementById('set-wa-number').value = wn||'';
+  registerSW();
+  setupInstallPrompt();
+  maybeAutoBackupOnOpen();
+}
+init();
+async function maybeAutoBackupOnOpen(){
+  // Best-effort: some browsers block downloads that aren't tied to a tap,
+  // so this may silently no-op — the per-save check in maybeAutoBackup()
+  // is the reliable path. This just catches the case of a driver who opens
+  // the app but doesn't log anything for a long stretch.
+  try{
+    if(!ALL_TXNS.length) return;
+    const lastAt = await settingsGet('lastAutoBackupAt', 0);
+    const hoursSince = (Date.now() - lastAt) / 3600000;
+    if(hoursSince >= AUTO_BACKUP_MIN_HOURS){
+      await backupData(true);
+      await settingsSet('lastAutoBackupAt', Date.now());
+      await settingsSet('entriesSinceBackup', 0);
+    }
+  }catch(e){ /* ignore */ }
+}
+
+function renderHome(){
+  document.getElementById('cashLeftVal').textContent = fmt(currentBalances.companyCash);
+  document.getElementById('myMoneyVal').textContent = fmt(currentBalances.driverOwed);
+  const card = document.getElementById('cashLeftCard');
+  card.classList.toggle('low', currentBalances.companyCash < 0);
+}
+function fmt(n){
+  n = Number(n)||0;
+  const s = n.toLocaleString('en-AE', {minimumFractionDigits: (n%1!==0)?2:0, maximumFractionDigits:2});
+  return 'AED ' + s;
+}
+
+/* ================= NAVIGATION (with browser/phone back button support) ================= */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+// Push a NEW entry onto history (used when moving forward from Home into a screen)
+function pushScreen(id){
+  history.pushState({screen:id}, '', '#'+id);
+  showScreen(id);
+}
+// Replace the CURRENT history entry (used for saved-screen / going back to home)
+// so the back stack doesn't grow endlessly as the driver logs many entries in a row
+function replaceScreen(id){
+  history.replaceState({screen:id}, '', '#'+id);
+  showScreen(id);
+}
+// Handles the phone's physical/gesture back button and the browser's back/forward buttons
+window.addEventListener('popstate', (e)=>{
+  const id = (e.state && e.state.screen) || 'screen-home';
+  applyScreenForState(id);
+});
+async function applyScreenForState(id){
+  if(id==='screen-home'){ await refreshAll(); showScreen('screen-home'); }
+  else if(id==='screen-today'){ await renderTodayList(); showScreen('screen-today'); }
+  else if(id==='screen-admin'){ await refreshAdmin(); showScreen('screen-admin'); }
+  else { showScreen(id); }
+}
+function goHome(){ replaceScreen('screen-home'); refreshAll(); }
+async function refreshAll(){
+  ALL_TXNS = await txGetAll();
+  currentBalances = computeBalances(ALL_TXNS);
+  renderHome();
+}
+function goAdmin(){ pushScreen('screen-admin'); refreshAdmin(); }
+function goBack(){ history.back(); }
+
+/* ================= EXPENSE ENTRY ================= */
+function setTodayDefaults(){
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0,10);
+  const timeStr = now.toTimeString().slice(0,5);
+  document.getElementById('exp-date').value = dateStr;
+  document.getElementById('exp-time').value = timeStr;
+  document.getElementById('ci-date').value = dateStr;
+  document.getElementById('ci-time').value = timeStr;
+  document.getElementById('r-date').value = dateStr;
+  document.getElementById('rep-from').value = dateStr;
+  document.getElementById('rep-to').value = dateStr;
+}
+function buildCatGrid(){
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = CATEGORIES.map(c=>`
+    <button class="cat-btn" data-cat="${c.id}" onclick="selectCategory('${c.id}')">
+      <div class="ic">${c.ic}</div>${c.lbl}
+    </button>`).join('');
+}
+function buildQuickNotes(){
+  const wrap = document.getElementById('quick-notes');
+  wrap.innerHTML = QUICK_NOTES.map(n=>`<button type="button" class="qn" onclick="pickQuickNote('${n.replace(/'/g,"\\'")}')">${n}</button>`).join('');
+}
+function pickQuickNote(n){
+  document.getElementById('exp-note').value = n;
+  document.querySelectorAll('#quick-notes .qn').forEach(b=>b.classList.toggle('sel', b.textContent===n));
+}
+function openExpenseEntry(){
+  resetExpenseForm();
+  pushScreen('screen-expense');
+}
+function resetExpenseForm(){
+  expState = { category:null, pay:null, photo:null };
+  document.getElementById('exp-amount').value='';
+  document.getElementById('exp-note').value='';
+  document.getElementById('exp-supplier').value='';
+  document.getElementById('exp-site').value='';
+  document.getElementById('exp-receipt').value='';
+  document.getElementById('exp-vehicle').value='';
+  document.getElementById('exp-remarks').value='';
+  document.getElementById('split-company').value='';
+  document.getElementById('split-me').value='';
+  document.getElementById('split-box').classList.remove('show');
+  document.getElementById('exp-warning').classList.remove('show');
+  document.getElementById('photo-preview').style.display='none';
+  document.getElementById('more-fields').classList.remove('show');
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('sel'));
+  document.querySelectorAll('.pay-btn').forEach(b=>b.classList.remove('sel'));
+  document.querySelectorAll('#quick-notes .qn').forEach(b=>b.classList.remove('sel'));
+  setTodayDefaults();
+  refreshSiteList();
+}
+function refreshSiteList(){
+  const sites = [...new Set(ALL_TXNS.filter(t=>t.site).map(t=>t.site))];
+  document.getElementById('site-list').innerHTML = sites.map(s=>`<option value="${escapeHtml(s)}">`).join('');
+}
+function toggleMore(){ document.getElementById('more-fields').classList.toggle('show'); }
+function toggleMoreCI(){ document.getElementById('more-fields-ci').classList.toggle('show'); }
+
+function selectCategory(id){
+  expState.category = id;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('sel', b.dataset.cat===id));
+}
+function selectPay(mode){
+  expState.pay = mode;
+  document.querySelectorAll('.pay-btn').forEach(b=>b.classList.toggle('sel', b.dataset.pay===mode));
+  const amount = parseFloat(document.getElementById('exp-amount').value)||0;
+  document.getElementById('exp-warning').classList.remove('show');
+  if(mode==='both'){
+    const s = autoSplit(amount, currentBalances.companyCash);
+    document.getElementById('split-company').value = s.company || '';
+    document.getElementById('split-me').value = s.me || '';
+    document.getElementById('split-box').classList.add('show');
+  } else {
+    document.getElementById('split-box').classList.remove('show');
+    if(mode==='company' && amount>0 && amount>currentBalances.companyCash){
+      showWarning('NOT ENOUGH COMPANY CASH');
+    }
+  }
+}
+function onAmountInput(){
+  const amount = parseFloat(document.getElementById('exp-amount').value)||0;
+  if(expState.pay==='both'){
+    const s = autoSplit(amount, currentBalances.companyCash);
+    document.getElementById('split-company').value = s.company || '';
+    document.getElementById('split-me').value = s.me || '';
+  }
+  if(expState.pay==='company'){
+    if(amount>0 && amount>currentBalances.companyCash) showWarning('NOT ENOUGH COMPANY CASH');
+    else document.getElementById('exp-warning').classList.remove('show');
+  }
+}
+function onSplitEdit(which){
+  // just leave user free edits; validated at save time
+}
+function switchToBoth(){
+  selectPay('both');
+}
+function showWarning(text){
+  document.getElementById('exp-warning-text').textContent = text;
+  document.getElementById('exp-warning').classList.add('show');
+}
+
+function onPhotoSelected(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    compressImage(ev.target.result, 900, 0.7).then(dataUrl=>{
+      expState.photo = dataUrl;
+      document.getElementById('photo-preview-img').src = dataUrl;
+      document.getElementById('photo-preview').style.display='block';
+    });
+  };
+  reader.readAsDataURL(file);
+}
+function compressImage(dataUrl, maxW, quality){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    img.onload = function(){
+      let w=img.width, h=img.height;
+      if(w>maxW){ h = Math.round(h * (maxW/w)); w = maxW; }
+      const canvas = document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = dataUrl;
+  });
+}
+function removePhoto(){
+  expState.photo = null;
+  document.getElementById('photo-preview').style.display='none';
+  document.getElementById('exp-photo-input').value='';
+}
+
+async function saveExpense(){
+  const amount = parseFloat(document.getElementById('exp-amount').value);
+  if(!amount || amount<=0){ toast('ENTER AMOUNT'); return; }
+  if(!expState.category){ toast('PICK A TYPE'); return; }
+  if(!expState.pay){ toast('CHOOSE COMPANY / ME / BOTH'); return; }
+
+  let companyAmount=0, meAmount=0;
+  if(expState.pay==='company') companyAmount = amount;
+  else if(expState.pay==='me') meAmount = amount;
+  else {
+    companyAmount = parseFloat(document.getElementById('split-company').value)||0;
+    meAmount = parseFloat(document.getElementById('split-me').value)||0;
+    if(Math.abs((companyAmount+meAmount) - amount) > 0.01){
+      showWarning('AMOUNTS DO NOT MATCH');
+      return;
+    }
+  }
+
+  const record = {
+    id: 'e_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    type:'expense',
+    date: document.getElementById('exp-date').value,
+    time: document.getElementById('exp-time').value,
+    category: expState.category,
+    amount: round2(amount),
+    companyAmount: round2(companyAmount),
+    meAmount: round2(meAmount),
+    payMode: expState.pay,
+    note: document.getElementById('exp-note').value.trim(),
+    supplier: document.getElementById('exp-supplier').value.trim(),
+    site: document.getElementById('exp-site').value.trim(),
+    receiptNo: document.getElementById('exp-receipt').value.trim(),
+    vehicle: document.getElementById('exp-vehicle').value.trim(),
+    remarks: document.getElementById('exp-remarks').value.trim(),
+    photo: expState.photo,
+    createdAt: Date.now(),
+  };
+  await txAdd(record);
+  lastSavedTxn = record;
+  await refreshAll();
+  document.getElementById('saved-sub').textContent = `${CAT_MAP[record.category].lbl} · ${fmt(record.amount)} saved.`;
+  replaceScreen('screen-saved');
+  maybeAutoBackup();
+}
+
+/* ================= CASH IN ================= */
+function openCashIn(){
+  document.getElementById('ci-amount').value='';
+  document.getElementById('ci-note').value='';
+  document.getElementById('ci-givenby').value='';
+  document.getElementById('more-fields-ci').classList.remove('show');
+  setTodayDefaults();
+  pushScreen('screen-cashin');
+}
+async function saveCashIn(){
+  const amount = parseFloat(document.getElementById('ci-amount').value);
+  if(!amount || amount<=0){ toast('ENTER AMOUNT'); return; }
+  const record = {
+    id: 'c_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    type:'cash_in',
+    date: document.getElementById('ci-date').value,
+    time: document.getElementById('ci-time').value,
+    amount: round2(amount),
+    note: document.getElementById('ci-note').value.trim(),
+    givenBy: document.getElementById('ci-givenby').value.trim(),
+    createdAt: Date.now(),
+  };
+  await txAdd(record);
+  lastSavedTxn = record;
+  await refreshAll();
+  document.getElementById('saved-sub').textContent = `Cash In ${fmt(record.amount)} saved.`;
+  replaceScreen('screen-saved');
+  maybeAutoBackup();
+}
+
+/* ================= SAVED SCREEN ACTIONS ================= */
+function nextEntry(){
+  // Replaces the "saved" history entry rather than pushing a new one, so the
+  // back stack stays [home, current-form] even after several NEXT taps in a row.
+  if(lastSavedTxn && lastSavedTxn.type==='cash_in'){
+    document.getElementById('ci-amount').value='';
+    document.getElementById('ci-note').value='';
+    document.getElementById('ci-givenby').value='';
+    document.getElementById('more-fields-ci').classList.remove('show');
+    setTodayDefaults();
+    replaceScreen('screen-cashin');
+  } else {
+    resetExpenseForm();
+    replaceScreen('screen-expense');
+  }
+}
+function whatsappLast(){
+  if(!lastSavedTxn) { openSummaryPeriod(); return; }
+  let text;
+  if(lastSavedTxn.type==='expense'){
+    text = `🌿 Garden Grow Petty Cash\n${CAT_MAP[lastSavedTxn.category].ic} ${CAT_MAP[lastSavedTxn.category].lbl}\nAmount: ${fmt(lastSavedTxn.amount)}\nPaid: ${lastSavedTxn.payMode.toUpperCase()}\nDate: ${lastSavedTxn.date}${lastSavedTxn.note? '\nNote: '+lastSavedTxn.note:''}`;
+  } else {
+    text = `🌿 Garden Grow Petty Cash\n💰 CASH IN\nAmount: ${fmt(lastSavedTxn.amount)}\nDate: ${lastSavedTxn.date}`;
+  }
+  openWhatsApp(text);
+}
+async function openWhatsApp(text){
+  const num = await settingsGet('waNumber','');
+  const encoded = encodeURIComponent(text);
+  const url = num ? `https://wa.me/${num.replace(/[^0-9]/g,'')}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+  if(navigator.share){
+    try{ await navigator.share({text}); return; }catch(e){/*fallback below*/}
+  }
+  window.open(url, '_blank');
+}
+
+/* ================= SEND SUMMARY (statement for a chosen period) ================= */
+function openSummaryPeriod(){
+  pushScreen('screen-summary-period');
+}
+function periodRange(key){
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  if(key==='today') return {from: todayStr, to: todayStr, label:'Today'};
+  if(key==='week'){
+    const dow = (today.getDay()+6)%7; // Mon=0..Sun=6
+    const monday = new Date(today); monday.setDate(today.getDate()-dow);
+    return {from: monday.toISOString().slice(0,10), to: todayStr, label:'This Week'};
+  }
+  if(key==='month'){
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    return {from: first.toISOString().slice(0,10), to: todayStr, label:'This Month'};
+  }
+  // 'all' — since the very first recorded entry
+  const earliest = ALL_TXNS.length ? ALL_TXNS.reduce((min,t)=> (t.date<min?t.date:min), ALL_TXNS[0].date) : todayStr;
+  return {from: earliest, to: todayStr, label:'Since Start'};
+}
+async function sendPeriodSummary(key){
+  await refreshAll();
+  const {from, to, label} = periodRange(key);
+  const txns = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
+  const opening = computeBalances(ALL_TXNS.filter(t=>t.date<from));
+  const closing = computeBalances(ALL_TXNS.filter(t=>t.date<=to));
+  const text = buildStatementText(label, from, to, txns, opening, closing);
+  openWhatsApp(text);
+}
+function buildStatementText(label, fromStr, toStr, txns, opening, closing){
+  const exp = txns.filter(t=>t.type==='expense');
+  const cashin = txns.filter(t=>t.type==='cash_in');
+  const reimb = txns.filter(t=>t.type==='reimbursement');
+  const totalExp = exp.reduce((s,t)=>s+Number(t.amount),0);
+  const totalIn = cashin.reduce((s,t)=>s+Number(t.amount),0);
+  const totalReimb = reimb.reduce((s,t)=>s+Number(t.amount),0);
+  const totalCompanyPaid = exp.reduce((s,t)=>s+Number(t.companyAmount||0),0);
+  const totalMePaid = exp.reduce((s,t)=>s+Number(t.meAmount||0),0);
+  const sameDay = fromStr===toStr;
+
+  let lines = [`🌿 Garden Grow — ${label} Statement`, sameDay ? `Date: ${fromStr}` : `Period: ${fromStr} to ${toStr}`, ``];
+
+  if(cashin.length) lines.push(`💰 Cash In: ${fmt(totalIn)}`);
+
+  if(exp.length){
+    lines.push(`🛒 Expenses (${exp.length}): ${fmt(totalExp)}`);
+    if(sameDay){
+      // Same-day: show every entry, driver-friendly detail
+      exp.forEach(t=>{ lines.push(` • ${CAT_MAP[t.category]?CAT_MAP[t.category].ic:''} ${CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category} — ${fmt(t.amount)} (${t.payMode.toUpperCase()})`); });
+    } else {
+      // Longer period: group by category so the message stays a readable length
+      const byCat = {};
+      exp.forEach(t=>{ byCat[t.category] = byCat[t.category] || {sum:0,count:0}; byCat[t.category].sum += Number(t.amount); byCat[t.category].count++; });
+      Object.keys(byCat).sort((a,b)=>byCat[b].sum-byCat[a].sum).forEach(catId=>{
+        const c = CAT_MAP[catId] || {ic:'➕', lbl:catId};
+        const v = byCat[catId];
+        lines.push(` • ${c.ic} ${c.lbl} — ${fmt(v.sum)} (${v.count})`);
+      });
+    }
+    lines.push(`   Paid by Company: ${fmt(totalCompanyPaid)}  ·  Paid by Driver: ${fmt(totalMePaid)}`);
+  }
+
+  if(reimb.length) lines.push(`↩️ Reimbursed: ${fmt(totalReimb)}`);
+
+  if(!cashin.length && !exp.length && !reimb.length) lines.push('No entries in this period.');
+
+  lines.push(``);
+  lines.push(`Opening Cash Left: ${fmt(opening.companyCash)}`);
+  lines.push(`Closing Cash Left: ${fmt(closing.companyCash)}`);
+  lines.push(`Opening My Money Owed: ${fmt(opening.driverOwed)}`);
+  lines.push(`Closing My Money Owed: ${fmt(closing.driverOwed)}`);
+  return lines.join('\n');
+}
+
+/* ================= TODAY / HISTORY LIST ================= */
+async function openToday(){
+  await renderTodayList();
+  pushScreen('screen-today');
+}
+async function renderTodayList(){
+  await refreshAll();
+  const todayStr = new Date().toISOString().slice(0,10);
+  const todays = ALL_TXNS.filter(t=>t.date===todayStr).slice().reverse();
+  const list = document.getElementById('today-list');
+  if(!todays.length){
+    list.innerHTML = `<div class="empty-note">No entries yet today.<br>Tap 🛒 BUY / PAY or 💰 CASH IN to add one.</div>`;
+  } else {
+    list.innerHTML = todays.map(renderHistItem).join('');
+  }
+}
+function renderHistItem(t){
+  if(t.type==='cash_in'){
+    return `<div class="hist-item"><div class="hi-ic">💰</div><div class="hi-body">
+      <div class="hi-top"><span>Cash In</span><span>${fmt(t.amount)}</span></div>
+      <div class="hi-sub">${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
+      <span class="hi-tag tag-cashin">CASH IN</span>
+    </div></div>`;
+  }
+  if(t.type==='reimbursement'){
+    return `<div class="hist-item"><div class="hi-ic">↩️</div><div class="hi-body">
+      <div class="hi-top"><span>Reimbursement</span><span>${fmt(t.amount)}</span></div>
+      <div class="hi-sub">${t.note?escapeHtml(t.note):''}</div>
+      <span class="hi-tag tag-reimb">REIMBURSED</span>
+    </div></div>`;
+  }
+  const c = CAT_MAP[t.category] || {ic:'➕', lbl:t.category};
+  const tagClass = t.payMode==='company'?'tag-company':(t.payMode==='me'?'tag-me':'tag-both');
+  return `<div class="hist-item"><div class="hi-ic">${c.ic}</div><div class="hi-body">
+    <div class="hi-top"><span>${c.lbl}</span><span>${fmt(t.amount)}</span></div>
+    <div class="hi-sub">${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
+    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>
+  </div></div>`;
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ================= ADMIN ================= */
+function selectAdminTab(tab){
+  document.querySelectorAll('.admin-tab').forEach(b=>b.classList.toggle('sel', b.dataset.tab===tab));
+  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.toggle('active', p.dataset.panel===tab));
+  if(tab==='txns') renderTxnTable();
+  if(tab==='reimb') renderReimbTab();
+  if(tab==='reports') renderDailySummary();
+  if(tab==='backup') renderAutoBackupStatus();
+}
+async function refreshAdmin(){
+  await refreshAll();
+  const b = currentBalances;
+  document.getElementById('d-cash').textContent = fmt(b.companyCash);
+  document.getElementById('d-owed').textContent = fmt(b.driverOwed);
+  document.getElementById('d-cashin').textContent = fmt(b.totalCashIn);
+  document.getElementById('d-exp').textContent = fmt(b.totalExpense);
+  document.getElementById('d-reimb').textContent = fmt(b.totalReimb);
+  document.getElementById('d-count').textContent = ALL_TXNS.length;
+  renderTxnTable();
+  renderReimbTab();
+}
+function getFilteredTxns(){
+  const q = (document.getElementById('f-search').value||'').toLowerCase();
+  const type = document.getElementById('f-type').value;
+  const from = document.getElementById('f-from').value;
+  const to = document.getElementById('f-to').value;
+  return ALL_TXNS.filter(t=>{
+    if(type && t.type!==type) return false;
+    if(from && t.date < from) return false;
+    if(to && t.date > to) return false;
+    if(q){
+      const hay = [t.note,t.supplier,t.site,t.receiptNo,t.vehicle,t.remarks].filter(Boolean).join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  }).slice().reverse();
+}
+function renderTxnTable(){
+  const rows = getFilteredTxns();
+  document.getElementById('txn-tbody').innerHTML = rows.map(t=>{
+    const cat = t.type==='expense' ? (CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category) : (t.type==='cash_in'?'—':'—');
+    const paid = t.type==='expense' ? t.payMode.toUpperCase() : '—';
+    const typeLbl = t.type==='cash_in'?'Cash In':(t.type==='expense'?'Expense':'Reimburse');
+    return `<tr>
+      <td>${t.date}</td><td>${typeLbl}</td><td>${escapeHtml(cat)}</td><td>${fmt(t.amount)}</td>
+      <td>${paid}</td><td>${escapeHtml(t.note||'')}</td>
+      <td>${t.photo?'📷':''}</td>
+      <td><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="deleteTxn('${t.id}')">Delete</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No transactions found.</td></tr>`;
+}
+async function deleteTxn(id){
+  if(!confirm('Delete this entry? This cannot be undone.')) return;
+  const db = await openDB();
+  await new Promise((res,rej)=>{
+    const tx = db.transaction('transactions','readwrite');
+    tx.objectStore('transactions').delete(id);
+    tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
+  });
+  await refreshAdmin();
+  toast('Deleted');
+}
+
+/* ---- Reimbursement tab ---- */
+function renderReimbTab(){
+  document.getElementById('r-owed').textContent = fmt(currentBalances.driverOwed);
+  const rows = ALL_TXNS.filter(t=>t.type==='reimbursement').slice().reverse();
+  document.getElementById('reimb-tbody').innerHTML = rows.map(t=>
+    `<tr><td>${t.date}</td><td>${fmt(t.amount)}</td><td>${escapeHtml(t.note||'')}</td></tr>`
+  ).join('') || `<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px;">No reimbursements yet.</td></tr>`;
+}
+async function saveReimbursement(){
+  const amount = parseFloat(document.getElementById('r-amount').value);
+  if(!amount || amount<=0){ toast('Enter an amount'); return; }
+  const record = {
+    id: 'r_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    type:'reimbursement',
+    date: document.getElementById('r-date').value,
+    amount: round2(amount),
+    note: document.getElementById('r-note').value.trim(),
+    createdAt: Date.now(),
+  };
+  await txAdd(record);
+  document.getElementById('r-amount').value='';
+  document.getElementById('r-note').value='';
+  await refreshAdmin();
+  toast('Reimbursement recorded');
+  maybeAutoBackup();
+}
+
+/* ---- Reports ---- */
+function setReportPreset(key){
+  const {from, to} = periodRange(key);
+  document.getElementById('rep-from').value = from;
+  document.getElementById('rep-to').value = to;
+  renderDailySummary();
+}
+function renderDailySummary(){
+  const from = document.getElementById('rep-from').value || new Date().toISOString().slice(0,10);
+  const to = document.getElementById('rep-to').value || from;
+  const txns = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
+  const opening = computeBalances(ALL_TXNS.filter(t=>t.date<from));
+  const closing = computeBalances(ALL_TXNS.filter(t=>t.date<=to));
+  const label = (from===to) ? 'Daily' : 'Period';
+  document.getElementById('daily-summary-box').textContent = buildStatementText(label, from, to, txns, opening, closing);
+}
+function sendReportWhatsApp(){
+  const from = document.getElementById('rep-from').value;
+  const to = document.getElementById('rep-to').value;
+  if(!from || !to){ toast('Pick a date range first'); return; }
+  const txns = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
+  const opening = computeBalances(ALL_TXNS.filter(t=>t.date<from));
+  const closing = computeBalances(ALL_TXNS.filter(t=>t.date<=to));
+  const label = (from===to) ? 'Daily' : 'Period';
+  openWhatsApp(buildStatementText(label, from, to, txns, opening, closing));
+}
+function exportCSV(){
+  const rows = getFilteredTxns();
+  const headers = ['Date','Time','Type','Category','Amount','CompanyAmount','MeAmount','PaidMode','Note','Supplier','Site','ReceiptNo','Vehicle','Remarks'];
+  const csvRows = [headers.join(',')];
+  rows.forEach(t=>{
+    const row = [
+      t.date, t.time||'', t.type, t.category||'', t.amount,
+      t.companyAmount||'', t.meAmount||'', t.payMode||'', t.note||'',
+      t.supplier||'', t.site||'', t.receiptNo||'', t.vehicle||'', t.remarks||''
+    ].map(csvEscape);
+    csvRows.push(row.join(','));
+  });
+  const blob = new Blob([csvRows.join('\n')], {type:'text/csv'});
+  downloadBlob(blob, `petty-cash-export-${new Date().toISOString().slice(0,10)}.csv`);
+}
+function csvEscape(v){
+  v = String(v==null?'':v);
+  if(/[",\n]/.test(v)) return '"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+
+/* ---- Backup / Restore ---- */
+async function backupData(silent){
+  const all = await txGetAll();
+  const driverName = await settingsGet('driverName','');
+  const waNumber = await settingsGet('waNumber','');
+  const payload = { app:'gg-pettycash', version:1, exportedAt:new Date().toISOString(), transactions: all, settings:{driverName, waNumber} };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+  const stamp = new Date().toISOString().replace(/[:T]/g,'-').slice(0,16);
+  downloadBlob(blob, `petty-cash-backup-${stamp}.json`);
+  if(!silent) toast('Backup downloaded');
+  return payload.transactions.length;
+}
+
+/* ---- Auto-Backup (local, no account needed) ----
+   Downloads a fresh backup .json to the phone's Downloads folder automatically,
+   triggered right after a save so it still counts as a user-gesture download.
+   Runs at most once per AUTO_BACKUP_MIN_HOURS, or sooner if AUTO_BACKUP_EVERY_N
+   new entries have piled up since the last auto-backup. */
+const AUTO_BACKUP_MIN_HOURS = 24;
+const AUTO_BACKUP_EVERY_N = 5;
+async function maybeAutoBackup(){
+  try{
+    const now = Date.now();
+    const lastAt = await settingsGet('lastAutoBackupAt', 0);
+    const countSince = (await settingsGet('entriesSinceBackup', 0)) + 1;
+    const hoursSince = (now - lastAt) / 3600000;
+    if(hoursSince >= AUTO_BACKUP_MIN_HOURS || countSince >= AUTO_BACKUP_EVERY_N){
+      await backupData(true);
+      await settingsSet('lastAutoBackupAt', now);
+      await settingsSet('entriesSinceBackup', 0);
+      toast('Auto-backup saved to Downloads');
+      renderAutoBackupStatus();
+    } else {
+      await settingsSet('entriesSinceBackup', countSince);
+    }
+  }catch(e){ /* never let backup issues block the driver's save */ }
+}
+async function renderAutoBackupStatus(){
+  const el = document.getElementById('auto-backup-status');
+  if(!el) return;
+  const lastAt = await settingsGet('lastAutoBackupAt', 0);
+  el.textContent = lastAt ? new Date(lastAt).toLocaleString('en-AE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Not yet';
+}
+async function restoreData(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    if(!payload.transactions || !Array.isArray(payload.transactions)) throw new Error('Invalid file');
+    if(!confirm(`This backup has ${payload.transactions.length} entries. Restoring will REPLACE all current data. Continue?`)) { e.target.value=''; return; }
+    if(!confirm('Are you sure? This cannot be undone.')) { e.target.value=''; return; }
+    await txDeleteAll();
+    const db = await openDB();
+    await new Promise((res,rej)=>{
+      const tx = db.transaction('transactions','readwrite');
+      const store = tx.objectStore('transactions');
+      payload.transactions.forEach(r=>store.put(r));
+      tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
+    });
+    if(payload.settings){
+      if(payload.settings.driverName!=null) await settingsSet('driverName', payload.settings.driverName);
+      if(payload.settings.waNumber!=null) await settingsSet('waNumber', payload.settings.waNumber);
+    }
+    await refreshAdmin();
+    document.getElementById('set-driver-name').value = payload.settings?.driverName || '';
+    document.getElementById('set-wa-number').value = payload.settings?.waNumber || '';
+    toast('Restore complete');
+  }catch(err){
+    alert('Could not read this backup file. Please check the file and try again.');
+  }
+  e.target.value='';
+}
+async function wipeAllData(){
+  if(!confirm('Erase ALL data (all expenses, cash-ins, reimbursements)? This cannot be undone.')) return;
+  if(!confirm('Really erase everything? Consider taking a Backup first.')) return;
+  await txDeleteAll();
+  await refreshAdmin();
+  toast('All data erased');
+}
+async function saveSetting(key, value){
+  await settingsSet(key, value);
+  toast('Saved');
+}
+
+/* ================= TOAST ================= */
+let toastTimer=null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+/* ================= PWA install & service worker ================= */
+let deferredInstallPrompt=null;
+function setupInstallPrompt(){
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    document.getElementById('install-banner').classList.add('show');
+  });
+}
+function doInstall(){
+  document.getElementById('install-banner').classList.remove('show');
+  if(deferredInstallPrompt){ deferredInstallPrompt.prompt(); deferredInstallPrompt=null; }
+}
+function dismissInstall(){
+  document.getElementById('install-banner').classList.remove('show');
+}
+function registerSW(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  }
+}
+</script>
+</body>
+</html>
