@@ -537,6 +537,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="admin-tab" data-tab="txns" onclick="selectAdminTab('txns')">Transactions</button>
       <button class="admin-tab" data-tab="reimb" onclick="selectAdminTab('reimb')">Reimbursement</button>
       <button class="admin-tab" data-tab="reports" onclick="selectAdminTab('reports')">Reports</button>
+      <button class="admin-tab" data-tab="sync" onclick="selectAdminTab('sync')">Live Sync</button>
       <button class="admin-tab" data-tab="backup" onclick="selectAdminTab('backup')">Backup</button>
       <button class="admin-tab" data-tab="settings" onclick="selectAdminTab('settings')">Settings</button>
     </div>
@@ -620,6 +621,21 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="btn block" onclick="sendReportWhatsApp()">📱 Send Text Summary via WhatsApp</button>
     </div>
 
+    <!-- Live Sync -->
+    <div class="admin-panel" data-panel="sync">
+      <div class="stat-card" style="margin-bottom:16px;">
+        <div class="lbl">Live Sync Status</div>
+        <div class="val" id="sync-status" style="font-size:16px;">Checking…</div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 0;">Every entry is silently sent to your Google Sheet in the background when the phone is online. Nothing for the driver to do — no sign-in, no setup.</p>
+      </div>
+      <div class="admin-grid">
+        <div class="stat-card"><div class="lbl">Synced</div><div class="val" id="sync-count-done">0</div></div>
+        <div class="stat-card"><div class="lbl">Waiting to Sync</div><div class="val" id="sync-count-pending">0</div></div>
+      </div>
+      <button class="btn primary block" onclick="syncNow(true)">🔄 Sync Now</button>
+      <p style="font-size:12px;color:var(--muted);">"Waiting to Sync" clears automatically once the phone has internet — this button just forces it right away.</p>
+    </div>
+
     <!-- Backup -->
     <div class="admin-panel" data-panel="backup">
       <div class="stat-card" style="margin-bottom:16px;">
@@ -652,7 +668,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
       <div class="settings-row">
         <span>App Version</span>
-        <span style="font-weight:700;">v2.0</span>
+        <span style="font-weight:700;">v2.1</span>
       </div>
       <div class="section-title">Security</div>
       <button class="btn block" onclick="openChangePin()">🔒 Change Admin PIN</button>
@@ -848,6 +864,7 @@ async function init(){
   registerSW();
   setupInstallPrompt();
   maybeAutoBackupOnOpen();
+  syncNow(false);
 }
 init();
 async function finishDriverSetup(){
@@ -1160,6 +1177,7 @@ async function saveExpense(){
     remarks: document.getElementById('exp-remarks').value.trim(),
     photo: expState.photo,
     driver: await settingsGet('driverName',''),
+    synced: false,
     createdAt: Date.now(),
   };
   await txAdd(record);
@@ -1168,6 +1186,7 @@ async function saveExpense(){
   document.getElementById('saved-sub').textContent = `${CAT_MAP[record.category].lbl} · ${fmt(record.amount)} saved.`;
   replaceScreen('screen-saved');
   maybeAutoBackup();
+  syncNow(false);
 }
 
 /* ================= CASH IN ================= */
@@ -1191,6 +1210,7 @@ async function saveCashIn(){
     note: document.getElementById('ci-note').value.trim(),
     givenBy: document.getElementById('ci-givenby').value.trim(),
     driver: await settingsGet('driverName',''),
+    synced: false,
     createdAt: Date.now(),
   };
   await txAdd(record);
@@ -1199,6 +1219,7 @@ async function saveCashIn(){
   document.getElementById('saved-sub').textContent = `Cash In ${fmt(record.amount)} saved.`;
   replaceScreen('screen-saved');
   maybeAutoBackup();
+  syncNow(false);
 }
 
 /* ================= SAVED SCREEN ACTIONS ================= */
@@ -1544,6 +1565,7 @@ function selectAdminTab(tab){
   if(tab==='reimb') renderReimbTab();
   if(tab==='reports') renderDailySummary();
   if(tab==='backup') renderAutoBackupStatus();
+  if(tab==='sync') renderSyncStatus();
 }
 async function refreshAdmin(){
   await refreshAll();
@@ -1618,6 +1640,7 @@ async function saveReimbursement(){
     amount: round2(amount),
     note: document.getElementById('r-note').value.trim(),
     driver: await settingsGet('driverName',''),
+    synced: false,
     createdAt: Date.now(),
   };
   await txAdd(record);
@@ -1626,6 +1649,7 @@ async function saveReimbursement(){
   await refreshAdmin();
   toast('Reimbursement recorded');
   maybeAutoBackup();
+  syncNow(false);
 }
 
 /* ---- Reports ---- */
@@ -1737,6 +1761,79 @@ async function renderAutoBackupStatus(){
   const lastAt = await settingsGet('lastAutoBackupAt', 0);
   el.textContent = lastAt ? new Date(lastAt).toLocaleString('en-AE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Not yet';
 }
+
+/* ================= LIVE SYNC (silent, built-in — no driver action) =================
+   SYNC_URL is baked into the app itself, so every phone running this same
+   file syncs to the same Google Sheet automatically — nothing for the
+   driver to type, sign into, or approve. Leave it blank ('') to keep the
+   app fully offline with no live sync at all; every other feature (photos,
+   PDF statements, local backup) works exactly the same either way. */
+const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxRL0Q-eVgmoQrphSsS1l1nfLXrVPgzpG2vHiRTpy8u2rUZo59gTFACqSYZHY9oWHPC/exec'; // <-- set once to your deployed Apps Script Web App URL
+
+let syncInFlight = false;
+async function markSynced(ids){
+  if(!ids.length) return;
+  const db = await openDB();
+  const all = await txGetAll();
+  const map = new Map(all.map(t=>[t.id,t]));
+  await Promise.all(ids.map(id=>{
+    const rec = map.get(id);
+    if(!rec) return Promise.resolve();
+    rec.synced = true;
+    return txAdd(rec);
+  }));
+}
+async function syncNow(manual){
+  if(!SYNC_URL) { if(manual) toast('Live Sync isn\'t set up yet'); return; }
+  if(syncInFlight) return;
+  if(!navigator.onLine){ if(manual) toast('No internet right now — will sync automatically once online'); return; }
+  syncInFlight = true;
+  try{
+    const all = await txGetAll();
+    const pending = all.filter(t=>!t.synced);
+    if(!pending.length){ if(manual) toast('Already up to date'); renderSyncStatus(); return; }
+    const driverName = await settingsGet('driverName','');
+    // Send in small batches so one slow request doesn't hold up everything
+    const BATCH = 25;
+    for(let i=0;i<pending.length;i+=BATCH){
+      const batch = pending.slice(i, i+BATCH).map(t=>({...t, driver: t.driver || driverName}));
+      const resp = await fetch(SYNC_URL, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids a CORS preflight against Apps Script
+        body: JSON.stringify({records: batch})
+      });
+      if(!resp.ok) throw new Error('Sync request failed: '+resp.status);
+      await markSynced(batch.map(t=>t.id));
+    }
+    await settingsSet('lastSyncAt', Date.now());
+    if(manual) toast('Synced');
+  }catch(e){
+    if(manual) toast('Could not sync — will retry automatically');
+  } finally {
+    syncInFlight = false;
+    renderSyncStatus();
+  }
+}
+async function renderSyncStatus(){
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  if(!SYNC_URL){
+    el.textContent = 'Not set up';
+    document.getElementById('sync-count-done').textContent = '—';
+    document.getElementById('sync-count-pending').textContent = '—';
+    return;
+  }
+  const all = await txGetAll();
+  const done = all.filter(t=>t.synced).length;
+  const pending = all.length - done;
+  document.getElementById('sync-count-done').textContent = done;
+  document.getElementById('sync-count-pending').textContent = pending;
+  const lastAt = await settingsGet('lastSyncAt', 0);
+  if(pending===0) el.textContent = lastAt ? ('Up to date — '+new Date(lastAt).toLocaleString('en-AE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})) : 'Up to date';
+  else el.textContent = navigator.onLine ? 'Syncing…' : 'Offline — will sync when back online';
+}
+// Retry automatically whenever the phone regains internet, and on app open.
+window.addEventListener('online', ()=>syncNow(false));
 async function restoreData(e){
   const file = e.target.files[0];
   if(!file) return;
