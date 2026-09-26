@@ -1482,6 +1482,7 @@ let histFilterKey = 'today';
 function openHistory(){
   pushScreen('screen-today');
   renderTodayList();
+  pullFromCloud().then(renderTodayList); // refresh with the other person's latest entries too
 }
 function setHistFilter(key){
   histFilterKey = key;
@@ -1806,6 +1807,7 @@ async function syncNow(manual){
       await markSynced(batch.map(t=>t.id));
     }
     await settingsSet('lastSyncAt', Date.now());
+    await pullFromCloud();
     if(manual) toast('Synced');
   }catch(e){
     if(manual) toast('Could not sync — will retry automatically');
@@ -1813,6 +1815,49 @@ async function syncNow(manual){
     syncInFlight = false;
     renderSyncStatus();
   }
+}
+// Pulls every record anyone has pushed to the shared sheet (you and your
+// driver) and merges in any that this phone doesn't have locally yet, so
+// the app itself — not just the spreadsheet — shows the combined picture.
+// Note: photos aren't synced to the cloud, so a pulled entry from the other
+// person's phone won't carry its photo (only entries saved on THIS phone do).
+async function pullFromCloud(){
+  if(!SYNC_URL) return;
+  if(!navigator.onLine) return;
+  try{
+    const resp = await fetch(SYNC_URL, { method:'GET' });
+    if(!resp.ok) return;
+    const data = await resp.json();
+    if(!data || !Array.isArray(data.records)) return;
+    const existing = new Set((await txGetAll()).map(t=>t.id));
+    let added = 0;
+    for(const r of data.records){
+      if(!r.id || existing.has(r.id)) continue;
+      await txAdd({
+        id: r.id,
+        driver: r.driver||'',
+        type: r.type||'expense',
+        date: r.date||'',
+        time: r.time||'',
+        category: r.category||'',
+        note: r.note||'',
+        amount: Number(r.amount)||0,
+        companyAmount: r.companyAmount===''?undefined:Number(r.companyAmount),
+        meAmount: r.meAmount===''?undefined:Number(r.meAmount),
+        payMode: r.payMode||'',
+        supplier: r.supplier||'',
+        site: r.site||'',
+        receiptNo: r.receiptNo||'',
+        vehicle: r.vehicle||'',
+        remarks: r.remarks||'',
+        givenBy: r.givenBy||'',
+        synced: true,
+        createdAt: Date.now(),
+      });
+      added++;
+    }
+    if(added){ ALL_TXNS = await txGetAll(); currentBalances = computeBalances(ALL_TXNS); renderHome(); }
+  }catch(e){ /* best-effort — local data still works fine offline */ }
 }
 async function renderSyncStatus(){
   const el = document.getElementById('sync-status');
