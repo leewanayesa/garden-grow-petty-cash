@@ -1565,17 +1565,31 @@ function renderHistItem(t){
 // Deleting from the everyday History list still requires the Admin PIN, so a
 // driver can't erase entries — only whoever knows the PIN can. If no PIN has
 // been set yet at all, this just tells you to set one first (Admin > Settings).
-async function requestDeleteFromHistory(id){
-  const entered = prompt('Enter Admin PIN to delete this entry:');
-  if(entered===null) return;
-  if(entered.trim()!==ADMIN_PIN){ toast('Wrong PIN'); return; }
-  if(!confirm('Delete this entry? This cannot be undone.')) return;
+// Deletes locally AND tells the cloud to remove the row, so it doesn't just
+// come back on the next pull (here or on the OTHER person's phone).
+async function deleteEntryEverywhere(id){
   const db = await openDB();
   await new Promise((res,rej)=>{
     const tx = db.transaction('transactions','readwrite');
     tx.objectStore('transactions').delete(id);
     tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
   });
+  if(SYNC_URL && navigator.onLine){
+    try{
+      await fetch(SYNC_URL, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({deletes:[id]})
+      });
+    }catch(e){ /* local delete already done; cloud row may reappear until this succeeds later */ }
+  }
+}
+async function requestDeleteFromHistory(id){
+  const entered = prompt('Enter Admin PIN to delete this entry:');
+  if(entered===null) return;
+  if(entered.trim()!==ADMIN_PIN){ toast('Wrong PIN'); return; }
+  if(!confirm('Delete this entry? This cannot be undone.')) return;
+  await deleteEntryEverywhere(id);
   toast('Deleted');
   await renderTodayList();
 }
@@ -1705,12 +1719,7 @@ function renderTxnTable(){
 }
 async function deleteTxn(id){
   if(!confirm('Delete this entry? This cannot be undone.')) return;
-  const db = await openDB();
-  await new Promise((res,rej)=>{
-    const tx = db.transaction('transactions','readwrite');
-    tx.objectStore('transactions').delete(id);
-    tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
-  });
+  await deleteEntryEverywhere(id);
   await refreshAdmin();
   toast('Deleted');
 }
@@ -1962,6 +1971,21 @@ async function pullFromCloud(){
         // Someone (Esa, from another device) approved/rejected this since we last checked.
         existing.status = cloudStatus;
         await txAdd(existing);
+        changed++;
+      }
+    }
+    // Anything that WAS synced to the cloud before but is no longer in the
+    // cloud's list has been deleted (by Esa, possibly from a different
+    // device) — remove it here too so it doesn't linger forever.
+    const cloudIds = new Set(data.records.map(r=>r.id));
+    const db = await openDB();
+    for(const t of localAll){
+      if(t.synced && !cloudIds.has(t.id)){
+        await new Promise((res,rej)=>{
+          const tx = db.transaction('transactions','readwrite');
+          tx.objectStore('transactions').delete(t.id);
+          tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
+        });
         changed++;
       }
     }

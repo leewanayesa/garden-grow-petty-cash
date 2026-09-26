@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gg-pettycash-v7';
+const CACHE_NAME = 'gg-pettycash-v8';
 const ASSETS = [
   './',
   './index.html',
