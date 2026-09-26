@@ -293,7 +293,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <h1 style="margin-bottom:2px;">🌿 Garden Grow — Petty Cash</h1>
         <div id="home-driver-name" style="font-size:12px;opacity:.85;"></div>
       </div>
-      <button class="adminlink" onclick="goAdmin()">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+        <button class="adminlink" onclick="goAdmin()">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
+        <button class="adminlink" onclick="switchDriver()">🔄 Switch Driver</button>
+      </div>
     </div>
     <div class="home-wrap">
       <div class="balance-cards">
@@ -2084,9 +2087,29 @@ function dismissInstall(){
   document.getElementById('install-banner').classList.remove('show');
 }
 function registerSW(){
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
-  }
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('service-worker.js').then(reg=>{
+    // Actively check for a newer service-worker.js every time the app opens,
+    // instead of waiting for the browser's own (slow, unpredictable) check.
+    reg.update().catch(()=>{});
+    // If a new version finishes installing while we're open, activate it and
+    // reload automatically — no more manual "clear site data" needed.
+    reg.addEventListener('updatefound', ()=>{
+      const nw = reg.installing;
+      if(!nw) return;
+      nw.addEventListener('statechange', ()=>{
+        if(nw.state==='installed' && navigator.serviceWorker.controller){
+          nw.postMessage('SKIP_WAITING');
+        }
+      });
+    });
+  }).catch(()=>{});
+  let reloadedOnce = false;
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    if(reloadedOnce) return;
+    reloadedOnce = true;
+    location.reload();
+  });
 }
 </script>
 </body>
