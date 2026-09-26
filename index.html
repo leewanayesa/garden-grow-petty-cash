@@ -215,6 +215,8 @@ input,select,textarea{font-family:inherit;}
 .tag-reimb{background:#fbe3ef;color:#c2185b;}
 .empty-note{text-align:center;color:var(--muted);padding:60px 20px;font-size:15px;}
 .hist-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--line);}
+.hist-del{background:none;border:none;font-size:18px;flex-shrink:0;padding:6px;opacity:.55;line-height:1;}
+.hist-del:active{opacity:1;}
 
 .hist-filter-bar{display:flex;gap:8px;padding:12px 16px 4px;overflow-x:auto;}
 .hist-chip{flex:0 0 auto;padding:9px 16px;border-radius:20px;border:2px solid var(--line);background:#fff;font-size:13px;font-weight:800;color:var(--muted);}
@@ -291,7 +293,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <h1 style="margin-bottom:2px;">🌿 Garden Grow — Petty Cash</h1>
         <div id="home-driver-name" style="font-size:12px;opacity:.85;"></div>
       </div>
-      <button class="adminlink" onclick="goAdmin()">Admin</button>
+      <button class="adminlink" onclick="goAdmin()">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
     </div>
     <div class="home-wrap">
       <div class="balance-cards">
@@ -534,6 +536,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     </div>
     <div class="admin-tabs">
       <button class="admin-tab sel" data-tab="dash" onclick="selectAdminTab('dash')">Dashboard</button>
+      <button class="admin-tab" data-tab="approvals" onclick="selectAdminTab('approvals')">Approvals <span id="approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:2px;"></span></button>
       <button class="admin-tab" data-tab="txns" onclick="selectAdminTab('txns')">Transactions</button>
       <button class="admin-tab" data-tab="reimb" onclick="selectAdminTab('reimb')">Reimbursement</button>
       <button class="admin-tab" data-tab="reports" onclick="selectAdminTab('reports')">Reports</button>
@@ -561,6 +564,12 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="btn block" style="margin-top:10px" onclick="runDiagnostics()">Run Self-Test</button>
     </div>
 
+    <!-- Approvals -->
+    <div class="admin-panel" data-panel="approvals">
+      <p style="color:var(--muted);font-size:14px;margin-bottom:12px;">Entries your driver logs need your approval before they count toward the balance. Approve or reject each one below.</p>
+      <div id="approvals-list"></div>
+    </div>
+
     <!-- Transactions -->
     <div class="admin-panel" data-panel="txns">
       <div class="filter-row">
@@ -578,7 +587,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
       <div class="admin-table-wrap">
         <table class="admin-table" id="txn-table">
-          <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Paid</th><th>Note</th><th>Photo</th><th></th></tr></thead>
+          <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Paid</th><th>Note</th><th>Photo</th><th>Status</th><th></th></tr></thead>
           <tbody id="txn-tbody"></tbody>
         </table>
       </div>
@@ -671,7 +680,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <span style="font-weight:700;">v2.1</span>
       </div>
       <div class="section-title">Security</div>
-      <button class="btn block" onclick="openChangePin()">🔒 Change Admin PIN</button>
+      <p style="color:var(--muted);font-size:13px;">The Admin PIN is fixed in the app's code (not changeable from here) so it can never be reset from a driver's phone. Ask your developer to change it if needed.</p>
+      <button class="btn block" onclick="switchDriver()">🔄 Switch Driver (Logout)</button>
+      <button class="btn block" onclick="goHome()">🚪 Exit Admin</button>
       <div class="section-title">Danger Zone</div>
       <button class="btn danger block" onclick="wipeAllData()">🗑 Erase All Data</button>
     </div>
@@ -788,6 +799,12 @@ function computeBalances(transactions){
   }
   return {companyCash, driverOwed, totalCashIn, totalExpense, totalReimb};
 }
+// An entry created on a non-admin device starts life as status:'pending' and
+// doesn't count toward any balance, total, or statement until Esa approves it
+// from Admin → Approvals. Missing/'approved' status (including everything
+// recorded before this feature existed) counts normally; 'rejected' never does.
+function isApproved(t){ return !t.status || t.status==='approved'; }
+function approvedOnly(list){ return list.filter(isApproved); }
 
 /* ================= SELF-TEST ================= */
 function runDiagnostics(){
@@ -846,8 +863,9 @@ async function init(){
   // Establish the base "home" history entry so the phone's back button
   // and Chrome's back arrow have a well-defined screen to return to.
   history.replaceState({screen:'screen-home'}, '', '#screen-home');
+  IS_ADMIN_DEVICE = await settingsGet('isAdminDevice', false);
   ALL_TXNS = await txGetAll();
-  currentBalances = computeBalances(ALL_TXNS);
+  currentBalances = computeBalances(approvedOnly(ALL_TXNS));
   renderHome();
   buildCatGrid();
   buildQuickNotes();
@@ -867,6 +885,12 @@ async function init(){
   syncNow(false);
 }
 init();
+async function switchDriver(){
+  if(!confirm('Switch driver on this phone? You\'ll be asked to enter a new driver name — past entries stay saved either way.')) return;
+  await settingsSet('driverName', '');
+  document.getElementById('setup-driver-name').value = '';
+  replaceScreen('screen-driver-setup');
+}
 async function finishDriverSetup(){
   const name = document.getElementById('setup-driver-name').value.trim();
   if(!name){ toast('Enter your name'); return; }
@@ -893,11 +917,20 @@ async function maybeAutoBackupOnOpen(){
   }catch(e){ /* ignore */ }
 }
 
+let IS_ADMIN_DEVICE = false;
 function renderHome(){
   document.getElementById('cashLeftVal').textContent = fmt(currentBalances.companyCash);
   document.getElementById('myMoneyVal').textContent = fmt(currentBalances.driverOwed);
   const card = document.getElementById('cashLeftCard');
   card.classList.toggle('low', currentBalances.companyCash < 0);
+  const badge = document.getElementById('home-approvals-badge');
+  if(IS_ADMIN_DEVICE){
+    const n = pendingEntries().length;
+    if(n){ badge.style.display='inline-block'; badge.textContent = n; }
+    else { badge.style.display='none'; }
+  } else {
+    badge.style.display='none';
+  }
 }
 function fmt(n){
   n = Number(n)||0;
@@ -936,54 +969,27 @@ async function applyScreenForState(id){
 function goHome(){ replaceScreen('screen-home'); refreshAll(); }
 async function refreshAll(){
   ALL_TXNS = await txGetAll();
-  currentBalances = computeBalances(ALL_TXNS);
+  currentBalances = computeBalances(approvedOnly(ALL_TXNS));
   renderHome();
 }
-let pinFlowContext = 'first';
+// Fixed Admin PIN — the SAME on every phone (unlike the old per-device PIN),
+// so a driver can never set their own and lock themselves into Admin. Only
+// people Esa shares this with can ever reach Admin, deletion, or approvals.
+const ADMIN_PIN = '5612';
 async function goAdmin(){
-  const pin = await settingsGet('adminPin', '');
-  pinFlowContext = pin ? 'enter' : 'first';
   pushScreen('screen-admin-pin');
-  if(pin){
-    document.getElementById('pin-mode-set').style.display='none';
-    document.getElementById('pin-mode-enter').style.display='block';
-    document.getElementById('pin-enter').value='';
-    document.getElementById('pin-enter-error').textContent='';
-  } else {
-    document.getElementById('pin-mode-enter').style.display='none';
-    document.getElementById('pin-mode-set').style.display='block';
-    document.getElementById('pin-set-1').value='';
-    document.getElementById('pin-set-2').value='';
-    document.getElementById('pin-set-error').textContent='';
-  }
-}
-function openChangePin(){
-  pinFlowContext = 'change';
-  pushScreen('screen-admin-pin');
-  document.getElementById('pin-mode-enter').style.display='none';
-  document.getElementById('pin-mode-set').style.display='block';
-  document.getElementById('pin-set-1').value='';
-  document.getElementById('pin-set-2').value='';
-  document.getElementById('pin-set-error').textContent='';
-}
-async function submitSetPin(){
-  const p1 = document.getElementById('pin-set-1').value.trim();
-  const p2 = document.getElementById('pin-set-2').value.trim();
-  if(!/^\d{4,6}$/.test(p1)){ document.getElementById('pin-set-error').textContent='PIN must be 4-6 digits'; return; }
-  if(p1!==p2){ document.getElementById('pin-set-error').textContent='PINs do not match'; return; }
-  await settingsSet('adminPin', p1);
-  if(pinFlowContext==='change'){
-    toast('PIN updated');
-    goBack();
-  } else {
-    replaceScreen('screen-admin');
-    refreshAdmin();
-  }
+  document.getElementById('pin-mode-set').style.display='none';
+  document.getElementById('pin-mode-enter').style.display='block';
+  document.getElementById('pin-enter').value='';
+  document.getElementById('pin-enter-error').textContent='';
 }
 async function submitEnterPin(){
   const entered = document.getElementById('pin-enter').value.trim();
-  const pin = await settingsGet('adminPin','');
-  if(entered && entered===pin){
+  if(entered && entered===ADMIN_PIN){
+    // Proves this device belongs to Esa — from now on, entries saved on THIS
+    // device auto-approve instantly instead of waiting in the Approvals queue.
+    await settingsSet('isAdminDevice', true);
+    IS_ADMIN_DEVICE = true;
     replaceScreen('screen-admin');
     refreshAdmin();
   } else {
@@ -992,6 +998,10 @@ async function submitEnterPin(){
   }
 }
 function goBack(){ history.back(); }
+// Entries made on Esa's own (PIN-verified) device count immediately. Anything
+// from any other device — i.e. the driver — starts as 'pending' until Esa
+// approves it from Admin → Approvals.
+async function entryStatus(){ return (await settingsGet('isAdminDevice', false)) ? 'approved' : 'pending'; }
 
 /* ================= EXPENSE ENTRY ================= */
 function setTodayDefaults(){
@@ -1177,6 +1187,7 @@ async function saveExpense(){
     remarks: document.getElementById('exp-remarks').value.trim(),
     photo: expState.photo,
     driver: await settingsGet('driverName',''),
+    status: await entryStatus(),
     synced: false,
     createdAt: Date.now(),
   };
@@ -1210,6 +1221,7 @@ async function saveCashIn(){
     note: document.getElementById('ci-note').value.trim(),
     givenBy: document.getElementById('ci-givenby').value.trim(),
     driver: await settingsGet('driverName',''),
+    status: await entryStatus(),
     synced: false,
     createdAt: Date.now(),
   };
@@ -1290,9 +1302,9 @@ async function sendPeriodSummary(key){
     // Fallback to plain WhatsApp text if the PDF library isn't available
     // (e.g. very first app open with no internet yet to fetch it)
     await refreshAll();
-    const txns = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
-    const opening = computeBalances(ALL_TXNS.filter(t=>t.date<from));
-    const closing = computeBalances(ALL_TXNS.filter(t=>t.date<=to));
+    const txns = approvedOnly(ALL_TXNS).filter(t=> t.date>=from && t.date<=to);
+    const opening = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<from));
+    const closing = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<=to));
     openWhatsApp(buildStatementText(label, from, to, txns, opening, closing));
     statusEl.textContent = 'Sent as text — PDF needs internet the first time.';
   }
@@ -1346,9 +1358,9 @@ function buildStatementText(label, fromStr, toStr, txns, opening, closing){
 async function buildAndDeliverStatementPDF(label, fromStr, toStr, opts){
   opts = opts || {};
   await refreshAll();
-  const txns = ALL_TXNS.filter(t=> t.date>=fromStr && t.date<=toStr);
-  const opening = computeBalances(ALL_TXNS.filter(t=>t.date<fromStr));
-  const closing = computeBalances(ALL_TXNS.filter(t=>t.date<=toStr));
+  const txns = approvedOnly(ALL_TXNS).filter(t=> t.date>=fromStr && t.date<=toStr);
+  const opening = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<fromStr));
+  const closing = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<=toStr));
   const driverName = await settingsGet('driverName','');
   const doc = buildStatementPDFDoc(label, fromStr, toStr, txns, opening, closing, driverName);
   const filename = `petty-cash-statement-${fromStr}_to_${toStr}.pdf`;
@@ -1525,27 +1537,47 @@ async function generateHistoryStatement(){
 }
 function renderHistItem(t){
   const thumb = t.photo ? `<img class="hist-thumb" src="${t.photo}" onclick="openPhotoModal('${t.id}')">` : '';
+  const delBtn = `<button class="hist-del" onclick="requestDeleteFromHistory('${t.id}')" title="Delete (Admin PIN required)">🗑</button>`;
+  const statusTag = t.status==='pending' ? `<span class="hi-tag" style="background:#fff3cd;color:#8a6d00;">⏳ PENDING APPROVAL</span>`
+    : t.status==='rejected' ? `<span class="hi-tag" style="background:#fde3e3;color:#a11;">❌ REJECTED</span>` : '';
   if(t.type==='cash_in'){
     return `<div class="hist-item"><div class="hi-ic">💰</div><div class="hi-body">
       <div class="hi-top"><span>Cash In</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-cashin">CASH IN</span>
-    </div>${thumb}</div>`;
+      <span class="hi-tag tag-cashin">CASH IN</span>${statusTag}
+    </div>${thumb}${delBtn}</div>`;
   }
   if(t.type==='reimbursement'){
     return `<div class="hist-item"><div class="hi-ic">↩️</div><div class="hi-body">
       <div class="hi-top"><span>Reimbursement</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.note?escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-reimb">REIMBURSED</span>
-    </div>${thumb}</div>`;
+      <span class="hi-tag tag-reimb">REIMBURSED</span>${statusTag}
+    </div>${thumb}${delBtn}</div>`;
   }
   const c = CAT_MAP[t.category] || {ic:'➕', lbl:t.category};
   const tagClass = t.payMode==='company'?'tag-company':(t.payMode==='me'?'tag-me':'tag-both');
   return `<div class="hist-item"><div class="hi-ic">${c.ic}</div><div class="hi-body">
     <div class="hi-top"><span>${c.lbl}</span><span>${fmt(t.amount)}</span></div>
     <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>
-  </div>${thumb}</div>`;
+    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${statusTag}
+  </div>${thumb}${delBtn}</div>`;
+}
+// Deleting from the everyday History list still requires the Admin PIN, so a
+// driver can't erase entries — only whoever knows the PIN can. If no PIN has
+// been set yet at all, this just tells you to set one first (Admin > Settings).
+async function requestDeleteFromHistory(id){
+  const entered = prompt('Enter Admin PIN to delete this entry:');
+  if(entered===null) return;
+  if(entered.trim()!==ADMIN_PIN){ toast('Wrong PIN'); return; }
+  if(!confirm('Delete this entry? This cannot be undone.')) return;
+  const db = await openDB();
+  await new Promise((res,rej)=>{
+    const tx = db.transaction('transactions','readwrite');
+    tx.objectStore('transactions').delete(id);
+    tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
+  });
+  toast('Deleted');
+  await renderTodayList();
 }
 function openPhotoModal(id){
   const t = ALL_TXNS.find(x=>x.id===id);
@@ -1562,6 +1594,7 @@ function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':
 function selectAdminTab(tab){
   document.querySelectorAll('.admin-tab').forEach(b=>b.classList.toggle('sel', b.dataset.tab===tab));
   document.querySelectorAll('.admin-panel').forEach(p=>p.classList.toggle('active', p.dataset.panel===tab));
+  if(tab==='approvals') renderApprovalsTab();
   if(tab==='txns') renderTxnTable();
   if(tab==='reimb') renderReimbTab();
   if(tab==='reports') renderDailySummary();
@@ -1569,6 +1602,7 @@ function selectAdminTab(tab){
   if(tab==='sync') renderSyncStatus();
 }
 async function refreshAdmin(){
+  await pullFromCloud(); // pick up anything the driver has logged since last check
   await refreshAll();
   const b = currentBalances;
   document.getElementById('d-driver').textContent = (await settingsGet('driverName','')) || '(not set)';
@@ -1578,8 +1612,64 @@ async function refreshAdmin(){
   document.getElementById('d-exp').textContent = fmt(b.totalExpense);
   document.getElementById('d-reimb').textContent = fmt(b.totalReimb);
   document.getElementById('d-count').textContent = ALL_TXNS.length;
+  renderApprovalsTab();
   renderTxnTable();
   renderReimbTab();
+}
+/* ---- Approvals ---- */
+function pendingEntries(){ return ALL_TXNS.filter(t=>t.status==='pending').slice().reverse(); }
+function renderApprovalsTab(){
+  const rows = pendingEntries();
+  const badge = document.getElementById('approvals-badge');
+  if(rows.length){ badge.style.display='inline-block'; badge.textContent = rows.length; }
+  else { badge.style.display='none'; }
+  const list = document.getElementById('approvals-list');
+  if(!rows.length){
+    list.innerHTML = `<div class="empty-note">Nothing waiting on you right now.</div>`;
+    return;
+  }
+  list.innerHTML = rows.map(t=>{
+    const typeLbl = t.type==='cash_in'?'Cash In':(t.type==='expense'?('Expense — '+(CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category)):'Reimbursement');
+    return `<div class="stat-card" style="margin-bottom:10px;text-align:left;">
+      <div style="display:flex;justify-content:space-between;font-weight:800;font-size:15px;">
+        <span>${escapeHtml(typeLbl)}</span><span>${fmt(t.amount)}</span>
+      </div>
+      <div style="color:var(--muted);font-size:13px;margin:4px 0 10px;">
+        ${t.date} ${t.time||''} · By ${escapeHtml(t.driver||'Unknown')}${t.note?' · '+escapeHtml(t.note):''}
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn block" style="background:var(--green-dark);color:#fff;" onclick="approveEntry('${t.id}')">✓ Approve</button>
+        <button class="btn danger block" onclick="rejectEntry('${t.id}')">✗ Reject</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function setEntryStatus(id, status){
+  const t = ALL_TXNS.find(x=>x.id===id);
+  if(!t) return;
+  t.status = status;
+  await txAdd(t);
+  // Tell the cloud too, so the driver's own phone sees the outcome next time it syncs.
+  if(SYNC_URL && navigator.onLine){
+    try{
+      await fetch(SYNC_URL, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({statusUpdates:[{id, status}]})
+      });
+    }catch(e){ /* local change already saved; cloud will pick it up on next sync */ }
+  }
+}
+async function approveEntry(id){
+  await setEntryStatus(id, 'approved');
+  toast('Approved');
+  await refreshAdmin();
+}
+async function rejectEntry(id){
+  if(!confirm('Reject this entry? It will never count toward the balance.')) return;
+  await setEntryStatus(id, 'rejected');
+  toast('Rejected');
+  await refreshAdmin();
 }
 function getFilteredTxns(){
   const q = (document.getElementById('f-search').value||'').toLowerCase();
@@ -1603,13 +1693,15 @@ function renderTxnTable(){
     const cat = t.type==='expense' ? (CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category) : (t.type==='cash_in'?'—':'—');
     const paid = t.type==='expense' ? t.payMode.toUpperCase() : '—';
     const typeLbl = t.type==='cash_in'?'Cash In':(t.type==='expense'?'Expense':'Reimburse');
+    const statusLbl = t.status==='pending' ? '⏳ Pending' : (t.status==='rejected' ? '❌ Rejected' : '✅ Approved');
     return `<tr>
       <td>${t.date}</td><td>${typeLbl}</td><td>${escapeHtml(cat)}</td><td>${fmt(t.amount)}</td>
       <td>${paid}</td><td>${escapeHtml(t.note||'')}</td>
       <td>${t.photo?'📷':''}</td>
+      <td>${statusLbl}</td>
       <td><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="deleteTxn('${t.id}')">Delete</button></td>
     </tr>`;
-  }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No transactions found.</td></tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No transactions found.</td></tr>`;
 }
 async function deleteTxn(id){
   if(!confirm('Delete this entry? This cannot be undone.')) return;
@@ -1627,9 +1719,10 @@ async function deleteTxn(id){
 function renderReimbTab(){
   document.getElementById('r-owed').textContent = fmt(currentBalances.driverOwed);
   const rows = ALL_TXNS.filter(t=>t.type==='reimbursement').slice().reverse();
-  document.getElementById('reimb-tbody').innerHTML = rows.map(t=>
-    `<tr><td>${t.date}</td><td>${fmt(t.amount)}</td><td>${escapeHtml(t.note||'')}</td></tr>`
-  ).join('') || `<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px;">No reimbursements yet.</td></tr>`;
+  document.getElementById('reimb-tbody').innerHTML = rows.map(t=>{
+    const statusLbl = t.status==='pending' ? ' ⏳' : (t.status==='rejected' ? ' ❌' : '');
+    return `<tr><td>${t.date}</td><td>${fmt(t.amount)}${statusLbl}</td><td>${escapeHtml(t.note||'')}</td></tr>`;
+  }).join('') || `<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px;">No reimbursements yet.</td></tr>`;
 }
 async function saveReimbursement(){
   const amount = parseFloat(document.getElementById('r-amount').value);
@@ -1641,6 +1734,7 @@ async function saveReimbursement(){
     amount: round2(amount),
     note: document.getElementById('r-note').value.trim(),
     driver: await settingsGet('driverName',''),
+    status: await entryStatus(),
     synced: false,
     createdAt: Date.now(),
   };
@@ -1663,9 +1757,9 @@ function setReportPreset(key){
 function renderDailySummary(){
   const from = document.getElementById('rep-from').value || new Date().toISOString().slice(0,10);
   const to = document.getElementById('rep-to').value || from;
-  const txns = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
-  const opening = computeBalances(ALL_TXNS.filter(t=>t.date<from));
-  const closing = computeBalances(ALL_TXNS.filter(t=>t.date<=to));
+  const txns = approvedOnly(ALL_TXNS).filter(t=> t.date>=from && t.date<=to);
+  const opening = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<from));
+  const closing = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<=to));
   const label = (from===to) ? 'Daily' : 'Period';
   document.getElementById('daily-summary-box').textContent = buildStatementText(label, from, to, txns, opening, closing);
 }
@@ -1673,9 +1767,9 @@ function sendReportWhatsApp(){
   const from = document.getElementById('rep-from').value;
   const to = document.getElementById('rep-to').value;
   if(!from || !to){ toast('Pick a date range first'); return; }
-  const txns = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
-  const opening = computeBalances(ALL_TXNS.filter(t=>t.date<from));
-  const closing = computeBalances(ALL_TXNS.filter(t=>t.date<=to));
+  const txns = approvedOnly(ALL_TXNS).filter(t=> t.date>=from && t.date<=to);
+  const opening = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<from));
+  const closing = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<=to));
   const label = (from===to) ? 'Daily' : 'Period';
   openWhatsApp(buildStatementText(label, from, to, txns, opening, closing));
 }
@@ -1792,23 +1886,27 @@ async function syncNow(manual){
   try{
     const all = await txGetAll();
     const pending = all.filter(t=>!t.synced);
-    if(!pending.length){ if(manual) toast('Already up to date'); renderSyncStatus(); return; }
-    const driverName = await settingsGet('driverName','');
-    // Send in small batches so one slow request doesn't hold up everything
-    const BATCH = 25;
-    for(let i=0;i<pending.length;i+=BATCH){
-      const batch = pending.slice(i, i+BATCH).map(t=>({...t, driver: t.driver || driverName}));
-      const resp = await fetch(SYNC_URL, {
-        method:'POST',
-        headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids a CORS preflight against Apps Script
-        body: JSON.stringify({records: batch})
-      });
-      if(!resp.ok) throw new Error('Sync request failed: '+resp.status);
-      await markSynced(batch.map(t=>t.id));
+    if(pending.length){
+      const driverName = await settingsGet('driverName','');
+      // Send in small batches so one slow request doesn't hold up everything
+      const BATCH = 25;
+      for(let i=0;i<pending.length;i+=BATCH){
+        const batch = pending.slice(i, i+BATCH).map(t=>({...t, driver: t.driver || driverName}));
+        const resp = await fetch(SYNC_URL, {
+          method:'POST',
+          headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids a CORS preflight against Apps Script
+          body: JSON.stringify({records: batch})
+        });
+        if(!resp.ok) throw new Error('Sync request failed: '+resp.status);
+        await markSynced(batch.map(t=>t.id));
+      }
+      await settingsSet('lastSyncAt', Date.now());
     }
-    await settingsSet('lastSyncAt', Date.now());
+    // Always pull, even when there was nothing new of ours to push — otherwise
+    // a device that isn't actively logging anything never picks up what the
+    // OTHER person has added.
     await pullFromCloud();
-    if(manual) toast('Synced');
+    if(manual) toast(pending.length ? 'Synced' : 'Already up to date');
   }catch(e){
     if(manual) toast('Could not sync — will retry automatically');
   } finally {
@@ -1829,34 +1927,45 @@ async function pullFromCloud(){
     if(!resp.ok) return;
     const data = await resp.json();
     if(!data || !Array.isArray(data.records)) return;
-    const existing = new Set((await txGetAll()).map(t=>t.id));
-    let added = 0;
+    const localAll = await txGetAll();
+    const localMap = new Map(localAll.map(t=>[t.id,t]));
+    let changed = 0;
     for(const r of data.records){
-      if(!r.id || existing.has(r.id)) continue;
-      await txAdd({
-        id: r.id,
-        driver: r.driver||'',
-        type: r.type||'expense',
-        date: r.date||'',
-        time: r.time||'',
-        category: r.category||'',
-        note: r.note||'',
-        amount: Number(r.amount)||0,
-        companyAmount: r.companyAmount===''?undefined:Number(r.companyAmount),
-        meAmount: r.meAmount===''?undefined:Number(r.meAmount),
-        payMode: r.payMode||'',
-        supplier: r.supplier||'',
-        site: r.site||'',
-        receiptNo: r.receiptNo||'',
-        vehicle: r.vehicle||'',
-        remarks: r.remarks||'',
-        givenBy: r.givenBy||'',
-        synced: true,
-        createdAt: Date.now(),
-      });
-      added++;
+      if(!r.id) continue;
+      const cloudStatus = r.status || 'approved'; // blank = recorded before approvals existed
+      const existing = localMap.get(r.id);
+      if(!existing){
+        await txAdd({
+          id: r.id,
+          driver: r.driver||'',
+          type: r.type||'expense',
+          date: r.date||'',
+          time: r.time||'',
+          category: r.category||'',
+          note: r.note||'',
+          amount: Number(r.amount)||0,
+          companyAmount: r.companyAmount===''?undefined:Number(r.companyAmount),
+          meAmount: r.meAmount===''?undefined:Number(r.meAmount),
+          payMode: r.payMode||'',
+          supplier: r.supplier||'',
+          site: r.site||'',
+          receiptNo: r.receiptNo||'',
+          vehicle: r.vehicle||'',
+          remarks: r.remarks||'',
+          givenBy: r.givenBy||'',
+          status: cloudStatus,
+          synced: true,
+          createdAt: Date.now(),
+        });
+        changed++;
+      } else if(existing.status !== cloudStatus){
+        // Someone (Esa, from another device) approved/rejected this since we last checked.
+        existing.status = cloudStatus;
+        await txAdd(existing);
+        changed++;
+      }
     }
-    if(added){ ALL_TXNS = await txGetAll(); currentBalances = computeBalances(ALL_TXNS); renderHome(); }
+    if(changed){ ALL_TXNS = await txGetAll(); currentBalances = computeBalances(approvedOnly(ALL_TXNS)); renderHome(); }
   }catch(e){ /* best-effort — local data still works fine offline */ }
 }
 async function renderSyncStatus(){
