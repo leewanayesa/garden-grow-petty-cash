@@ -824,10 +824,34 @@ function openDB(){
         db.deleteObjectStore('transactions');
       }
     };
-    req.onsuccess = ()=>resolve(req.result);
-    req.onerror = ()=>reject(req.error);
+    req.onsuccess = ()=>{
+      const db = req.result;
+      // iOS Safari can silently invalidate an open IndexedDB connection after
+      // the installed home-screen app sits in the background for a while —
+      // any transaction started on that stale connection afterwards can hang
+      // forever instead of failing. Dropping the cached connection here means
+      // the very next settingsGet/settingsSet call opens a brand-new one
+      // instead of reusing a dead one.
+      db.onclose = ()=>{ dbP = null; };
+      db.onversionchange = ()=>{ db.close(); dbP = null; };
+      resolve(db);
+    };
+    req.onerror = ()=>{ dbP = null; reject(req.error); };
   });
   return dbP;
+}
+// Wraps a promise so a hung IndexedDB call (see above) can never block the
+// app forever — if it doesn't settle within `ms`, this resolves to `fallback`
+// instead of leaving init() stuck on a blank screen indefinitely.
+function withTimeout(promise, ms, fallback){
+  return new Promise((resolve)=>{
+    let done = false;
+    const timer = setTimeout(()=>{ if(!done){ done=true; resolve(fallback); } }, ms);
+    promise.then(
+      (v)=>{ if(!done){ done=true; clearTimeout(timer); resolve(v); } },
+      ()=>{ if(!done){ done=true; clearTimeout(timer); resolve(fallback); } }
+    );
+  });
 }
 async function settingsGet(key, def){
   const db = await openDB();
@@ -978,30 +1002,47 @@ function updateSchemaBanner(){
 window.addEventListener('online', ()=>{ updateConnBanner(); refreshAll(); });
 window.addEventListener('offline', updateConnBanner);
 
+// Retries a flaky network attempt once after a short pause before giving up.
+// iOS Safari's navigator.onLine is unreliable in a home-screen-installed app
+// — it can briefly report "offline" during an ordinary WiFi/cellular handoff
+// even though the connection is fine a second later — so this app no longer
+// trusts navigator.onLine to block a request at all; it just tries the real
+// fetch, and only treats a genuine failed/timed-out fetch as offline. A single
+// automatic retry absorbs the kind of one-second blip that isn't a real
+// outage, instead of surfacing a scary "no internet" message for it.
+async function withRetry(attemptFn){
+  const first = await attemptFn();
+  if(first.ok) return first;
+  if(first.error!=='network' && first.error!=='timeout') return first; // a real server/HTTP error — retrying won't help
+  await new Promise(r=>setTimeout(r, 1200));
+  return await attemptFn();
+}
+
 // Low-level helper: an awaited POST to SYNC_URL with a timeout, used by every
 // save/delete/status-change so nothing is ever assumed to have succeeded.
 async function postToSync(payload){
   if(!SYNC_URL) return {ok:false, error:'not_configured'};
-  if(!navigator.onLine) return {ok:false, error:'offline'};
-  const controller = new AbortController();
-  const timer = setTimeout(()=>controller.abort(), SYNC_TIMEOUT_MS);
-  try{
-    const resp = await fetch(SYNC_URL, {
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids a CORS preflight against Apps Script
-      body: JSON.stringify(payload),
-      cache:'no-store',
-      signal: controller.signal,
-    });
-    if(!resp.ok) return {ok:false, error:'http_'+resp.status};
-    const data = await resp.json().catch(()=>null);
-    if(data && data.ok===false) return {ok:false, error:data.error||'server_error'};
-    return {ok:true, data};
-  }catch(e){
-    return {ok:false, error: e.name==='AbortError' ? 'timeout' : 'network'};
-  }finally{
-    clearTimeout(timer);
-  }
+  return await withRetry(async ()=>{
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), SYNC_TIMEOUT_MS);
+    try{
+      const resp = await fetch(SYNC_URL, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids a CORS preflight against Apps Script
+        body: JSON.stringify(payload),
+        cache:'no-store',
+        signal: controller.signal,
+      });
+      if(!resp.ok) return {ok:false, error:'http_'+resp.status};
+      const data = await resp.json().catch(()=>null);
+      if(data && data.ok===false) return {ok:false, error:data.error||'server_error'};
+      return {ok:true, data};
+    }catch(e){
+      return {ok:false, error: e.name==='AbortError' ? 'timeout' : 'network'};
+    }finally{
+      clearTimeout(timer);
+    }
+  });
 }
 
 // The ONLY place ALL_TXNS is ever populated: a fresh, live GET to SYNC_URL,
@@ -1010,7 +1051,7 @@ async function postToSync(payload){
 async function loadFromServer(){
   updateConnBanner();
   if(!SYNC_URL) return {ok:false, error:'not_configured'};
-  if(!navigator.onLine) return {ok:false, error:'offline'};
+  return await withRetry(async ()=>{
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), SYNC_TIMEOUT_MS);
   try{
@@ -1056,6 +1097,7 @@ async function loadFromServer(){
   }finally{
     clearTimeout(timer);
   }
+  });
 }
 // Refreshes the Home balances from the server. Used on init, after every
 // save/delete/approval, and whenever navigation returns to Home.
@@ -1105,11 +1147,18 @@ async function init(){
   buildQuickNotes();
   setTodayDefaults();
   resetLoginScreen();
-  const wn = await settingsGet('waNumber','');
+  // Every settingsGet here is timeout-guarded: iOS can leave a home-screen
+  // app's IndexedDB connection dead after it sits in the background a while,
+  // which otherwise hangs these calls forever and leaves the app looking
+  // "just empty" — neither showing old data nor asking to log in again. If
+  // one of these doesn't answer within 4s, fall back to its safe default
+  // (never-remembered) so the app always ends up on a working login screen
+  // instead of stuck on a blank one.
+  const wn = await withTimeout(settingsGet('waNumber',''), 4000, '');
   document.getElementById('set-wa-number').value = wn||'';
-  const remember = await settingsGet('rememberLogin', false);
-  const role = await settingsGet('role', '');
-  const dn = await settingsGet('driverName', '');
+  const remember = await withTimeout(settingsGet('rememberLogin', false), 4000, false);
+  const role = await withTimeout(settingsGet('role', ''), 4000, '');
+  const dn = await withTimeout(settingsGet('driverName', ''), 4000, '');
   const autoLoggingIn = !!(remember && role && dn);
   if(autoLoggingIn){
     IS_ADMIN_DEVICE = (role==='admin');
@@ -1137,6 +1186,19 @@ async function init(){
 }
 init();
 
+// iOS in particular can leave a home-screen-installed app showing stale or
+// blank data after it's been in the background a while — the page itself
+// isn't reloaded, so init() never runs again on its own. Refreshing here
+// whenever the app becomes visible again means coming back to it always
+// pulls fresh data (or, if something's gone stale, the same safeguards in
+// refreshAll()/loadFromServer() kick in) rather than trusting whatever was
+// on screen from before you left.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible'){
+    refreshAll();
+  }
+});
+
 /* ---- Login screen flow ---- */
 let LOGIN_STATE = { role:null, driverName:null };
 function resetLoginScreen(){
@@ -1160,11 +1222,12 @@ async function showLoginRole(role){
     document.getElementById('login-password-form').style.display = 'none';
     // Pull the current driver roster fresh every time — so a driver Esa just
     // added from Admin → Settings shows up immediately, on any phone, without
-    // needing to reinstall or update the app itself.
-    if(navigator.onLine){
-      await loadFromServer();
-      buildLoginDriverNames();
-    }
+    // needing to reinstall or update the app itself. Always attempted (never
+    // gated on navigator.onLine, which iOS reports unreliably) — if there's
+    // truly no connection, loadFromServer just fails quietly here and the
+    // picker keeps showing whatever roster it already had.
+    await loadFromServer();
+    buildLoginDriverNames();
   } else {
     document.getElementById('login-driver-picker').style.display = 'none';
     showLoginPasswordForm();
