@@ -76,6 +76,22 @@ input,select,textarea{font-family:inherit;}
 .bal-card.owed .val{color:var(--amber);}
 .bal-card.low .val{color:var(--red);}
 
+/* Admin Home: one row per driver, each its own separate float, tap for detail */
+.driver-rows{margin-bottom:18px;display:flex;flex-direction:column;gap:10px;}
+.driver-row{
+  width:100%;text-align:left;background:var(--white);border-radius:var(--radius);
+  border:1px solid var(--line);padding:14px 14px;display:flex;align-items:center;gap:10px;
+}
+.driver-row:active{background:var(--green-light);}
+.driver-row .drv-name{font-weight:800;font-size:15px;color:var(--green-dark);flex:0 0 auto;min-width:88px;}
+.driver-row .drv-amounts{flex:1;display:flex;gap:14px;justify-content:flex-end;}
+.driver-row .drv-amt{text-align:right;}
+.driver-row .drv-amt .lbl{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.driver-row .drv-amt .val{font-size:17px;font-weight:800;color:var(--green-dark);}
+.driver-row .drv-amt.owed .val{color:var(--amber);}
+.driver-row.low .drv-amt.cash .val{color:var(--red);}
+.driver-row .drv-arrow{font-size:20px;color:var(--muted);flex:0 0 auto;}
+
 .big-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .tile{
   background:var(--white);border:2px solid var(--line);border-radius:var(--radius);
@@ -319,16 +335,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
           ✅ Approvals Needed <span id="home-approvals-tile-badge" style="background:#fff;color:var(--amber);border-radius:10px;padding:2px 9px;font-weight:800;"></span>
         </button>
       </div>
-      <div class="balance-cards">
-        <div class="bal-card" id="cashLeftCard">
-          <div class="lbl">Cash Left</div>
-          <div class="val" id="cashLeftVal">AED 0</div>
-        </div>
-        <div class="bal-card owed">
-          <div class="lbl">My Money Used</div>
-          <div class="val" id="myMoneyVal">AED 0</div>
-        </div>
-      </div>
+      <div id="home-balance-wrap"></div>
       <div class="big-tiles">
         <button class="tile primary" onclick="openExpenseEntry()">
           <div class="ic">🛒</div> BUY / PAY
@@ -524,11 +531,15 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
   <div class="screen" id="screen-today">
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
-      <h1>📋 History</h1>
+      <h1 id="hist-title">📋 History</h1>
       <div class="topbar-actions">
         <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
         <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
       </div>
+    </div>
+    <div id="hist-driver-stats" class="balance-cards" style="display:none;margin:14px 16px 0;">
+      <div class="bal-card" id="hist-driver-cash-card"><div class="lbl">Cash Left</div><div class="val" id="hist-driver-cash-val">…</div></div>
+      <div class="bal-card owed"><div class="lbl">Owed To Driver</div><div class="val" id="hist-driver-owed-val">…</div></div>
     </div>
     <div class="hist-filter-bar">
       <button class="hist-chip sel" data-hf="today" onclick="setHistFilter('today')">TODAY</button>
@@ -646,8 +657,11 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 
     <!-- Reimbursement -->
     <div class="admin-panel" data-panel="reimb">
+      <div class="field"><label>Driver</label>
+        <select id="r-driver" onchange="renderReimbTab()"></select>
+      </div>
       <div class="stat-card" style="margin-bottom:16px;">
-        <div class="lbl">Currently Owed To Driver</div>
+        <div class="lbl">Currently Owed To <span id="r-owed-name"></span></div>
         <div class="val" id="r-owed" style="color:var(--amber);font-size:26px;">AED 0</div>
       </div>
       <div class="field"><label>Date</label><input type="date" id="r-date"></div>
@@ -656,7 +670,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="btn primary block" id="reimb-save-btn" onclick="saveReimbursement()">✓ Record Reimbursement</button>
       <div class="section-title">Reimbursement History</div>
       <div class="admin-table-wrap">
-        <table class="admin-table"><thead><tr><th>Date</th><th>Amount</th><th>Note</th></tr></thead><tbody id="reimb-tbody"></tbody></table>
+        <table class="admin-table"><thead><tr><th>Date</th><th>Driver</th><th>Amount</th><th>Note</th></tr></thead><tbody id="reimb-tbody"></tbody></table>
       </div>
     </div>
 
@@ -832,6 +846,12 @@ function computeBalances(transactions){
 // recorded before this feature existed) counts normally; 'rejected' never does.
 function isApproved(t){ return !t.status || t.status==='approved'; }
 function approvedOnly(list){ return list.filter(isApproved); }
+// Each driver keeps their OWN separate cash float (not one shared company
+// pool) — Esa asked for Jawad and Gul Bad Shah to be tracked independently.
+// Every record already carries a `driver` field, so this needs no backend
+// schema change: just filter the same approved transactions by driver name.
+function txnsForDriver(name){ return approvedOnly(ALL_TXNS).filter(t=>t.driver===name); }
+function driverBalances(name){ return computeBalances(txnsForDriver(name)); }
 
 /* ================= SELF-TEST ================= */
 function runDiagnostics(){
@@ -885,6 +905,10 @@ let currentBalances = {companyCash:0, driverOwed:0};
 let expState = { category:null, pay:null, photo:null, noteChip:null };
 let lastSavedTxn = null;
 let IS_ADMIN_DEVICE = false;
+// The name this device is logged in as (a driver's own name, or 'Esa' for
+// Admin) — used to show a driver their OWN separate float on their Home
+// screen instead of the old shared company-wide total.
+let CURRENT_DRIVER_NAME = '';
 
 /* ================= LIVE DATA LAYER (no offline storage) =================
    Every screen requires a fresh, live round-trip to the server. Nothing is
@@ -1000,9 +1024,15 @@ async function loadFromServer(){
 // Refreshes the Home balances from the server. Used on init, after every
 // save/delete/approval, and whenever navigation returns to Home.
 let lastLoadOk = true;
+// Tracks whether the FIRST load of this page-open has finished yet, so Home
+// can show "…" (still loading) rather than momentarily flashing "AED 0" —
+// which looked exactly like a real, empty ledger and got mistaken for a bug
+// (Google Apps Script's first response after a while can take a few seconds).
+let firstLoadDone = false;
 async function refreshAll(){
   const result = await loadFromServer();
   lastLoadOk = result.ok;
+  firstLoadDone = true;
   renderHome();
   return result;
 }
@@ -1044,8 +1074,10 @@ async function init(){
   const remember = await settingsGet('rememberLogin', false);
   const role = await settingsGet('role', '');
   const dn = await settingsGet('driverName', '');
-  if(remember && role && dn){
+  const autoLoggingIn = !!(remember && role && dn);
+  if(autoLoggingIn){
     IS_ADMIN_DEVICE = (role==='admin');
+    CURRENT_DRIVER_NAME = dn;
     updateHomeDriverLabel(dn);
     updateAdminLinkVisibility();
   } else {
@@ -1054,7 +1086,18 @@ async function init(){
   }
   registerSW();
   setupInstallPrompt();
-  await refreshAll();
+  const result = await refreshAll();
+  // "Remember me" skipped the login screen on the assumption the app can
+  // actually load your data straight away. If that first load fails (bad
+  // connection, Apps Script briefly unreachable, etc.), don't leave a blank
+  // Home screen sitting there looking broken — send back to the login screen
+  // so it's obvious something needs a retry, instead of silently empty.
+  if(autoLoggingIn && !result.ok){
+    IS_ADMIN_DEVICE = false;
+    CURRENT_DRIVER_NAME = '';
+    replaceScreen('screen-login');
+    toast(friendlySyncError(result.error) + ' Please log in again.');
+  }
 }
 init();
 
@@ -1146,6 +1189,7 @@ async function completeLogin(role, driverName, remember, offerFaceSetup){
   await settingsSet('driverName', driverName);
   await settingsSet('rememberLogin', !!remember);
   IS_ADMIN_DEVICE = (role==='admin');
+  CURRENT_DRIVER_NAME = driverName;
   updateHomeDriverLabel(driverName);
   updateAdminLinkVisibility();
   replaceScreen('screen-home');
@@ -1162,6 +1206,7 @@ async function logoutUser(){
   await settingsSet('driverName', '');
   await settingsSet('rememberLogin', false);
   IS_ADMIN_DEVICE = false;
+  CURRENT_DRIVER_NAME = '';
   document.getElementById('home-driver-name').textContent = '';
   updateAdminLinkVisibility();
   resetLoginScreen();
@@ -1240,14 +1285,50 @@ function updateHomeDriverLabel(name){
     IS_ADMIN_DEVICE ? ('🔐 Logged in as Admin (' + name + ')') : ('Driver: ' + name);
 }
 
+// Admin's Home now shows one row per driver (each with their OWN separate
+// float — Jawad's cash and Gul Bad Shah's cash are never mixed together),
+// tap a row to open that driver's own History/detail. A driver's own device
+// still shows one simple pair of cards, but now computed from ONLY their own
+// entries — no other driver's numbers, and no shared "company" total.
 function renderHome(){
   updateAdminLinkVisibility();
   const errBox = document.getElementById('home-load-error');
-  if(errBox) errBox.style.display = lastLoadOk ? 'none' : 'block';
-  document.getElementById('cashLeftVal').textContent = lastLoadOk ? fmt(currentBalances.companyCash) : '—';
-  document.getElementById('myMoneyVal').textContent = lastLoadOk ? fmt(currentBalances.driverOwed) : '—';
-  const card = document.getElementById('cashLeftCard');
-  card.classList.toggle('low', lastLoadOk && currentBalances.companyCash < 0);
+  if(errBox) errBox.style.display = (firstLoadDone && !lastLoadOk) ? 'block' : 'none';
+  const wrap = document.getElementById('home-balance-wrap');
+  if(!firstLoadDone || !lastLoadOk){
+    wrap.innerHTML = `<div class="balance-cards">
+      <div class="bal-card"><div class="lbl">Cash Left</div><div class="val">${firstLoadDone?'—':'…'}</div></div>
+      <div class="bal-card owed"><div class="lbl">My Money Used</div><div class="val">${firstLoadDone?'—':'…'}</div></div>
+    </div>`;
+  } else if(IS_ADMIN_DEVICE){
+    wrap.innerHTML = `<div class="driver-rows">` + DRIVER_NAMES.map(name=>{
+      const b = driverBalances(name);
+      return `<button class="driver-row${b.companyCash<0?' low':''}" onclick="openHistory('${name}')">
+        <div class="drv-name">🧑 ${escapeHtml(name)}</div>
+        <div class="drv-amounts">
+          <div class="drv-amt cash"><span class="lbl">Cash Left</span><span class="val">${fmt(b.companyCash)}</span></div>
+          <div class="drv-amt owed"><span class="lbl">Owed</span><span class="val">${fmt(b.driverOwed)}</span></div>
+        </div>
+        <div class="drv-arrow">›</div>
+      </button>`;
+    }).join('') + (txnsForDriver('Esa').length ? (()=>{
+      const b = driverBalances('Esa');
+      return `<button class="driver-row${b.companyCash<0?' low':''}" onclick="openHistory('Esa')">
+        <div class="drv-name">🔐 Esa (Office)</div>
+        <div class="drv-amounts">
+          <div class="drv-amt cash"><span class="lbl">Cash Left</span><span class="val">${fmt(b.companyCash)}</span></div>
+          <div class="drv-amt owed"><span class="lbl">Owed</span><span class="val">${fmt(b.driverOwed)}</span></div>
+        </div>
+        <div class="drv-arrow">›</div>
+      </button>`;
+    })() : '') + `</div>`;
+  } else {
+    const b = driverBalances(CURRENT_DRIVER_NAME);
+    wrap.innerHTML = `<div class="balance-cards">
+      <div class="bal-card${b.companyCash<0?' low':''}" id="cashLeftCard"><div class="lbl">Cash Left</div><div class="val" id="cashLeftVal">${fmt(b.companyCash)}</div></div>
+      <div class="bal-card owed"><div class="lbl">My Money Used</div><div class="val" id="myMoneyVal">${fmt(b.driverOwed)}</div></div>
+    </div>`;
+  }
   const badge = document.getElementById('home-approvals-badge');
   const tileWrap = document.getElementById('home-approvals-tile-wrap');
   const tileBadge = document.getElementById('home-approvals-tile-badge');
@@ -1420,13 +1501,13 @@ function selectPay(mode){
   const amount = parseFloat(document.getElementById('exp-amount').value)||0;
   document.getElementById('exp-warning').classList.remove('show');
   if(mode==='both'){
-    const s = autoSplit(amount, currentBalances.companyCash);
+    const s = autoSplit(amount, driverBalances(CURRENT_DRIVER_NAME).companyCash);
     document.getElementById('split-company').value = s.company || '';
     document.getElementById('split-me').value = s.me || '';
     document.getElementById('split-box').classList.add('show');
   } else {
     document.getElementById('split-box').classList.remove('show');
-    if(mode==='company' && amount>0 && amount>currentBalances.companyCash){
+    if(mode==='company' && amount>0 && amount>driverBalances(CURRENT_DRIVER_NAME).companyCash){
       showWarning('NOT ENOUGH COMPANY CASH');
     }
   }
@@ -1434,12 +1515,12 @@ function selectPay(mode){
 function onAmountInput(){
   const amount = parseFloat(document.getElementById('exp-amount').value)||0;
   if(expState.pay==='both'){
-    const s = autoSplit(amount, currentBalances.companyCash);
+    const s = autoSplit(amount, driverBalances(CURRENT_DRIVER_NAME).companyCash);
     document.getElementById('split-company').value = s.company || '';
     document.getElementById('split-me').value = s.me || '';
   }
   if(expState.pay==='company'){
-    if(amount>0 && amount>currentBalances.companyCash) showWarning('NOT ENOUGH COMPANY CASH');
+    if(amount>0 && amount>driverBalances(CURRENT_DRIVER_NAME).companyCash) showWarning('NOT ENOUGH COMPANY CASH');
     else document.getElementById('exp-warning').classList.remove('show');
   }
 }
@@ -1863,7 +1944,25 @@ async function sharePDFOrDownload(doc, filename, fallbackText){
 
 /* ================= HISTORY LIST (with period filters) ================= */
 let histFilterKey = 'today';
-function openHistory(){
+// When set (Admin tapping a driver's row on Home), History shows ONLY that
+// driver's entries plus their own separate Cash Left / Owed figures — this
+// is the driver "detail view" Esa asked for, reusing the existing History
+// screen instead of building a whole separate one.
+let histDriverFilter = null;
+function openHistory(driverName){
+  // A driver's own device always sees only ITS own entries (its own separate
+  // float) — only Admin can browse a specific driver's history from Home, or
+  // leave it unfiltered to see everyone's entries together.
+  histDriverFilter = IS_ADMIN_DEVICE ? (driverName || null) : CURRENT_DRIVER_NAME;
+  const title = document.getElementById('hist-title');
+  const statsBox = document.getElementById('hist-driver-stats');
+  if(histDriverFilter){
+    title.textContent = '📋 ' + histDriverFilter;
+    statsBox.style.display = 'grid';
+  } else {
+    title.textContent = '📋 History';
+    statsBox.style.display = 'none';
+  }
   pushScreen('screen-today');
   document.getElementById('today-list').innerHTML = `<div class="empty-note">Loading…</div>`;
   renderTodayList();
@@ -1894,8 +1993,16 @@ async function renderTodayList(){
     list.innerHTML = `<div class="empty-note">⚠ No internet connection — can't load data.<br><button class="btn" style="margin-top:10px;" onclick="renderTodayList()">Retry</button></div>`;
     return result;
   }
+  if(histDriverFilter){
+    const b = driverBalances(histDriverFilter);
+    document.getElementById('hist-driver-cash-val').textContent = fmt(b.companyCash);
+    document.getElementById('hist-driver-owed-val').textContent = fmt(b.driverOwed);
+    document.getElementById('hist-driver-cash-card').classList.toggle('low', b.companyCash<0);
+  }
   const {from, to} = getHistRange();
-  const rows = ALL_TXNS.filter(t=> t.date>=from && t.date<=to).slice().reverse();
+  let rows = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
+  if(histDriverFilter) rows = rows.filter(t=>t.driver===histDriverFilter);
+  rows = rows.slice().reverse();
   if(!rows.length){
     list.innerHTML = `<div class="empty-note">No entries in this period.<br>Tap 🛒 BUY / PAY or 💰 CASH IN to add one.</div>`;
   } else {
@@ -2221,13 +2328,27 @@ async function deleteTxn(id){
 }
 
 /* ---- Reimbursement tab ---- */
+// Reimbursements pay back a SPECIFIC driver, so this form needs to know which
+// one — previously it silently recorded every reimbursement against 'Esa'
+// (the admin device's own login name) and never actually reduced the driver's
+// own owed balance. Now Esa picks the driver here, and everything (the owed
+// figure, the saved record, the history table) follows that selection.
+function reimbSelectedDriver(){
+  const sel = document.getElementById('r-driver');
+  if(sel.options.length===0){
+    sel.innerHTML = DRIVER_NAMES.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  }
+  return sel.value || DRIVER_NAMES[0];
+}
 function renderReimbTab(){
-  document.getElementById('r-owed').textContent = fmt(currentBalances.driverOwed);
+  const name = reimbSelectedDriver();
+  document.getElementById('r-owed-name').textContent = name;
+  document.getElementById('r-owed').textContent = fmt(driverBalances(name).driverOwed);
   const rows = ALL_TXNS.filter(t=>t.type==='reimbursement').slice().reverse();
   document.getElementById('reimb-tbody').innerHTML = rows.map(t=>{
     const statusLbl = t.status==='pending' ? ' ⏳' : (t.status==='rejected' ? ' ❌' : '');
-    return `<tr><td>${t.date}</td><td>${fmt(t.amount)}${statusLbl}</td><td>${escapeHtml(t.note||'')}</td></tr>`;
-  }).join('') || `<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px;">No reimbursements yet.</td></tr>`;
+    return `<tr><td>${t.date}</td><td>${escapeHtml(t.driver||'')}</td><td>${fmt(t.amount)}${statusLbl}</td><td>${escapeHtml(t.note||'')}</td></tr>`;
+  }).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">No reimbursements yet.</td></tr>`;
 }
 async function saveReimbursement(){
   const amount = parseFloat(document.getElementById('r-amount').value);
@@ -2238,7 +2359,7 @@ async function saveReimbursement(){
     date: document.getElementById('r-date').value,
     amount: round2(amount),
     note: document.getElementById('r-note').value.trim(),
-    driver: await settingsGet('driverName',''),
+    driver: reimbSelectedDriver(),
     status: await entryStatus(),
     createdAt: Date.now(),
   };
