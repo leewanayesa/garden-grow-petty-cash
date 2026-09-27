@@ -48,7 +48,7 @@ input,select,textarea{font-family:inherit;}
 /* ===== Top bar ===== */
 .topbar{
   display:flex;align-items:center;gap:10px;
-  padding:14px 16px;background:var(--green-dark);color:#fff;
+  padding:14px 16px;background:linear-gradient(135deg, var(--green-dark), #0f4a2c);color:#fff;
   position:sticky;top:0;z-index:20;
 }
 .topbar .back{
@@ -76,21 +76,44 @@ input,select,textarea{font-family:inherit;}
 .bal-card.owed .val{color:var(--amber);}
 .bal-card.low .val{color:var(--red);}
 
-/* Admin Home: one row per driver, each its own separate float, tap for detail */
-.driver-rows{margin-bottom:18px;display:flex;flex-direction:column;gap:10px;}
-.driver-row{
-  width:100%;text-align:left;background:var(--white);border-radius:var(--radius);
-  border:1px solid var(--line);padding:14px 14px;display:flex;align-items:center;gap:10px;
+/* Admin Home — Modern Dashboard: summary tiles + driver cards with avatars */
+.section-label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:2px 2px 10px;}
+.admin-summary-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.stile{
+  background:var(--white);border-radius:18px;padding:16px 14px;
+  box-shadow:0 3px 14px rgba(11,61,36,.08);
 }
-.driver-row:active{background:var(--green-light);}
-.driver-row .drv-name{font-weight:800;font-size:15px;color:var(--green-dark);flex:0 0 auto;min-width:88px;}
-.driver-row .drv-amounts{flex:1;display:flex;gap:14px;justify-content:flex-end;}
-.driver-row .drv-amt{text-align:right;}
-.driver-row .drv-amt .lbl{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
-.driver-row .drv-amt .val{font-size:17px;font-weight:800;color:var(--green-dark);}
+.stile .stile-top{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.stile .stile-ic{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;background:var(--green-light);}
+.stile.amber .stile-ic{background:var(--amber-light);}
+.stile .stile-lbl{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.3px;}
+.stile .stile-val{font-size:22px;font-weight:800;color:var(--green-dark);}
+.stile.amber .stile-val{color:var(--amber);}
+.stile.low .stile-val{color:var(--red);}
+
+.driver-rows{margin-bottom:20px;display:flex;flex-direction:column;gap:12px;}
+.driver-row{
+  width:100%;text-align:left;background:var(--white);border-radius:18px;
+  border:none;padding:14px 16px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 3px 14px rgba(11,61,36,.08);position:relative;
+}
+.driver-row:active{transform:scale(.98);}
+.driver-row::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:4px;background:var(--green);}
+.driver-row.low::before{background:var(--red);}
+.driver-row .drv-avatar{
+  width:44px;height:44px;border-radius:13px;background:var(--green-light);color:var(--green-dark);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;margin-left:6px;
+}
+.driver-row .drv-name{font-weight:800;font-size:14px;color:var(--ink);flex:0 0 auto;width:64px;line-height:1.2;}
+.driver-row .drv-amounts{flex:1;display:flex;gap:8px;justify-content:flex-end;}
+.driver-row .drv-amt{text-align:right;background:var(--bg);border-radius:11px;padding:6px 10px;min-width:64px;}
+.driver-row .drv-amt .lbl{font-size:9.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:1px;}
+.driver-row .drv-amt .val{font-size:14.5px;font-weight:800;color:var(--green-dark);}
+.driver-row .drv-amt.owed{background:var(--amber-light);}
 .driver-row .drv-amt.owed .val{color:var(--amber);}
+.driver-row.low .drv-amt.cash{background:var(--red-light);}
 .driver-row.low .drv-amt.cash .val{color:var(--red);}
-.driver-row .drv-arrow{font-size:20px;color:var(--muted);flex:0 0 auto;}
+.driver-row .drv-arrow{font-size:20px;color:var(--muted);flex-shrink:0;}
 
 /* Admin Settings: manage driver roster */
 .driver-manage-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
@@ -340,8 +363,8 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         No internet connection — can't load data.<br>
         <button class="btn" style="margin-top:8px;" onclick="refreshAll()">Retry</button>
       </div>
-      <div id="home-approvals-tile-wrap" style="display:none;margin-bottom:14px;">
-        <button class="btn block" style="background:var(--amber);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;padding:14px;" onclick="goToApprovals()">
+      <div id="home-approvals-tile-wrap" style="display:none;margin-bottom:20px;">
+        <button class="btn block" style="background:var(--amber);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;padding:15px;border:none;border-radius:18px;box-shadow:0 3px 14px rgba(184,134,11,.28);margin-bottom:0;" onclick="goToApprovals()">
           ✅ Approvals Needed <span id="home-approvals-tile-badge" style="background:#fff;color:var(--amber);border-radius:10px;padding:2px 9px;font-weight:800;"></span>
         </button>
       </div>
@@ -1198,6 +1221,19 @@ document.addEventListener('visibilitychange', ()=>{
     refreshAll();
   }
 });
+// Covers the same "went away, came back, looks stuck/empty" problem on
+// desktop Chrome/Edge on Windows (and Safari) via a different mechanism:
+// when a tab/window is restored from the browser's "back-forward cache"
+// (e.g. clicking the link again, or Alt+Tab back to a suspended tab), the
+// page can come back to life without visibilitychange firing at all — this
+// catches that case specifically (event.persisted is only true on a
+// bfcache restore, never on a normal first load) and forces a fresh reload
+// of the data the same way visibilitychange does above.
+window.addEventListener('pageshow', (e)=>{
+  if(e.persisted){
+    refreshAll();
+  }
+});
 
 /* ---- Login screen flow ---- */
 let LOGIN_STATE = { role:null, driverName:null };
@@ -1407,17 +1443,42 @@ function renderHome(){
       <div class="bal-card owed"><div class="lbl">My Money Used</div><div class="val">${firstLoadDone?'—':'…'}</div></div>
     </div>`;
   } else if(IS_ADMIN_DEVICE){
-    wrap.innerHTML = `<div class="driver-rows">` + DRIVER_NAMES.map(name=>{
+    // Combined totals across every driver, so Esa gets the big picture at a
+    // glance before drilling into any one driver's row.
+    const totals = DRIVER_NAMES.reduce((acc,name)=>{
+      const b = driverBalances(name);
+      acc.cash += b.companyCash; acc.owed += b.driverOwed; return acc;
+    }, {cash:0, owed:0});
+    const todayStr = localDateStr(new Date());
+    const todaySpend = approvedOnly(ALL_TXNS)
+      .filter(t=>t.type==='expense' && t.date===todayStr)
+      .reduce((sum,t)=>sum+(Number(t.amount)||0), 0);
+    wrap.innerHTML = `
+      <div class="admin-summary-row">
+        <div class="stile${totals.cash<0?' low':''}">
+          <div class="stile-top"><span class="stile-ic">💵</span><span class="stile-lbl">Total Cash Left</span></div>
+          <div class="stile-val">${fmt(totals.cash)}</div>
+        </div>
+        <div class="stile amber">
+          <div class="stile-top"><span class="stile-ic">🧾</span><span class="stile-lbl">Owed To Drivers</span></div>
+          <div class="stile-val">${fmt(totals.owed)}</div>
+        </div>
+      </div>
+      <div class="section-label">Drivers</div>
+      <div class="driver-rows">` + DRIVER_NAMES.map(name=>{
       const b = driverBalances(name);
       return `<button class="driver-row${b.companyCash<0?' low':''}" onclick="openHistory('${name}')">
-        <div class="drv-name">🧑 ${escapeHtml(name)}</div>
+        <div class="drv-avatar">${initials(name)}</div>
+        <div class="drv-name">${escapeHtml(name)}</div>
         <div class="drv-amounts">
           <div class="drv-amt cash"><span class="lbl">Cash Left</span><span class="val">${fmt(b.companyCash)}</span></div>
           <div class="drv-amt owed"><span class="lbl">Owed</span><span class="val">${fmt(b.driverOwed)}</span></div>
         </div>
         <div class="drv-arrow">›</div>
       </button>`;
-    }).join('') + `</div>`;
+    }).join('') + `</div>
+      <div class="section-label" style="margin-top:4px;">Today · ${fmt(todaySpend)} spent</div>
+    `;
   } else {
     const b = driverBalances(CURRENT_DRIVER_NAME);
     wrap.innerHTML = `<div class="balance-cards">
@@ -1452,6 +1513,13 @@ function fmt(n){
   n = Number(n)||0;
   const s = n.toLocaleString('en-AE', {minimumFractionDigits: (n%1!==0)?2:0, maximumFractionDigits:2});
   return 'AED ' + s;
+}
+// Up to 2 letters for a driver's avatar circle, e.g. "Gul Bad Shah" -> "GB".
+function initials(name){
+  const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return '?';
+  if(parts.length===1) return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0]+parts[1][0]).toUpperCase();
 }
 
 /* ================= NAVIGATION (with browser/phone back button support) ================= */
