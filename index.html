@@ -380,7 +380,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 </div>
 <div class="app" id="app">
   <div id="conn-banner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:25;background:var(--red);color:#fff;text-align:center;font-weight:800;font-size:13px;padding:9px 12px;">⚠ No internet connection</div>
-  <div id="schema-banner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:24;background:var(--amber);color:#3a2a00;text-align:center;font-weight:700;font-size:12.5px;padding:9px 12px;">⚠ App update needed — see Settings → Account</div>
+  <div id="schema-banner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:24;background:var(--amber);color:#3a2a00;text-align:center;font-weight:700;font-size:12.5px;padding:9px 12px;">⚠ App update needed — see Admin → Settings</div>
 
   <!-- ============ DRIVER HOME ============ -->
   <div class="screen active" id="screen-home">
@@ -395,7 +395,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
         <div style="display:flex;gap:6px;align-items:center;">
           <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh" style="width:32px;height:32px;font-size:15px;">🔄</button>
-          <button class="adminlink" id="home-admin-link" onclick="goAdmin()" style="display:none;">Settings <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
+          <button class="adminlink" id="home-admin-link" onclick="goAdmin()" style="display:none;">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
         </div>
         <button class="adminlink" onclick="logoutUser()">🚪 Log Out</button>
       </div>
@@ -412,9 +412,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
       <div id="home-balance-wrap"></div>
       <!-- Driver-only actions — a driver device always sees these; hidden on
-           a Settings (admin) device, which gets its own quick-actions below
-           instead, since Buy/Pay, Cash In etc. aren't things Esa does from
-           his own Home screen. -->
+           an Admin device, which gets its own quick-actions below instead,
+           since Buy/Pay, Cash In etc. aren't things Esa does from his own
+           Home screen. -->
       <div class="big-tiles" id="driver-action-tiles">
         <button class="tile primary" onclick="openExpenseEntry()">
           <div class="ic">🛒</div> BUY / PAY
@@ -429,11 +429,17 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
           <div class="ic">📱</div> SEND SUMMARY
         </button>
       </div>
-      <!-- Settings (admin) quick actions — the ones Esa actually uses often,
-           promoted straight onto Home instead of being buried inside tabs.
-           Hidden on a driver device. -->
+      <!-- Admin quick actions — the ones Esa actually uses often, promoted
+           straight onto Home instead of being buried inside tabs. Hidden on
+           a driver device. -->
       <div class="big-tiles" id="admin-action-tiles" style="display:none;">
-        <button class="tile primary" onclick="goAdminTab('reimb')">
+        <button class="tile primary" onclick="openHistory()">
+          <div class="ic">📋</div> HISTORY
+        </button>
+        <button class="tile" onclick="openSummaryPeriod()">
+          <div class="ic">📱</div> SEND SUMMARY
+        </button>
+        <button class="tile" onclick="goAdminTab('reimb')">
           <div class="ic">💵</div> REIMBURSE
         </button>
         <button class="tile" onclick="goAdminTab('txns')">
@@ -464,10 +470,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
       </div>
 
-      <!-- Step 0: choose Driver or Settings (internally still the 'admin' role) -->
+      <!-- Step 0: choose Driver or Admin -->
       <div class="big-tiles" id="login-role-choice">
         <button class="tile primary" onclick="showLoginRole('driver')"><div class="ic">🚚</div> DRIVER</button>
-        <button class="tile" onclick="showLoginRole('admin')"><div class="ic">⚙️</div> SETTINGS</button>
+        <button class="tile" onclick="showLoginRole('admin')"><div class="ic">🔐</div> ADMIN</button>
       </div>
 
       <!-- Step 1 (driver only): pick a name -->
@@ -634,6 +640,17 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
       </div>
     </div>
+    <!-- Admin-only: choose which driver's history to look at (or all of them
+         together) and search by text — a driver device never sees this, it
+         always shows just its own entries same as before. -->
+    <div id="hist-admin-controls" style="display:none;padding:12px 16px 0;">
+      <div class="filter-row" style="margin-bottom:0;">
+        <select id="hist-driver-select" onchange="onHistDriverSelectChange(this.value)">
+          <option value="">All Drivers</option>
+        </select>
+        <input type="text" id="hist-search" placeholder="Search note / supplier / site" oninput="renderTodayList()">
+      </div>
+    </div>
     <div id="hist-driver-stats" class="balance-cards" style="display:none;margin:14px 16px 0;">
       <div class="bal-card" id="hist-driver-cash-card"><div class="lbl">Cash Left</div><div class="val" id="hist-driver-cash-val">…</div></div>
       <div class="bal-card owed"><div class="lbl">Owed To Driver</div><div class="val" id="hist-driver-owed-val">…</div></div>
@@ -672,6 +689,17 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
     </div>
     <div class="home-wrap">
+      <!-- Admin-only: choose whether the summary covers both drivers combined
+           or just one — a driver device never sees this and always sends its
+           own summary exactly as before. -->
+      <div id="summary-admin-controls" style="display:none;margin-bottom:16px;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Driver</label>
+          <select id="summary-driver-select">
+            <option value="">Both Drivers (Combined)</option>
+          </select>
+        </div>
+      </div>
       <p style="color:var(--muted);font-size:14px;margin:0 0 16px;">Pick the period. Makes a PDF statement (with your photos) and opens WhatsApp to send it.</p>
       <div class="big-tiles">
         <button class="tile primary" onclick="sendPeriodSummary('today')"><div class="ic">📅</div>TODAY</button>
@@ -679,6 +707,12 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <button class="tile" onclick="sendPeriodSummary('month')"><div class="ic">🗓️</div>THIS MONTH</button>
         <button class="tile" onclick="sendPeriodSummary('all')"><div class="ic">📖</div>SINCE START</button>
       </div>
+      <div class="filter-row" id="summary-period-range" style="display:none;margin-top:12px;">
+        <input type="date" id="summary-from">
+        <input type="date" id="summary-to">
+        <button class="btn primary" style="flex:0 0 auto;" onclick="sendPeriodSummary('custom')">Send</button>
+      </div>
+      <button class="more-toggle" onclick="toggleSummaryCustomRange()" id="summary-custom-toggle">▾ Custom date range</button>
       <div id="pdf-status" style="text-align:center;color:var(--muted);font-size:13px;margin-top:16px;"></div>
     </div>
   </div>
@@ -687,7 +721,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
   <div class="screen" id="screen-admin">
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
-      <h1>⚙️ Settings</h1>
+      <h1>⚙️ Admin / Management</h1>
       <div class="topbar-actions">
         <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
         <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
@@ -702,7 +736,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="admin-tab" data-tab="reports" onclick="selectAdminTab('reports')">Reports</button>
       <button class="admin-tab" data-tab="sync" onclick="selectAdminTab('sync')">Connection</button>
       <button class="admin-tab" data-tab="backup" onclick="selectAdminTab('backup')">Backup</button>
-      <button class="admin-tab" data-tab="settings" onclick="selectAdminTab('settings')">Account</button>
+      <button class="admin-tab" data-tab="settings" onclick="selectAdminTab('settings')">Settings</button>
     </div>
 
     <!-- Dashboard -->
@@ -824,8 +858,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
     </div>
 
-    <!-- Account (used to be called "Settings" — renamed since that word was
-         confusing next to the "⚙️ Settings" screen itself) -->
+    <!-- Settings -->
     <div class="admin-panel" data-panel="settings">
       <div class="settings-row">
         <span>WhatsApp Number (for summary)</span>
@@ -851,9 +884,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <span>Logged in as</span>
         <span style="font-weight:700;" id="admin-login-status">—</span>
       </div>
-      <p style="color:var(--muted);font-size:13px;">Settings login password is fixed in the app's code (not changeable from here). Ask your developer to change it if needed.</p>
+      <p style="color:var(--muted);font-size:13px;">Admin password is fixed in the app's code (not changeable from here). Ask your developer to change it if needed.</p>
       <button class="btn block" onclick="logoutUser()">🚪 Log Out</button>
-      <button class="btn block" onclick="goHome()">🚪 Exit Settings</button>
+      <button class="btn block" onclick="goHome()">🚪 Exit Admin</button>
     </div>
   </div>
 
@@ -886,7 +919,7 @@ const QUICK_NOTES = ['Site Material','Vehicle','Delivery','Nursery','Sand','Repa
 /* ================= LOGIN ================= */
 // Edit this array to add or remove drivers who can log in.
 // Default roster, used only until the server tells us the current list (set
-// by Esa from Admin → Settings → Drivers). Kept here as a safe fallback in
+// by Esa from Admin → Drivers). Kept here as a safe fallback in
 // case the server is briefly unreachable or hasn't been redeployed yet.
 let DRIVER_NAMES = ['Jawad', 'Gul Bad Shah'];
 // Plain constants, same trust model as the old fixed PIN — there is no real
@@ -1153,7 +1186,7 @@ async function loadFromServer(){
     if(!data || !Array.isArray(data.records)) return {ok:false, error:'bad_response'};
     SCHEMA_OUTDATED = !data.schemaVersion || data.schemaVersion < EXPECTED_SCHEMA_VERSION;
     updateSchemaBanner();
-    // The driver roster now lives on the server (Admin → Settings → Drivers)
+    // The driver roster now lives on the server (Admin → Drivers)
     // so every phone always sees the same up-to-date list. Only fall back to
     // the hardcoded default if an older, not-yet-redeployed Apps Script
     // doesn't send this field at all.
@@ -1341,7 +1374,7 @@ async function showLoginRole(role){
     document.getElementById('login-driver-picker').style.display = 'block';
     document.getElementById('login-password-form').style.display = 'none';
     // Pull the current driver roster fresh every time — so a driver Esa just
-    // added from Admin → Settings shows up immediately, on any phone, without
+    // added from Admin → Drivers shows up immediately, on any phone, without
     // needing to reinstall or update the app itself. Always attempted (never
     // gated on navigator.onLine, which iOS reports unreliably) — if there's
     // truly no connection, loadFromServer just fails quietly here and the
@@ -1513,7 +1546,7 @@ function base64ToArrayBuffer(b64){
 
 function updateHomeDriverLabel(name){
   document.getElementById('home-driver-name').textContent =
-    IS_ADMIN_DEVICE ? ('⚙️ Settings — ' + name) : ('Driver: ' + name);
+    IS_ADMIN_DEVICE ? ('🔐 Logged in as Admin (' + name + ')') : ('Driver: ' + name);
 }
 
 // Admin's Home now shows one row per driver (each with their OWN separate
@@ -1523,7 +1556,7 @@ function updateHomeDriverLabel(name){
 // entries — no other driver's numbers, and no shared "company" total.
 function renderHome(){
   updateAdminLinkVisibility();
-  // Driver actions (Buy/Pay, Cash In, History, Send Summary) vs. Settings
+  // Driver actions (Buy/Pay, Cash In, History, Send Summary) vs. Admin
   // quick actions (Reimburse, Transactions, Reports, Drivers) — a device only
   // ever shows the set that matches how it's logged in.
   const driverTiles = document.getElementById('driver-action-tiles');
@@ -1605,9 +1638,9 @@ function goToApprovals(){
   pushScreen('screen-admin');
   selectAdminTab('approvals');
 }
-// One tap from Home straight into any Settings tab — used by the quick
-// action tiles on the Settings (admin) Home screen (Reimburse, Transactions,
-// Reports, Drivers), same pattern as goToApprovals() above.
+// One tap from Home straight into any Admin tab — used by the quick action
+// tiles on the Admin Home screen (Reimburse, Transactions, Reports, Drivers),
+// same pattern as goToApprovals() above.
 function goAdminTab(tab){
   pushScreen('screen-admin');
   selectAdminTab(tab);
@@ -1988,7 +2021,34 @@ async function openWhatsApp(text){
 
 /* ================= SEND SUMMARY (statement for a chosen period) ================= */
 function openSummaryPeriod(){
+  const controls = document.getElementById('summary-admin-controls');
+  if(controls) controls.style.display = IS_ADMIN_DEVICE ? 'block' : 'none';
+  if(IS_ADMIN_DEVICE){
+    const sel = document.getElementById('summary-driver-select');
+    if(sel){
+      sel.innerHTML = `<option value="">Both Drivers (Combined)</option>` +
+        DRIVER_NAMES.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+    }
+  }
   pushScreen('screen-summary-period');
+}
+function toggleSummaryCustomRange(){
+  const row = document.getElementById('summary-period-range');
+  const showing = row.style.display === 'flex';
+  row.style.display = showing ? 'none' : 'flex';
+  if(!showing){
+    const t = localDateStr();
+    if(!document.getElementById('summary-from').value) document.getElementById('summary-from').value = t;
+    if(!document.getElementById('summary-to').value) document.getElementById('summary-to').value = t;
+  }
+}
+// Which driver (if any) the Admin picked on the Send Summary screen —
+// '' / null means "both drivers combined". A driver device has no such
+// dropdown so this is always null for them, exactly like before.
+function selectedSummaryDriver(){
+  if(!IS_ADMIN_DEVICE) return null;
+  const sel = document.getElementById('summary-driver-select');
+  return (sel && sel.value) ? sel.value : null;
 }
 function periodRange(key){
   const today = new Date();
@@ -2008,11 +2068,21 @@ function periodRange(key){
   return {from: earliest, to: todayStr, label:'Since Start'};
 }
 async function sendPeriodSummary(key){
-  const {from, to, label} = periodRange(key);
+  let from, to, label;
+  if(key==='custom'){
+    from = document.getElementById('summary-from').value;
+    to = document.getElementById('summary-to').value;
+    if(!from || !to){ toast('Pick both dates first'); return; }
+    label = (from===to) ? 'Daily' : 'Period';
+  } else {
+    ({from, to, label} = periodRange(key));
+  }
+  const driverFilter = selectedSummaryDriver();
+  if(driverFilter) label = `${label} — ${driverFilter}`;
   const statusEl = document.getElementById('pdf-status');
   statusEl.textContent = 'Preparing PDF…';
   try{
-    await buildAndDeliverStatementPDF(label, from, to, {share:true});
+    await buildAndDeliverStatementPDF(label, from, to, {share:true, driverFilter});
     statusEl.textContent = '';
   }catch(err){
     if(err && err.code==='no_internet'){
@@ -2021,9 +2091,11 @@ async function sendPeriodSummary(key){
     }
     // PDF library or share failed for some other reason — fall back to plain
     // WhatsApp text, using the data we already have live from the server.
-    const txns = approvedOnly(ALL_TXNS).filter(t=> t.date>=from && t.date<=to);
-    const opening = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<from));
-    const closing = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<=to));
+    // Same scope (one driver or both combined) as the PDF attempt above.
+    const scoped = driverFilter ? txnsForDriver(driverFilter) : approvedOnly(ALL_TXNS);
+    const txns = scoped.filter(t=> t.date>=from && t.date<=to);
+    const opening = computeBalances(scoped.filter(t=>t.date<from));
+    const closing = computeBalances(scoped.filter(t=>t.date<=to));
     openWhatsApp(buildStatementText(label, from, to, txns, opening, closing));
     statusEl.textContent = 'Sent as text instead of PDF.';
   }
@@ -2074,14 +2146,23 @@ function buildStatementText(label, fromStr, toStr, txns, opening, closing){
 }
 
 /* ================= PDF STATEMENT GENERATION ================= */
+// opts.driverFilter: a specific driver's name to scope the whole statement to
+// (their entries only, their own opening/closing balances) — omitted or ''
+// means every driver combined, the original company-wide behavior.
 async function buildAndDeliverStatementPDF(label, fromStr, toStr, opts){
   opts = opts || {};
   const loadResult = await refreshAll();
   if(!loadResult.ok){ const err = new Error('no_internet'); err.code='no_internet'; throw err; }
-  const txns = approvedOnly(ALL_TXNS).filter(t=> t.date>=fromStr && t.date<=toStr);
-  const opening = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<fromStr));
-  const closing = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<=toStr));
-  const driverName = await settingsGet('driverName','');
+  const driverFilter = opts.driverFilter || null;
+  const scoped = driverFilter ? txnsForDriver(driverFilter) : approvedOnly(ALL_TXNS);
+  const txns = scoped.filter(t=> t.date>=fromStr && t.date<=toStr);
+  const opening = computeBalances(scoped.filter(t=>t.date<fromStr));
+  const closing = computeBalances(scoped.filter(t=>t.date<=toStr));
+  // A driver's own device still labels the PDF with their own name, exactly
+  // as before. Admin's combined (all-drivers) statement shows no driver line
+  // at all instead of misleadingly saying "Driver: Esa"; a specific driver
+  // Admin picked shows that driver's name.
+  const driverName = driverFilter || (IS_ADMIN_DEVICE ? '' : await settingsGet('driverName',''));
   const doc = buildStatementPDFDoc(label, fromStr, toStr, txns, opening, closing, driverName);
   const filename = `petty-cash-statement-${fromStr}_to_${toStr}.pdf`;
   if(opts.share===false){
@@ -2223,6 +2304,9 @@ function openHistory(driverName){
   histDriverFilter = IS_ADMIN_DEVICE ? (driverName || null) : CURRENT_DRIVER_NAME;
   const title = document.getElementById('hist-title');
   const statsBox = document.getElementById('hist-driver-stats');
+  const adminControls = document.getElementById('hist-admin-controls');
+  if(adminControls) adminControls.style.display = IS_ADMIN_DEVICE ? 'block' : 'none';
+  if(IS_ADMIN_DEVICE) populateHistDriverSelect();
   if(histDriverFilter==='__other__'){
     title.textContent = '📋 Other';
     statsBox.style.display = 'grid';
@@ -2235,6 +2319,31 @@ function openHistory(driverName){
   }
   pushScreen('screen-today');
   document.getElementById('today-list').innerHTML = `<div class="empty-note">Loading…</div>`;
+  renderTodayList();
+}
+// Fills the Admin-only driver dropdown on History with the current roster
+// (so a newly-added driver shows up here too) and selects whichever driver
+// (or "All Drivers") is currently being viewed.
+function populateHistDriverSelect(){
+  const sel = document.getElementById('hist-driver-select');
+  if(!sel) return;
+  sel.innerHTML = `<option value="">All Drivers</option>` +
+    DRIVER_NAMES.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  sel.value = histDriverFilter || '';
+}
+// Switching the dropdown is the same as tapping a different driver's row on
+// Home, or "All Drivers" is the same as opening History unfiltered.
+function onHistDriverSelectChange(name){
+  histDriverFilter = name || null;
+  const title = document.getElementById('hist-title');
+  const statsBox = document.getElementById('hist-driver-stats');
+  if(histDriverFilter){
+    title.textContent = '📋 ' + histDriverFilter;
+    statsBox.style.display = 'grid';
+  } else {
+    title.textContent = '📋 History';
+    statsBox.style.display = 'none';
+  }
   renderTodayList();
 }
 function setHistFilter(key){
@@ -2273,9 +2382,20 @@ async function renderTodayList(){
   let rows = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
   if(histDriverFilter==='__other__') rows = rows.filter(t=>!DRIVER_NAMES.includes((t.driver||'').trim()));
   else if(histDriverFilter) rows = rows.filter(t=>(t.driver||'').trim()===histDriverFilter);
+  // Admin-only text search across note/supplier/site — same idea as the
+  // search box already on the Transactions tab.
+  const searchEl = document.getElementById('hist-search');
+  const q = (IS_ADMIN_DEVICE && searchEl) ? searchEl.value.trim().toLowerCase() : '';
+  if(q){
+    rows = rows.filter(t=>
+      (t.note||'').toLowerCase().includes(q) ||
+      (t.supplier||'').toLowerCase().includes(q) ||
+      (t.site||'').toLowerCase().includes(q)
+    );
+  }
   rows = rows.slice().reverse();
   if(!rows.length){
-    list.innerHTML = `<div class="empty-note">No entries in this period.<br>Tap 🛒 BUY / PAY or 💰 CASH IN to add one.</div>`;
+    list.innerHTML = `<div class="empty-note">No entries ${q?'match your search':'in this period'}.<br>Tap 🛒 BUY / PAY or 💰 CASH IN to add one.</div>`;
   } else {
     list.innerHTML = rows.map(renderHistItem).join('');
   }
@@ -2283,9 +2403,12 @@ async function renderTodayList(){
 }
 async function generateHistoryStatement(){
   const {from, to, label} = getHistRange();
+  // Match whatever's currently on screen: if Admin has this filtered to one
+  // driver (or "All Drivers"), the statement covers exactly that same scope.
+  const driverFilter = (histDriverFilter && histDriverFilter!=='__other__') ? histDriverFilter : null;
   toast('Preparing PDF…');
   try{
-    await buildAndDeliverStatementPDF(label, from, to, {share:true});
+    await buildAndDeliverStatementPDF(label, from, to, {share:true, driverFilter});
   }catch(e){
     toast(e && e.code==='no_internet' ? 'No internet connection. Please check your connection and try again.' : 'Could not create PDF. Please try again.');
   }
@@ -2433,7 +2556,7 @@ function renderAdminSettingsStatus(){
   const el = document.getElementById('admin-login-status');
   if(el){
     settingsGet('driverName','').then(dn=>{
-      el.textContent = `${IS_ADMIN_DEVICE ? 'Settings' : 'Driver'} (${dn || '—'})`;
+      el.textContent = `${IS_ADMIN_DEVICE ? 'Admin' : 'Driver'} (${dn || '—'})`;
     });
   }
   const schemaEl = document.getElementById('admin-schema-status');
@@ -2441,7 +2564,7 @@ function renderAdminSettingsStatus(){
   if(schemaEl){ schemaEl.textContent = SCHEMA_OUTDATED ? '⚠ Update needed' : '✅ Up to date'; }
   if(warnEl){ warnEl.style.display = SCHEMA_OUTDATED ? 'block' : 'none'; }
 }
-/* ---- Driver roster management (Admin → Settings) ----
+/* ---- Driver roster management (Admin → Drivers) ----
    The list of drivers lives on the server (a "Drivers" tab in the Google
    Sheet) so it's the same on every phone. Adding a driver here is literally
    all it takes to "give them access" — they just pick their name at login
