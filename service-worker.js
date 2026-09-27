@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gg-pettycash-v19';
+const CACHE_NAME = 'gg-pettycash-v20';
 // Only truly static, rarely-changing assets go through cache-first below.
 // index.html itself is deliberately network-first (see fetch handler) so a
 // new deploy is picked up the moment the app opens with internet, instead of
@@ -7,6 +7,7 @@ const ASSETS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+  './logo-mark.png',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
 ];

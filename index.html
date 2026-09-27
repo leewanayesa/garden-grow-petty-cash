@@ -92,6 +92,13 @@ input,select,textarea{font-family:inherit;}
 .driver-row.low .drv-amt.cash .val{color:var(--red);}
 .driver-row .drv-arrow{font-size:20px;color:var(--muted);flex:0 0 auto;}
 
+/* Admin Settings: manage driver roster */
+.driver-manage-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+.driver-manage-row:last-child{border-bottom:none;}
+.driver-manage-row .dm-name{flex:1;font-weight:700;color:var(--green-dark);}
+.driver-manage-row button{padding:8px 12px;font-size:12.5px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:700;color:var(--muted);}
+.driver-manage-row button.danger{color:var(--red);border-color:var(--red-light);}
+
 .big-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .tile{
   background:var(--white);border:2px solid var(--line);border-radius:var(--radius);
@@ -313,9 +320,12 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
   <!-- ============ DRIVER HOME ============ -->
   <div class="screen active" id="screen-home">
     <div class="topbar">
-      <div style="flex:1;">
-        <h1 style="margin-bottom:2px;">🌿 Garden Grow — Petty Cash</h1>
-        <div id="home-driver-name" style="font-size:12px;opacity:.85;"></div>
+      <div style="flex:1;display:flex;align-items:center;gap:10px;">
+        <img src="logo-mark.png" alt="" style="width:34px;height:34px;flex-shrink:0;">
+        <div>
+          <h1 style="margin-bottom:2px;">Garden Grow — Petty Cash</h1>
+          <div id="home-driver-name" style="font-size:12px;opacity:.85;"></div>
+        </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
         <div style="display:flex;gap:6px;align-items:center;">
@@ -356,13 +366,14 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
   <!-- ============ LOGIN ============ -->
   <div class="screen" id="screen-login">
     <div class="topbar">
-      <div style="flex:1;">
-        <h1>🌿 Garden Grow — Petty Cash</h1>
+      <div style="flex:1;display:flex;align-items:center;gap:10px;">
+        <img src="logo-mark.png" alt="" style="width:34px;height:34px;flex-shrink:0;">
+        <h1>Garden Grow — Petty Cash</h1>
       </div>
     </div>
     <div class="home-wrap" style="padding-top:40px;">
       <div style="text-align:center;margin-bottom:26px;">
-        <div style="font-size:50px;">🌿</div>
+        <img src="logo-mark.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
       </div>
@@ -733,12 +744,22 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <div id="admin-schema-warning" style="display:none;background:var(--amber-light);color:#6b4e00;border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;margin-bottom:14px;">
         ⚠ Your Google Apps Script is out of date. Some features (like driver delete requests) won't work until you paste the latest <code>apps-script-sync.gs</code> into the Apps Script editor and deploy it as a <b>New version</b> (Deploy → Manage deployments → ✏️ → New version → Deploy).
       </div>
+      <div class="section-title">Drivers</div>
+      <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Add a new driver, rename one, or remove one. Every driver logs in with the same password (1Pakistan@) and picks their own name — adding them here is all that's needed to give them access.</p>
+      <div id="driver-manage-list" style="margin-bottom:12px;"></div>
+      <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
+        <div style="flex:1;">
+          <label>Add New Driver</label>
+          <input type="text" id="new-driver-name" placeholder="e.g. Rashid">
+        </div>
+        <button class="btn primary" style="padding:14px 18px;" onclick="addDriverPrompt()">+ Add</button>
+      </div>
       <div class="section-title">Account</div>
       <div class="settings-row">
         <span>Logged in as</span>
         <span style="font-weight:700;" id="admin-login-status">—</span>
       </div>
-      <p style="color:var(--muted);font-size:13px;">Driver and Admin passwords are fixed in the app's code (not changeable from here). Ask your developer to change them if needed.</p>
+      <p style="color:var(--muted);font-size:13px;">Admin password is fixed in the app's code (not changeable from here). Ask your developer to change it if needed.</p>
       <button class="btn block" onclick="logoutUser()">🚪 Log Out</button>
       <button class="btn block" onclick="goHome()">🚪 Exit Admin</button>
     </div>
@@ -772,7 +793,10 @@ const QUICK_NOTES = ['Site Material','Vehicle','Delivery','Nursery','Sand','Repa
 
 /* ================= LOGIN ================= */
 // Edit this array to add or remove drivers who can log in.
-const DRIVER_NAMES = ['Jawad', 'Gul Bad Shah'];
+// Default roster, used only until the server tells us the current list (set
+// by Esa from Admin → Settings → Drivers). Kept here as a safe fallback in
+// case the server is briefly unreachable or hasn't been redeployed yet.
+let DRIVER_NAMES = ['Jawad', 'Gul Bad Shah'];
 // Plain constants, same trust model as the old fixed PIN — there is no real
 // backend auth here, just a lightweight gate for a few known people.
 const DRIVER_PASSWORD = '1Pakistan@';
@@ -945,7 +969,7 @@ function updateConnBanner(){
 // Bump alongside SCHEMA_VERSION in apps-script-sync.gs. If the deployed
 // Apps Script is older than this, some features (like delete requests) will
 // silently do nothing — this makes that failure visible instead of confusing.
-const EXPECTED_SCHEMA_VERSION = 2;
+const EXPECTED_SCHEMA_VERSION = 3;
 let SCHEMA_OUTDATED = false;
 function updateSchemaBanner(){
   const el = document.getElementById('schema-banner');
@@ -996,6 +1020,13 @@ async function loadFromServer(){
     if(!data || !Array.isArray(data.records)) return {ok:false, error:'bad_response'};
     SCHEMA_OUTDATED = !data.schemaVersion || data.schemaVersion < EXPECTED_SCHEMA_VERSION;
     updateSchemaBanner();
+    // The driver roster now lives on the server (Admin → Settings → Drivers)
+    // so every phone always sees the same up-to-date list. Only fall back to
+    // the hardcoded default if an older, not-yet-redeployed Apps Script
+    // doesn't send this field at all.
+    if(Array.isArray(data.drivers)){
+      DRIVER_NAMES = data.drivers.map(n=>String(n||'').trim()).filter(Boolean);
+    }
     ALL_TXNS = data.records.map(r=>({
       id: r.id,
       driver: (r.driver||'').trim(),
@@ -1119,7 +1150,7 @@ function resetLoginScreen(){
   const err = document.getElementById('login-error');
   if(err) err.textContent = '';
 }
-function showLoginRole(role){
+async function showLoginRole(role){
   LOGIN_STATE.role = role;
   LOGIN_STATE.driverName = (role==='admin') ? 'Esa' : null;
   document.getElementById('login-role-choice').style.display = 'none';
@@ -1127,6 +1158,13 @@ function showLoginRole(role){
     buildLoginDriverNames();
     document.getElementById('login-driver-picker').style.display = 'block';
     document.getElementById('login-password-form').style.display = 'none';
+    // Pull the current driver roster fresh every time — so a driver Esa just
+    // added from Admin → Settings shows up immediately, on any phone, without
+    // needing to reinstall or update the app itself.
+    if(navigator.onLine){
+      await loadFromServer();
+      buildLoginDriverNames();
+    }
   } else {
     document.getElementById('login-driver-picker').style.display = 'none';
     showLoginPasswordForm();
@@ -1316,17 +1354,7 @@ function renderHome(){
         </div>
         <div class="drv-arrow">›</div>
       </button>`;
-    }).join('') + (otherTxns().length ? (()=>{
-      const b = computeBalances(otherTxns());
-      return `<button class="driver-row${b.companyCash<0?' low':''}" onclick="openHistory('__other__')">
-        <div class="drv-name">📎 Other</div>
-        <div class="drv-amounts">
-          <div class="drv-amt cash"><span class="lbl">Cash Left</span><span class="val">${fmt(b.companyCash)}</span></div>
-          <div class="drv-amt owed"><span class="lbl">Owed</span><span class="val">${fmt(b.driverOwed)}</span></div>
-        </div>
-        <div class="drv-arrow">›</div>
-      </button>`;
-    })() : '') + `</div>`;
+    }).join('') + `</div>`;
   } else {
     const b = driverBalances(CURRENT_DRIVER_NAME);
     wrap.innerHTML = `<div class="balance-cards">
@@ -2164,7 +2192,7 @@ async function selectAdminTab(tab){
   if(tab==='reimb') renderReimbTab();
   if(tab==='reports') renderDailySummary();
   if(tab==='sync') renderSyncStatus();
-  if(tab==='settings') renderAdminSettingsStatus();
+  if(tab==='settings'){ renderAdminSettingsStatus(); renderDriverManageList(); }
 }
 function renderAdminSettingsStatus(){
   const el = document.getElementById('admin-login-status');
@@ -2177,6 +2205,59 @@ function renderAdminSettingsStatus(){
   const warnEl = document.getElementById('admin-schema-warning');
   if(schemaEl){ schemaEl.textContent = SCHEMA_OUTDATED ? '⚠ Update needed' : '✅ Up to date'; }
   if(warnEl){ warnEl.style.display = SCHEMA_OUTDATED ? 'block' : 'none'; }
+}
+/* ---- Driver roster management (Admin → Settings) ----
+   The list of drivers lives on the server (a "Drivers" tab in the Google
+   Sheet) so it's the same on every phone. Adding a driver here is literally
+   all it takes to "give them access" — they just pick their name at login
+   and use the same shared driver password. Renaming keeps a driver's whole
+   history attached to their new name (the server relabels their past
+   entries too), so nothing gets orphaned into an "Other" bucket. */
+function renderDriverManageList(){
+  const wrap = document.getElementById('driver-manage-list');
+  if(!wrap) return;
+  if(!DRIVER_NAMES.length){
+    wrap.innerHTML = `<p style="color:var(--muted);font-size:13px;">No drivers yet — add one below.</p>`;
+    return;
+  }
+  wrap.innerHTML = DRIVER_NAMES.map(name=>`
+    <div class="driver-manage-row">
+      <div class="dm-name">🧑 ${escapeHtml(name)}</div>
+      <button onclick="renameDriverPrompt('${name.replace(/'/g,"\\'")}')">✏️ Rename</button>
+      <button class="danger" onclick="removeDriverPrompt('${name.replace(/'/g,"\\'")}')">🗑 Remove</button>
+    </div>
+  `).join('');
+}
+async function driverOp(op){
+  const result = await postToSync({driverOps:[op]});
+  if(!result.ok){ toast(friendlySyncError(result.error)); return false; }
+  await refreshAll();
+  renderDriverManageList();
+  return true;
+}
+async function addDriverPrompt(){
+  const input = document.getElementById('new-driver-name');
+  const name = (input.value||'').trim();
+  if(!name){ toast('Enter a driver name'); return; }
+  if(DRIVER_NAMES.some(n=>n.toLowerCase()===name.toLowerCase())){ toast('That driver already exists'); return; }
+  toast('Adding…');
+  const ok = await driverOp({op:'add', name});
+  if(ok){ input.value=''; toast(`${name} added — they can log in now`); }
+}
+async function renameDriverPrompt(oldName){
+  const newName = prompt(`Rename "${oldName}" to:`, oldName);
+  if(!newName || !newName.trim() || newName.trim()===oldName) return;
+  const trimmed = newName.trim();
+  if(DRIVER_NAMES.some(n=>n.toLowerCase()===trimmed.toLowerCase())){ toast('That name is already in use'); return; }
+  toast('Renaming…');
+  const ok = await driverOp({op:'rename', from:oldName, to:trimmed});
+  if(ok) toast(`Renamed to ${trimmed} — their history moved with them`);
+}
+async function removeDriverPrompt(name){
+  if(!confirm(`Remove ${name}? They won't be able to log in anymore, but their past entries stay in History.`)) return;
+  toast('Removing…');
+  const ok = await driverOp({op:'remove', name});
+  if(ok) toast(`${name} removed`);
 }
 function renderDashboardStats(){
   const b = currentBalances;
@@ -2347,10 +2428,16 @@ async function deleteTxn(id){
 // figure, the saved record, the history table) follows that selection.
 function reimbSelectedDriver(){
   const sel = document.getElementById('r-driver');
-  if(sel.options.length===0){
+  // Rebuild whenever the roster doesn't match what's currently listed (not
+  // just once) so a driver Esa just added/renamed/removed shows up here too,
+  // keeping whichever driver was selected if they're still in the list.
+  const current = Array.from(sel.options).map(o=>o.value);
+  if(current.join('|') !== DRIVER_NAMES.join('|')){
+    const prev = sel.value;
     sel.innerHTML = DRIVER_NAMES.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+    if(DRIVER_NAMES.includes(prev)) sel.value = prev;
   }
-  return sel.value || DRIVER_NAMES[0];
+  return sel.value || DRIVER_NAMES[0] || '';
 }
 function renderReimbTab(){
   const name = reimbSelectedDriver();
