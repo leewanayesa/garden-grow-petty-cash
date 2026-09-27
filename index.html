@@ -672,6 +672,19 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     </div>
   </div>
 
+  <!-- ============ APPROVALS (standalone — its own page, not buried in Settings tabs) ============ -->
+  <div class="screen" id="screen-approvals">
+    <div class="topbar">
+      <button class="back" onclick="goBack()">←</button>
+      <h1>✅ Approvals</h1>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
+        <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
+      </div>
+    </div>
+    <div class="hist-list" id="approvals-list-standalone"></div>
+  </div>
+
   <!-- Full-screen photo viewer -->
   <div class="photo-modal" id="photo-modal" onclick="closePhotoModal()">
     <img id="photo-modal-img" src="">
@@ -1632,12 +1645,8 @@ function renderHome(){
     tileWrap.style.display='none';
   }
 }
-// One tap from Home straight into Admin → Approvals — the whole point is
-// that Esa never has to hunt for where approvals live in the Admin tabs.
-function goToApprovals(){
-  pushScreen('screen-admin');
-  selectAdminTab('approvals');
-}
+// goToApprovals() itself now lives further down, next to renderApprovalsScreen()
+// — it opens the standalone Approvals page instead of Admin/Management.
 // One tap from Home straight into any Admin tab — used by the quick action
 // tiles on the Admin Home screen (Reimburse, Transactions, Reports, Drivers),
 // same pattern as goToApprovals() above.
@@ -1684,6 +1693,7 @@ async function applyScreenForState(id){
   if(id==='screen-home'){ await refreshAll(); showScreen('screen-home'); }
   else if(id==='screen-today'){ await renderTodayList(); showScreen('screen-today'); }
   else if(id==='screen-admin'){ await refreshAdmin(); showScreen('screen-admin'); }
+  else if(id==='screen-approvals'){ await refreshAll(); renderApprovalsScreen(); showScreen('screen-approvals'); }
   else { showScreen(id); }
 }
 function goHome(){ replaceScreen('screen-home'); refreshAll(); }
@@ -1699,6 +1709,7 @@ async function refreshCurrentScreen(){
   let result;
   if(id==='screen-admin') result = await refreshAdmin();
   else if(id==='screen-today') result = await renderTodayList();
+  else if(id==='screen-approvals'){ result = await refreshAll(); renderApprovalsScreen(); }
   else result = await refreshAll();
   toast(result && result.ok ? 'Up to date' : friendlySyncError(result && result.error));
 }
@@ -2643,14 +2654,21 @@ function deleteRequestEntries(){ return ALL_TXNS.filter(t=>t.deleteRequested).sl
 // waiting AND delete requests waiting both count as something Esa needs to
 // look at.
 function approvalsNeededCount(){ return pendingEntries().length + deleteRequestEntries().length; }
-function renderApprovalsTab(){
+// Updates every badge that shows the pending count — the small red number
+// next to "Admin" on Home, the amber tile on Home, and the tab inside
+// Admin/Management — so all three always agree, wherever they're read from.
+function updateApprovalsBadges(){
+  const total = approvalsNeededCount();
+  const tabBadge = document.getElementById('approvals-badge');
+  if(tabBadge){ if(total){ tabBadge.style.display='inline-block'; tabBadge.textContent = total; } else tabBadge.style.display='none'; }
+}
+// The actual list markup (delete requests + new entries needing approval,
+// each with one-tap Approve/Reject) — shared by the standalone Approvals
+// page and the Approvals tab inside Admin/Management, so both always look
+// and behave identically.
+function buildApprovalsHTML(){
   const rows = pendingEntries();
   const delRows = deleteRequestEntries();
-  const badge = document.getElementById('approvals-badge');
-  const total = rows.length + delRows.length;
-  if(total){ badge.style.display='inline-block'; badge.textContent = total; }
-  else { badge.style.display='none'; }
-  const list = document.getElementById('approvals-list');
   let html = '';
   if(delRows.length){
     html += `<div class="section-title">Delete Requests</div>`;
@@ -2688,7 +2706,31 @@ function renderApprovalsTab(){
       </div>`;
     }).join('');
   }
-  list.innerHTML = html || `<div class="empty-note">Nothing waiting on you right now.</div>`;
+  return html || `<div class="empty-note">Nothing waiting on you right now.</div>`;
+}
+function renderApprovalsTab(){
+  updateApprovalsBadges();
+  const list = document.getElementById('approvals-list');
+  if(list) list.innerHTML = buildApprovalsHTML();
+}
+// The standalone Approvals page — reached by tapping the "Approvals Needed"
+// banner on Home, or the badge — instead of going into Admin/Management and
+// its row of tabs just to approve or reject one entry.
+function renderApprovalsScreen(){
+  updateApprovalsBadges();
+  const list = document.getElementById('approvals-list-standalone');
+  if(list) list.innerHTML = buildApprovalsHTML();
+}
+async function goToApprovals(){
+  pushScreen('screen-approvals');
+  const list = document.getElementById('approvals-list-standalone');
+  if(list) list.innerHTML = `<div class="empty-note">Loading…</div>`;
+  const result = await refreshAll();
+  if(!result.ok){
+    if(list) list.innerHTML = `<div class="empty-note">⚠ No internet connection — can't load data.<br><button class="btn" style="margin-top:10px;" onclick="goToApprovals()">Retry</button></div>`;
+    return;
+  }
+  renderApprovalsScreen();
 }
 // Approve/Reject/Approve-Delete/Keep are reachable from TWO places now —
 // Admin → Approvals, and inline right in History — so they refresh whichever
@@ -2698,6 +2740,7 @@ async function refreshAfterAdminAction(){
   const id = active ? active.id : 'screen-home';
   if(id==='screen-admin') return await refreshAdmin();
   if(id==='screen-today') return await renderTodayList();
+  if(id==='screen-approvals'){ const r = await refreshAll(); renderApprovalsScreen(); return r; }
   return await refreshAll();
 }
 async function approveDeleteRequest(id){
