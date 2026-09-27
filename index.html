@@ -292,6 +292,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 <body>
 <div class="app" id="app">
   <div id="conn-banner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:25;background:var(--red);color:#fff;text-align:center;font-weight:800;font-size:13px;padding:9px 12px;">⚠ No internet connection</div>
+  <div id="schema-banner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:24;background:var(--amber);color:#3a2a00;text-align:center;font-weight:700;font-size:12.5px;padding:9px 12px;">⚠ App update needed — see Admin → Settings</div>
 
   <!-- ============ DRIVER HOME ============ -->
   <div class="screen active" id="screen-home">
@@ -312,6 +313,11 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <div id="home-load-error" style="display:none;background:var(--red-light);color:var(--red);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-weight:700;font-size:14px;text-align:center;">
         No internet connection — can't load data.<br>
         <button class="btn" style="margin-top:8px;" onclick="refreshAll()">Retry</button>
+      </div>
+      <div id="home-approvals-tile-wrap" style="display:none;margin-bottom:14px;">
+        <button class="btn block" style="background:var(--amber);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;padding:14px;" onclick="goToApprovals()">
+          ✅ Approvals Needed <span id="home-approvals-tile-badge" style="background:#fff;color:var(--amber);border-radius:10px;padding:2px 9px;font-weight:800;"></span>
+        </button>
       </div>
       <div class="balance-cards">
         <div class="bal-card" id="cashLeftCard">
@@ -706,6 +712,13 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <span>App Version</span>
         <span style="font-weight:700;">v2.1</span>
       </div>
+      <div class="settings-row">
+        <span>Google Sheet Sync</span>
+        <span style="font-weight:700;" id="admin-schema-status">—</span>
+      </div>
+      <div id="admin-schema-warning" style="display:none;background:var(--amber-light);color:#6b4e00;border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;margin-bottom:14px;">
+        ⚠ Your Google Apps Script is out of date. Some features (like driver delete requests) won't work until you paste the latest <code>apps-script-sync.gs</code> into the Apps Script editor and deploy it as a <b>New version</b> (Deploy → Manage deployments → ✏️ → New version → Deploy).
+      </div>
       <div class="section-title">Account</div>
       <div class="settings-row">
         <span>Logged in as</span>
@@ -900,6 +913,15 @@ function updateConnBanner(){
   if(!el) return;
   el.style.display = navigator.onLine ? 'none' : 'block';
 }
+// Bump alongside SCHEMA_VERSION in apps-script-sync.gs. If the deployed
+// Apps Script is older than this, some features (like delete requests) will
+// silently do nothing — this makes that failure visible instead of confusing.
+const EXPECTED_SCHEMA_VERSION = 2;
+let SCHEMA_OUTDATED = false;
+function updateSchemaBanner(){
+  const el = document.getElementById('schema-banner');
+  if(el) el.style.display = SCHEMA_OUTDATED ? 'block' : 'none';
+}
 window.addEventListener('online', ()=>{ updateConnBanner(); refreshAll(); });
 window.addEventListener('offline', updateConnBanner);
 
@@ -943,6 +965,8 @@ async function loadFromServer(){
     if(!resp.ok) return {ok:false, error:'http_'+resp.status};
     const data = await resp.json().catch(()=>null);
     if(!data || !Array.isArray(data.records)) return {ok:false, error:'bad_response'};
+    SCHEMA_OUTDATED = !data.schemaVersion || data.schemaVersion < EXPECTED_SCHEMA_VERSION;
+    updateSchemaBanner();
     ALL_TXNS = data.records.map(r=>({
       id: r.id,
       driver: r.driver||'',
@@ -1225,13 +1249,27 @@ function renderHome(){
   const card = document.getElementById('cashLeftCard');
   card.classList.toggle('low', lastLoadOk && currentBalances.companyCash < 0);
   const badge = document.getElementById('home-approvals-badge');
+  const tileWrap = document.getElementById('home-approvals-tile-wrap');
+  const tileBadge = document.getElementById('home-approvals-tile-badge');
   if(IS_ADMIN_DEVICE){
     const n = approvalsNeededCount();
-    if(n){ badge.style.display='inline-block'; badge.textContent = n; }
-    else { badge.style.display='none'; }
+    if(n){
+      badge.style.display='inline-block'; badge.textContent = n;
+      tileWrap.style.display='block'; tileBadge.textContent = n;
+    } else {
+      badge.style.display='none';
+      tileWrap.style.display='none';
+    }
   } else {
     badge.style.display='none';
+    tileWrap.style.display='none';
   }
+}
+// One tap from Home straight into Admin → Approvals — the whole point is
+// that Esa never has to hunt for where approvals live in the Admin tabs.
+function goToApprovals(){
+  pushScreen('screen-admin');
+  selectAdminTab('approvals');
 }
 function fmt(n){
   n = Number(n)||0;
@@ -1885,18 +1923,32 @@ function renderHistItem(t){
   const statusTag = t.status==='pending' ? `<span class="hi-tag" style="background:#fff3cd;color:#8a6d00;">⏳ PENDING APPROVAL</span>`
     : t.status==='rejected' ? `<span class="hi-tag" style="background:#fde3e3;color:#a11;">❌ REJECTED</span>` : '';
   const deleteTag = t.deleteRequested ? `<span class="hi-tag" style="background:#e6e6ff;color:#3a3ac1;">🗑 DELETE REQUESTED</span>` : '';
+  // Esa can approve/reject and approve/keep-a-deletion right here in History
+  // — no need to jump into Admin → Approvals just to act on one entry.
+  let actionsRow = '';
+  if(IS_ADMIN_DEVICE && (t.status==='pending' || t.deleteRequested)){
+    const btns = [];
+    if(t.deleteRequested){
+      btns.push(`<button class="btn danger" style="flex:1;padding:9px;font-size:12.5px;" onclick="approveDeleteRequest('${t.id}')">🗑 Approve Delete</button>`);
+      btns.push(`<button class="btn" style="flex:1;padding:9px;font-size:12.5px;" onclick="rejectDeleteRequest('${t.id}')">↩ Keep</button>`);
+    } else if(t.status==='pending'){
+      btns.push(`<button class="btn" style="flex:1;padding:9px;font-size:12.5px;background:var(--green-dark);color:#fff;" onclick="approveEntry('${t.id}')">✓ Approve</button>`);
+      btns.push(`<button class="btn danger" style="flex:1;padding:9px;font-size:12.5px;" onclick="rejectEntry('${t.id}')">✗ Reject</button>`);
+    }
+    actionsRow = `<div style="display:flex;gap:8px;margin-top:10px;">${btns.join('')}</div>`;
+  }
   if(t.type==='cash_in'){
     return `<div class="hist-item"><div class="hi-ic">💰</div><div class="hi-body">
       <div class="hi-top"><span>Cash In</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-cashin">CASH IN</span>${statusTag}${deleteTag}
+      <span class="hi-tag tag-cashin">CASH IN</span>${statusTag}${deleteTag}${actionsRow}
     </div>${thumb}${delBtn}</div>`;
   }
   if(t.type==='reimbursement'){
     return `<div class="hist-item"><div class="hi-ic">↩️</div><div class="hi-body">
       <div class="hi-top"><span>Reimbursement</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.note?escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-reimb">REIMBURSED</span>${statusTag}${deleteTag}
+      <span class="hi-tag tag-reimb">REIMBURSED</span>${statusTag}${deleteTag}${actionsRow}
     </div>${thumb}${delBtn}</div>`;
   }
   const c = CAT_MAP[t.category] || {ic:'➕', lbl:t.category};
@@ -1904,7 +1956,7 @@ function renderHistItem(t){
   return `<div class="hist-item"><div class="hi-ic">${c.ic}</div><div class="hi-body">
     <div class="hi-top"><span>${c.lbl}</span><span>${fmt(t.amount)}</span></div>
     <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${statusTag}${deleteTag}
+    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${statusTag}${deleteTag}${actionsRow}
   </div>${thumb}${delBtn}</div>`;
 }
 // Actually, permanently removes the row from the sheet — used when Esa's own
@@ -1997,10 +2049,15 @@ async function selectAdminTab(tab){
 }
 function renderAdminSettingsStatus(){
   const el = document.getElementById('admin-login-status');
-  if(!el) return;
-  settingsGet('driverName','').then(dn=>{
-    el.textContent = `${IS_ADMIN_DEVICE ? 'Admin' : 'Driver'} (${dn || '—'})`;
-  });
+  if(el){
+    settingsGet('driverName','').then(dn=>{
+      el.textContent = `${IS_ADMIN_DEVICE ? 'Admin' : 'Driver'} (${dn || '—'})`;
+    });
+  }
+  const schemaEl = document.getElementById('admin-schema-status');
+  const warnEl = document.getElementById('admin-schema-warning');
+  if(schemaEl){ schemaEl.textContent = SCHEMA_OUTDATED ? '⚠ Update needed' : '✅ Up to date'; }
+  if(warnEl){ warnEl.style.display = SCHEMA_OUTDATED ? 'block' : 'none'; }
 }
 function renderDashboardStats(){
   const b = currentBalances;
@@ -2075,20 +2132,30 @@ function renderApprovalsTab(){
   }
   list.innerHTML = html || `<div class="empty-note">Nothing waiting on you right now.</div>`;
 }
+// Approve/Reject/Approve-Delete/Keep are reachable from TWO places now —
+// Admin → Approvals, and inline right in History — so they refresh whichever
+// of those screens is actually on screen, instead of always assuming Admin.
+async function refreshAfterAdminAction(){
+  const active = document.querySelector('.screen.active');
+  const id = active ? active.id : 'screen-home';
+  if(id==='screen-admin') return await refreshAdmin();
+  if(id==='screen-today') return await renderTodayList();
+  return await refreshAll();
+}
 async function approveDeleteRequest(id){
   if(!confirm('Permanently delete this entry? This cannot be undone.')) return;
   toast('Deleting…');
   const result = await deleteEntryEverywhere(id);
   if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
   toast('Deleted');
-  await refreshAdmin();
+  await refreshAfterAdminAction();
 }
 async function rejectDeleteRequest(id){
   toast('Keeping entry…');
   const result = await clearDeleteRequest(id);
   if(!result.ok){ toast("Couldn't update — check your connection and try again."); return; }
   toast('Entry kept — delete request cleared');
-  await refreshAdmin();
+  await refreshAfterAdminAction();
 }
 // Requires an awaited, successful server round-trip before anything local
 // changes — no optimistic update. Returns the postToSync result so callers
@@ -2101,7 +2168,7 @@ async function approveEntry(id){
   const result = await setEntryStatus(id, 'approved');
   if(!result.ok){ toast("Couldn't approve — check your connection and try again."); return; }
   toast('Approved');
-  await refreshAdmin();
+  await refreshAfterAdminAction();
 }
 async function rejectEntry(id){
   if(!confirm('Reject this entry? It will never count toward the balance.')) return;
@@ -2109,7 +2176,7 @@ async function rejectEntry(id){
   const result = await setEntryStatus(id, 'rejected');
   if(!result.ok){ toast("Couldn't reject — check your connection and try again."); return; }
   toast('Rejected');
-  await refreshAdmin();
+  await refreshAfterAdminAction();
 }
 function getFilteredTxns(){
   const q = (document.getElementById('f-search').value||'').toLowerCase();
