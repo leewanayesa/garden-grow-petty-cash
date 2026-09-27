@@ -333,12 +333,54 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 .install-banner button{padding:9px 14px;border-radius:8px;border:none;font-weight:800;font-size:13px;}
 .install-banner .ok{background:#fff;color:var(--green-dark);}
 .install-banner .no{background:transparent;color:#fff;opacity:.7;}
+
+/* ===== Boot splash =====
+   Shown by default (before any JS has run), so a slow phone/cold app-launch
+   never shows the raw, half-empty Home screen markup (no driver name, no
+   balances) while init() is still figuring out whether to show Login or
+   Home. Hidden by JS the moment that decision is made. */
+#boot-splash{
+  position:fixed;inset:0;z-index:500;background:var(--green-dark);color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+}
+#boot-splash img{width:76px;height:76px;}
+#boot-splash .bs-title{font-weight:800;font-size:16px;}
+#boot-splash .bs-sub{font-size:13px;opacity:.75;}
+#boot-splash.hide{display:none;}
+/* Simple confirm modal (replaces window.confirm(), which is unreliable
+   inside a home-screen-installed app on some phones — the dialog can
+   silently fail to appear at all, which looked exactly like "Log Out does
+   nothing" for anyone hitting that). */
+.confirm-overlay{
+  display:none;position:fixed;inset:0;z-index:400;background:rgba(11,61,36,.55);
+  align-items:center;justify-content:center;padding:24px;
+}
+.confirm-overlay.show{display:flex;}
+.confirm-box{background:#fff;border-radius:var(--radius);padding:22px;max-width:340px;width:100%;text-align:center;}
+.confirm-box p{margin:0 0 20px;font-size:15px;color:var(--ink);font-weight:600;}
+.confirm-box .confirm-actions{display:flex;gap:10px;}
+.confirm-box button{flex:1;padding:13px;border-radius:10px;font-weight:800;font-size:14px;border:2px solid var(--line);background:#fff;color:var(--ink);}
+.confirm-box button.yes{background:var(--red);border-color:var(--red);color:#fff;}
 </style>
 </head>
 <body>
+<div id="boot-splash">
+  <img src="logo-mark-v2.png" alt="">
+  <div class="bs-title">Garden Grow — Petty Cash</div>
+  <div class="bs-sub">Loading…</div>
+</div>
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <p id="confirm-msg">Are you sure?</p>
+    <div class="confirm-actions">
+      <button onclick="closeConfirmModal(false)">Cancel</button>
+      <button class="yes" onclick="closeConfirmModal(true)">Yes</button>
+    </div>
+  </div>
+</div>
 <div class="app" id="app">
   <div id="conn-banner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:25;background:var(--red);color:#fff;text-align:center;font-weight:800;font-size:13px;padding:9px 12px;">⚠ No internet connection</div>
-  <div id="schema-banner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:24;background:var(--amber);color:#3a2a00;text-align:center;font-weight:700;font-size:12.5px;padding:9px 12px;">⚠ App update needed — see Admin → Settings</div>
+  <div id="schema-banner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:24;background:var(--amber);color:#3a2a00;text-align:center;font-weight:700;font-size:12.5px;padding:9px 12px;">⚠ App update needed — see Settings → Account</div>
 
   <!-- ============ DRIVER HOME ============ -->
   <div class="screen active" id="screen-home">
@@ -353,7 +395,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
         <div style="display:flex;gap:6px;align-items:center;">
           <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh" style="width:32px;height:32px;font-size:15px;">🔄</button>
-          <button class="adminlink" id="home-admin-link" onclick="goAdmin()" style="display:none;">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
+          <button class="adminlink" id="home-admin-link" onclick="goAdmin()" style="display:none;">Settings <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
         </div>
         <button class="adminlink" onclick="logoutUser()">🚪 Log Out</button>
       </div>
@@ -369,7 +411,11 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </button>
       </div>
       <div id="home-balance-wrap"></div>
-      <div class="big-tiles">
+      <!-- Driver-only actions — a driver device always sees these; hidden on
+           a Settings (admin) device, which gets its own quick-actions below
+           instead, since Buy/Pay, Cash In etc. aren't things Esa does from
+           his own Home screen. -->
+      <div class="big-tiles" id="driver-action-tiles">
         <button class="tile primary" onclick="openExpenseEntry()">
           <div class="ic">🛒</div> BUY / PAY
         </button>
@@ -381,6 +427,23 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </button>
         <button class="tile" onclick="openSummaryPeriod()">
           <div class="ic">📱</div> SEND SUMMARY
+        </button>
+      </div>
+      <!-- Settings (admin) quick actions — the ones Esa actually uses often,
+           promoted straight onto Home instead of being buried inside tabs.
+           Hidden on a driver device. -->
+      <div class="big-tiles" id="admin-action-tiles" style="display:none;">
+        <button class="tile primary" onclick="goAdminTab('reimb')">
+          <div class="ic">💵</div> REIMBURSE
+        </button>
+        <button class="tile" onclick="goAdminTab('txns')">
+          <div class="ic">📒</div> TRANSACTIONS
+        </button>
+        <button class="tile" onclick="goAdminTab('reports')">
+          <div class="ic">📄</div> REPORTS
+        </button>
+        <button class="tile" onclick="goAdminTab('drivers')">
+          <div class="ic">👥</div> DRIVERS
         </button>
       </div>
     </div>
@@ -401,10 +464,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
       </div>
 
-      <!-- Step 0: choose Driver or Admin -->
+      <!-- Step 0: choose Driver or Settings (internally still the 'admin' role) -->
       <div class="big-tiles" id="login-role-choice">
         <button class="tile primary" onclick="showLoginRole('driver')"><div class="ic">🚚</div> DRIVER</button>
-        <button class="tile" onclick="showLoginRole('admin')"><div class="ic">🔐</div> ADMIN</button>
+        <button class="tile" onclick="showLoginRole('admin')"><div class="ic">⚙️</div> SETTINGS</button>
       </div>
 
       <!-- Step 1 (driver only): pick a name -->
@@ -424,7 +487,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </div>
         <div id="login-error" style="color:var(--red);font-size:13px;margin:-8px 0 16px;min-height:16px;"></div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
-          <input type="checkbox" id="login-remember" style="width:20px;height:20px;flex-shrink:0;">
+          <input type="checkbox" id="login-remember" checked style="width:20px;height:20px;flex-shrink:0;">
           <label for="login-remember" style="font-size:14px;color:var(--ink);">Remember me on this device</label>
         </div>
         <button class="save-btn" id="login-submit-btn" onclick="submitLogin()">✓ CONTINUE</button>
@@ -624,7 +687,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
   <div class="screen" id="screen-admin">
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
-      <h1>⚙️ Admin / Management</h1>
+      <h1>⚙️ Settings</h1>
       <div class="topbar-actions">
         <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
         <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
@@ -635,10 +698,11 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="admin-tab" data-tab="approvals" onclick="selectAdminTab('approvals')">Approvals <span id="approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:2px;"></span></button>
       <button class="admin-tab" data-tab="txns" onclick="selectAdminTab('txns')">Transactions</button>
       <button class="admin-tab" data-tab="reimb" onclick="selectAdminTab('reimb')">Reimbursement</button>
+      <button class="admin-tab" data-tab="drivers" onclick="selectAdminTab('drivers')">Drivers</button>
       <button class="admin-tab" data-tab="reports" onclick="selectAdminTab('reports')">Reports</button>
       <button class="admin-tab" data-tab="sync" onclick="selectAdminTab('sync')">Connection</button>
       <button class="admin-tab" data-tab="backup" onclick="selectAdminTab('backup')">Backup</button>
-      <button class="admin-tab" data-tab="settings" onclick="selectAdminTab('settings')">Settings</button>
+      <button class="admin-tab" data-tab="settings" onclick="selectAdminTab('settings')">Account</button>
     </div>
 
     <!-- Dashboard -->
@@ -746,7 +810,22 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="btn primary block" onclick="backupData()">⬇ Download Backup Now (JSON)</button>
     </div>
 
-    <!-- Settings -->
+    <!-- Drivers -->
+    <div class="admin-panel" data-panel="drivers">
+      <div class="section-title" style="margin-top:0;">Drivers</div>
+      <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Add a new driver, rename one, or remove one. Every driver logs in with the same password (1Pakistan@) and picks their own name — adding them here is all that's needed to give them access.</p>
+      <div id="driver-manage-list" style="margin-bottom:12px;"></div>
+      <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
+        <div style="flex:1;">
+          <label>Add New Driver</label>
+          <input type="text" id="new-driver-name" placeholder="e.g. Rashid">
+        </div>
+        <button class="btn primary" style="padding:14px 18px;" onclick="addDriverPrompt()">+ Add</button>
+      </div>
+    </div>
+
+    <!-- Account (used to be called "Settings" — renamed since that word was
+         confusing next to the "⚙️ Settings" screen itself) -->
     <div class="admin-panel" data-panel="settings">
       <div class="settings-row">
         <span>WhatsApp Number (for summary)</span>
@@ -767,24 +846,14 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <div id="admin-schema-warning" style="display:none;background:var(--amber-light);color:#6b4e00;border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;margin-bottom:14px;">
         ⚠ Your Google Apps Script is out of date. Some features (like driver delete requests) won't work until you paste the latest <code>apps-script-sync.gs</code> into the Apps Script editor and deploy it as a <b>New version</b> (Deploy → Manage deployments → ✏️ → New version → Deploy).
       </div>
-      <div class="section-title">Drivers</div>
-      <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Add a new driver, rename one, or remove one. Every driver logs in with the same password (1Pakistan@) and picks their own name — adding them here is all that's needed to give them access.</p>
-      <div id="driver-manage-list" style="margin-bottom:12px;"></div>
-      <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
-        <div style="flex:1;">
-          <label>Add New Driver</label>
-          <input type="text" id="new-driver-name" placeholder="e.g. Rashid">
-        </div>
-        <button class="btn primary" style="padding:14px 18px;" onclick="addDriverPrompt()">+ Add</button>
-      </div>
       <div class="section-title">Account</div>
       <div class="settings-row">
         <span>Logged in as</span>
         <span style="font-weight:700;" id="admin-login-status">—</span>
       </div>
-      <p style="color:var(--muted);font-size:13px;">Admin password is fixed in the app's code (not changeable from here). Ask your developer to change it if needed.</p>
+      <p style="color:var(--muted);font-size:13px;">Settings login password is fixed in the app's code (not changeable from here). Ask your developer to change it if needed.</p>
       <button class="btn block" onclick="logoutUser()">🚪 Log Out</button>
-      <button class="btn block" onclick="goHome()">🚪 Exit Admin</button>
+      <button class="btn block" onclick="goHome()">🚪 Exit Settings</button>
     </div>
   </div>
 
@@ -1176,12 +1245,17 @@ async function init(){
   // "just empty" — neither showing old data nor asking to log in again. If
   // one of these doesn't answer within 4s, fall back to its safe default
   // (never-remembered) so the app always ends up on a working login screen
-  // instead of stuck on a blank one.
-  const wn = await withTimeout(settingsGet('waNumber',''), 4000, '');
+  // instead of stuck on a blank one. Run all four in PARALLEL (not one after
+  // another) so a slow/cold IndexedDB open only costs one 4s wait total, not
+  // up to four — the boot splash below is covering the screen the whole
+  // time, but keeping this fast still matters.
+  const [wn, remember, role, dn] = await Promise.all([
+    withTimeout(settingsGet('waNumber',''), 4000, ''),
+    withTimeout(settingsGet('rememberLogin', false), 4000, false),
+    withTimeout(settingsGet('role', ''), 4000, ''),
+    withTimeout(settingsGet('driverName', ''), 4000, ''),
+  ]);
   document.getElementById('set-wa-number').value = wn||'';
-  const remember = await withTimeout(settingsGet('rememberLogin', false), 4000, false);
-  const role = await withTimeout(settingsGet('role', ''), 4000, '');
-  const dn = await withTimeout(settingsGet('driverName', ''), 4000, '');
   const autoLoggingIn = !!(remember && role && dn);
   if(autoLoggingIn){
     IS_ADMIN_DEVICE = (role==='admin');
@@ -1192,6 +1266,14 @@ async function init(){
     IS_ADMIN_DEVICE = false;
     replaceScreen('screen-login');
   }
+  // We now know for certain which screen belongs on top (Home, populated
+  // from remembered login, or the real Login screen) — safe to reveal the
+  // app and drop the boot splash. This is the fix for the "opens to an
+  // empty page with no driver name" report: that empty look was this exact
+  // moment, just with the splash not there yet to cover it while the four
+  // lookups above were still in flight.
+  const splash = document.getElementById('boot-splash');
+  if(splash) splash.classList.add('hide');
   registerSW();
   setupInstallPrompt();
   const result = await refreshAll();
@@ -1207,7 +1289,9 @@ async function init(){
     toast(friendlySyncError(result.error) + ' Please log in again.');
   }
 }
-init();
+// NOTE: init() is NOT called here — see the very end of this script for why
+// and where it's actually invoked (a real bug found 2026-09-27: calling it
+// this early crashed on every single cold app-launch).
 
 // iOS in particular can leave a home-screen-installed app showing stale or
 // blank data after it's been in the background a while — the page itself
@@ -1283,7 +1367,12 @@ function selectLoginDriverName(name){
 async function showLoginPasswordForm(){
   document.getElementById('login-password-form').style.display = 'block';
   document.getElementById('login-password').value = '';
-  document.getElementById('login-remember').checked = false;
+  // Defaults ON: Esa and the drivers want the app to just stay logged in
+  // after closing/reopening, not ask again every time — this is exactly
+  // what "Remember me" controls, so checked-by-default matches what almost
+  // everyone actually wants. Still shown and still uncheckable for anyone
+  // sharing a phone who doesn't want that.
+  document.getElementById('login-remember').checked = true;
   document.getElementById('login-error').textContent = '';
   await refreshLoginFaceButton();
 }
@@ -1343,7 +1432,7 @@ async function completeLogin(role, driverName, remember, offerFaceSetup){
 // Logs this device out entirely, back to the login screen — replaces the old
 // "Switch Driver" / Admin-Mode-toggle system now that login decides the role.
 async function logoutUser(){
-  if(!confirm('Log out of this device?')) return;
+  if(!(await askConfirm('Log out of this device?'))) return;
   await settingsSet('role', '');
   await settingsSet('driverName', '');
   await settingsSet('rememberLogin', false);
@@ -1370,7 +1459,7 @@ async function maybeOfferFaceSetup(slot){
     if(!(await faceUnlockAvailable())) return;
     const existing = await settingsGet('faceCred_'+slot, null);
     if(existing) return;
-    if(!confirm('Set up Face/Fingerprint unlock on this device so you don\'t have to type the password next time?')) return;
+    if(!(await askConfirm('Set up Face/Fingerprint unlock on this device so you don\'t have to type the password next time?'))) return;
     const challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
     const userId = new Uint8Array(16); crypto.getRandomValues(userId);
     const cred = await navigator.credentials.create({ publicKey: {
@@ -1424,7 +1513,7 @@ function base64ToArrayBuffer(b64){
 
 function updateHomeDriverLabel(name){
   document.getElementById('home-driver-name').textContent =
-    IS_ADMIN_DEVICE ? ('🔐 Logged in as Admin (' + name + ')') : ('Driver: ' + name);
+    IS_ADMIN_DEVICE ? ('⚙️ Settings — ' + name) : ('Driver: ' + name);
 }
 
 // Admin's Home now shows one row per driver (each with their OWN separate
@@ -1434,6 +1523,13 @@ function updateHomeDriverLabel(name){
 // entries — no other driver's numbers, and no shared "company" total.
 function renderHome(){
   updateAdminLinkVisibility();
+  // Driver actions (Buy/Pay, Cash In, History, Send Summary) vs. Settings
+  // quick actions (Reimburse, Transactions, Reports, Drivers) — a device only
+  // ever shows the set that matches how it's logged in.
+  const driverTiles = document.getElementById('driver-action-tiles');
+  const adminTiles = document.getElementById('admin-action-tiles');
+  if(driverTiles) driverTiles.style.display = IS_ADMIN_DEVICE ? 'none' : 'grid';
+  if(adminTiles) adminTiles.style.display = IS_ADMIN_DEVICE ? 'grid' : 'none';
   const errBox = document.getElementById('home-load-error');
   if(errBox) errBox.style.display = (firstLoadDone && !lastLoadOk) ? 'block' : 'none';
   const wrap = document.getElementById('home-balance-wrap');
@@ -1508,6 +1604,13 @@ function renderHome(){
 function goToApprovals(){
   pushScreen('screen-admin');
   selectAdminTab('approvals');
+}
+// One tap from Home straight into any Settings tab — used by the quick
+// action tiles on the Settings (admin) Home screen (Reimburse, Transactions,
+// Reports, Drivers), same pattern as goToApprovals() above.
+function goAdminTab(tab){
+  pushScreen('screen-admin');
+  selectAdminTab(tab);
 }
 function fmt(n){
   n = Number(n)||0;
@@ -2270,14 +2373,14 @@ async function clearDeleteRequest(id){
 // other device only sends a request that Esa has to approve first.
 async function requestDeleteFromHistory(id){
   if(IS_ADMIN_DEVICE){
-    if(!confirm('Delete this entry? This cannot be undone.')) return;
+    if(!(await askConfirm('Delete this entry? This cannot be undone.'))) return;
     toast('Deleting…');
     const result = await deleteEntryEverywhere(id);
     if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
     toast('Deleted');
     await renderTodayList();
   } else {
-    if(!confirm('Request deletion of this entry? Esa will need to approve it before it is actually removed.')) return;
+    if(!(await askConfirm('Request deletion of this entry? Esa will need to approve it before it is actually removed.'))) return;
     toast('Sending request…');
     const result = await requestDeleteEntry(id);
     if(!result.ok){ toast("Couldn't send the request — check your connection and try again."); return; }
@@ -2321,15 +2424,16 @@ async function selectAdminTab(tab){
     renderTxnTable();
   }
   if(tab==='reimb') renderReimbTab();
+  if(tab==='drivers') renderDriverManageList();
   if(tab==='reports') renderDailySummary();
   if(tab==='sync') renderSyncStatus();
-  if(tab==='settings'){ renderAdminSettingsStatus(); renderDriverManageList(); }
+  if(tab==='settings'){ renderAdminSettingsStatus(); }
 }
 function renderAdminSettingsStatus(){
   const el = document.getElementById('admin-login-status');
   if(el){
     settingsGet('driverName','').then(dn=>{
-      el.textContent = `${IS_ADMIN_DEVICE ? 'Admin' : 'Driver'} (${dn || '—'})`;
+      el.textContent = `${IS_ADMIN_DEVICE ? 'Settings' : 'Driver'} (${dn || '—'})`;
     });
   }
   const schemaEl = document.getElementById('admin-schema-status');
@@ -2385,7 +2489,7 @@ async function renameDriverPrompt(oldName){
   if(ok) toast(`Renamed to ${trimmed} — their history moved with them`);
 }
 async function removeDriverPrompt(name){
-  if(!confirm(`Remove ${name}? They won't be able to log in anymore, but their past entries stay in History.`)) return;
+  if(!(await askConfirm(`Remove ${name}? They won't be able to log in anymore, but their past entries stay in History.`))) return;
   toast('Removing…');
   const ok = await driverOp({op:'remove', name});
   if(ok) toast(`${name} removed`);
@@ -2474,7 +2578,7 @@ async function refreshAfterAdminAction(){
   return await refreshAll();
 }
 async function approveDeleteRequest(id){
-  if(!confirm('Permanently delete this entry? This cannot be undone.')) return;
+  if(!(await askConfirm('Permanently delete this entry? This cannot be undone.'))) return;
   toast('Deleting…');
   const result = await deleteEntryEverywhere(id);
   if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
@@ -2502,7 +2606,7 @@ async function approveEntry(id){
   await refreshAfterAdminAction();
 }
 async function rejectEntry(id){
-  if(!confirm('Reject this entry? It will never count toward the balance.')) return;
+  if(!(await askConfirm('Reject this entry? It will never count toward the balance.'))) return;
   toast('Rejecting…');
   const result = await setEntryStatus(id, 'rejected');
   if(!result.ok){ toast("Couldn't reject — check your connection and try again."); return; }
@@ -2543,7 +2647,7 @@ function renderTxnTable(){
   }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No transactions found.</td></tr>`;
 }
 async function deleteTxn(id){
-  if(!confirm('Delete this entry? This cannot be undone.')) return;
+  if(!(await askConfirm('Delete this entry? This cannot be undone.'))) return;
   toast('Deleting…');
   const result = await deleteEntryEverywhere(id);
   if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
@@ -2706,6 +2810,23 @@ function toast(msg){
   toastTimer = setTimeout(()=>el.classList.remove('show'), 2200);
 }
 
+// Custom Yes/Cancel modal, used everywhere the app used to call the browser's
+// own confirm(). window.confirm() is unreliable inside an installed
+// home-screen app on some phones/OS versions — it can silently do nothing
+// instead of showing a dialog, which looks exactly like a button (e.g. "Log
+// Out") simply not working. This version is just HTML/CSS we fully control,
+// so it always shows, the same way, on iOS, Android and Windows.
+let _confirmResolve = null;
+function askConfirm(message){
+  document.getElementById('confirm-msg').textContent = message;
+  document.getElementById('confirm-overlay').classList.add('show');
+  return new Promise(resolve=>{ _confirmResolve = resolve; });
+}
+function closeConfirmModal(result){
+  document.getElementById('confirm-overlay').classList.remove('show');
+  if(_confirmResolve){ _confirmResolve(result); _confirmResolve = null; }
+}
+
 /* ================= PWA install & service worker ================= */
 let deferredInstallPrompt=null;
 function setupInstallPrompt(){
@@ -2747,6 +2868,25 @@ function registerSW(){
     location.reload();
   });
 }
+
+// THE ACTUAL FIX for "closing the app and reopening shows an empty page with
+// no driver name and doesn't remember or ask to log in": init() used to be
+// called much earlier in this file, before `let LOGIN_STATE` (used by
+// resetLoginScreen(), which init() calls right away) had been declared yet.
+// That is a genuine JavaScript error ("Cannot access 'LOGIN_STATE' before
+// initialization") on EVERY page load, not just an occasional glitch — and
+// because init() is an `async function`, that error was silently swallowed
+// as a rejected promise instead of showing up anywhere, so nothing after
+// the crash point ever ran: no restoring a remembered login, no fetching
+// fresh data, no showing the Login screen automatically, not even
+// registering the service worker. The app was only ever "rescued" by some
+// later manual action (tapping Log Out, logging in by hand) — which is
+// exactly the pattern reported: closing and reopening the app always looked
+// broken/empty, on iOS, Android and Windows alike, because the bug had
+// nothing to do with any one platform. Calling init() here instead, at the
+// very end of the script after every function and variable is already
+// declared, removes the crash entirely.
+init();
 </script>
 </body>
 </html>
