@@ -2721,16 +2721,18 @@ function renderApprovalsScreen(){
   const list = document.getElementById('approvals-list-standalone');
   if(list) list.innerHTML = buildApprovalsHTML();
 }
+// By the time the "Approvals Needed" banner is even showing, Home just did a
+// fresh load to know that count — so ALL_TXNS already has the right data
+// sitting in memory. Render it immediately (instant, no waiting on the
+// network again) instead of forcing a whole extra round-trip to the server
+// before showing anything, which is what made this feel slow to open. A
+// quiet refresh still happens right after, in case something changed in the
+// last few seconds, and only updates the list if it did.
 async function goToApprovals(){
   pushScreen('screen-approvals');
-  const list = document.getElementById('approvals-list-standalone');
-  if(list) list.innerHTML = `<div class="empty-note">Loading…</div>`;
-  const result = await refreshAll();
-  if(!result.ok){
-    if(list) list.innerHTML = `<div class="empty-note">⚠ No internet connection — can't load data.<br><button class="btn" style="margin-top:10px;" onclick="goToApprovals()">Retry</button></div>`;
-    return;
-  }
   renderApprovalsScreen();
+  const result = await refreshAll();
+  if(result.ok) renderApprovalsScreen();
 }
 // Approve/Reject/Approve-Delete/Keep are reachable from TWO places now —
 // Admin → Approvals, and inline right in History — so they refresh whichever
