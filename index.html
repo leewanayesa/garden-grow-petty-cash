@@ -303,9 +303,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
         <div style="display:flex;gap:6px;align-items:center;">
           <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh" style="width:32px;height:32px;font-size:15px;">🔄</button>
-          <button class="adminlink" onclick="goAdmin()">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
+          <button class="adminlink" id="home-admin-link" onclick="goAdmin()" style="display:none;">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
         </div>
-        <button class="adminlink" onclick="switchDriver()">👤 Switch Driver</button>
+        <button class="adminlink" onclick="logoutUser()">🚪 Log Out</button>
       </div>
     </div>
     <div class="home-wrap">
@@ -340,18 +340,49 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     </div>
   </div>
 
-  <!-- ============ FIRST-RUN: DRIVER NAME ============ -->
-  <div class="screen" id="screen-driver-setup">
-    <div class="home-wrap" style="padding-top:60px;">
+  <!-- ============ LOGIN ============ -->
+  <div class="screen" id="screen-login">
+    <div class="topbar">
+      <div style="flex:1;">
+        <h1>🌿 Garden Grow — Petty Cash</h1>
+      </div>
+    </div>
+    <div class="home-wrap" style="padding-top:40px;">
       <div style="text-align:center;margin-bottom:26px;">
         <div style="font-size:50px;">🌿</div>
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
-        <p style="color:var(--muted);font-size:14px;">What's your name? This will show on your entries and statements.</p>
+        <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
       </div>
-      <div class="field"><input type="text" id="setup-driver-name" placeholder="Your name" style="width:100%;padding:16px;border:2px solid var(--line);border-radius:var(--radius-sm);font-size:18px;text-align:center;"></div>
-    </div>
-    <div class="bottom-bar">
-      <button class="save-btn" onclick="finishDriverSetup()">✓ CONTINUE</button>
+
+      <!-- Step 0: choose Driver or Admin -->
+      <div class="big-tiles" id="login-role-choice">
+        <button class="tile primary" onclick="showLoginRole('driver')"><div class="ic">🚚</div> DRIVER</button>
+        <button class="tile" onclick="showLoginRole('admin')"><div class="ic">🔐</div> ADMIN</button>
+      </div>
+
+      <!-- Step 1 (driver only): pick a name -->
+      <div id="login-driver-picker" style="display:none;">
+        <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">Who are you?</label>
+        <div class="pay-grid" id="login-driver-names" style="grid-template-columns:1fr 1fr;"></div>
+      </div>
+
+      <!-- Step 2: password + remember me -->
+      <div id="login-password-form" style="display:none;">
+        <div id="login-face-btn-wrap" style="display:none;margin-bottom:16px;">
+          <button class="save-btn" style="background:var(--blue);" onclick="attemptFaceUnlock()">🙂 Unlock with Face/Fingerprint</button>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="Password">
+        </div>
+        <div id="login-error" style="color:var(--red);font-size:13px;margin:-8px 0 16px;min-height:16px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
+          <input type="checkbox" id="login-remember" style="width:20px;height:20px;flex-shrink:0;">
+          <label for="login-remember" style="font-size:14px;color:var(--ink);">Remember me on this device</label>
+        </div>
+        <button class="save-btn" id="login-submit-btn" onclick="submitLogin()">✓ CONTINUE</button>
+        <button class="more-toggle" onclick="loginGoBack()">← BACK</button>
+      </div>
     </div>
   </div>
 
@@ -538,25 +569,6 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     </div>
   </div>
 
-  <!-- ============ ADMIN PIN LOCK ============ -->
-  <div class="screen" id="screen-admin-pin">
-    <div class="topbar">
-      <button class="back" onclick="goBack()">←</button>
-      <h1>🔒 Admin</h1>
-      <div class="topbar-actions">
-        <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
-      </div>
-    </div>
-    <div class="home-wrap" style="padding-top:50px;text-align:center;">
-      <div id="pin-mode-enter" style="display:none;">
-        <p style="color:var(--muted);font-size:14px;">Enter Admin PIN</p>
-        <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" id="pin-enter" placeholder="PIN" style="width:100%;padding:16px;border:2px solid var(--line);border-radius:var(--radius-sm);font-size:22px;text-align:center;letter-spacing:6px;">
-        <div id="pin-enter-error" style="color:var(--red);font-size:13px;margin-top:8px;"></div>
-        <button class="save-btn" style="margin-top:18px;" onclick="submitEnterPin()">✓ UNLOCK</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ============ ADMIN ============ -->
   <div class="screen" id="screen-admin">
     <div class="topbar">
@@ -683,10 +695,6 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     <!-- Settings -->
     <div class="admin-panel" data-panel="settings">
       <div class="settings-row">
-        <span>Driver Name</span>
-        <input type="text" id="set-driver-name" style="width:160px;padding:8px;border:1px solid var(--line);border-radius:8px;" onchange="saveSetting('driverName', this.value)">
-      </div>
-      <div class="settings-row">
         <span>WhatsApp Number (for summary)</span>
         <input type="text" id="set-wa-number" placeholder="9715xxxxxxx" style="width:160px;padding:8px;border:1px solid var(--line);border-radius:8px;" onchange="saveSetting('waNumber', this.value)">
       </div>
@@ -698,15 +706,13 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <span>App Version</span>
         <span style="font-weight:700;">v2.1</span>
       </div>
-      <div class="section-title">Security</div>
-      <p style="color:var(--muted);font-size:13px;">The Admin PIN is fixed in the app's code (not changeable from here) so it can never be reset from a driver's phone. Ask your developer to change it if needed.</p>
+      <div class="section-title">Account</div>
       <div class="settings-row">
-        <span>This Device</span>
-        <span style="font-weight:700;" id="d-admin-mode">🔐 Admin Mode ON</span>
+        <span>Logged in as</span>
+        <span style="font-weight:700;" id="admin-login-status">—</span>
       </div>
-      <p style="color:var(--muted);font-size:12.5px;">Any entry saved from THIS device counts immediately — it never waits for approval. Turn this off if you want to test what a driver's phone sees (entries will then go to Approvals like normal), or if this phone will now be used by a driver instead of you.</p>
-      <button class="btn danger block" onclick="turnOffAdminMode()">🔓 Turn Off Admin Mode On This Device</button>
-      <button class="btn block" onclick="switchDriver()">👤 Switch Driver (Logout)</button>
+      <p style="color:var(--muted);font-size:13px;">Driver and Admin passwords are fixed in the app's code (not changeable from here). Ask your developer to change them if needed.</p>
+      <button class="btn block" onclick="logoutUser()">🚪 Log Out</button>
       <button class="btn block" onclick="goHome()">🚪 Exit Admin</button>
     </div>
   </div>
@@ -736,6 +742,14 @@ const CATEGORIES = [
 ];
 const CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
 const QUICK_NOTES = ['Site Material','Vehicle','Delivery','Nursery','Sand','Repair','Other'];
+
+/* ================= LOGIN ================= */
+// Edit this array to add or remove drivers who can log in.
+const DRIVER_NAMES = ['Jawad', 'Gul Bad Shah'];
+// Plain constants, same trust model as the old fixed PIN — there is no real
+// backend auth here, just a lightweight gate for a few known people.
+const DRIVER_PASSWORD = '1Pakistan@';
+const ADMIN_PASSWORD = 'Nizar@123#';
 
 /* ================= INDEXEDDB LAYER (device-local settings only) =================
    Transactions are NOT stored locally anymore — this app requires internet for
@@ -948,6 +962,7 @@ async function loadFromServer(){
       remarks: r.remarks||'',
       givenBy: r.givenBy||'',
       status: r.status || 'approved', // blank = recorded before approvals existed
+      deleteRequested: !!r.deleteRequested,
       photo: SESSION_PHOTOS.get(r.id) || null,
     })).sort((a,b)=> (a.date+((a.time)||'00:00')).localeCompare(b.date+((b.time)||'00:00')));
     currentBalances = computeBalances(approvedOnly(ALL_TXNS));
@@ -996,48 +1011,213 @@ async function init(){
   // and Chrome's back arrow have a well-defined screen to return to.
   history.replaceState({screen:'screen-home'}, '', '#screen-home');
   updateConnBanner();
-  IS_ADMIN_DEVICE = await settingsGet('isAdminDevice', false);
   buildCatGrid();
   buildQuickNotes();
   setTodayDefaults();
-  const dn = await settingsGet('driverName','');
-  document.getElementById('set-driver-name').value = dn||'';
-  if(!dn){
-    replaceScreen('screen-driver-setup');
-  } else {
-    updateHomeDriverLabel(dn);
-  }
+  resetLoginScreen();
   const wn = await settingsGet('waNumber','');
   document.getElementById('set-wa-number').value = wn||'';
+  const remember = await settingsGet('rememberLogin', false);
+  const role = await settingsGet('role', '');
+  const dn = await settingsGet('driverName', '');
+  if(remember && role && dn){
+    IS_ADMIN_DEVICE = (role==='admin');
+    updateHomeDriverLabel(dn);
+    updateAdminLinkVisibility();
+  } else {
+    IS_ADMIN_DEVICE = false;
+    replaceScreen('screen-login');
+  }
   registerSW();
   setupInstallPrompt();
   await refreshAll();
 }
 init();
-async function switchDriver(){
-  if(!confirm('Switch driver on this phone? You\'ll be asked to enter a new driver name — past entries stay saved either way.')) return;
-  await settingsSet('driverName', '');
-  document.getElementById('setup-driver-name').value = '';
-  replaceScreen('screen-driver-setup');
+
+/* ---- Login screen flow ---- */
+let LOGIN_STATE = { role:null, driverName:null };
+function resetLoginScreen(){
+  LOGIN_STATE = { role:null, driverName:null };
+  const choice = document.getElementById('login-role-choice');
+  const picker = document.getElementById('login-driver-picker');
+  const pwForm = document.getElementById('login-password-form');
+  if(choice) choice.style.display = 'grid';
+  if(picker) picker.style.display = 'none';
+  if(pwForm) pwForm.style.display = 'none';
+  const err = document.getElementById('login-error');
+  if(err) err.textContent = '';
 }
-async function finishDriverSetup(){
-  const name = document.getElementById('setup-driver-name').value.trim();
-  if(!name){ toast('Enter your name'); return; }
-  await settingsSet('driverName', name);
-  document.getElementById('set-driver-name').value = name;
-  updateHomeDriverLabel(name);
+function showLoginRole(role){
+  LOGIN_STATE.role = role;
+  LOGIN_STATE.driverName = (role==='admin') ? 'Esa' : null;
+  document.getElementById('login-role-choice').style.display = 'none';
+  if(role==='driver'){
+    buildLoginDriverNames();
+    document.getElementById('login-driver-picker').style.display = 'block';
+    document.getElementById('login-password-form').style.display = 'none';
+  } else {
+    document.getElementById('login-driver-picker').style.display = 'none';
+    showLoginPasswordForm();
+  }
+}
+function buildLoginDriverNames(){
+  const wrap = document.getElementById('login-driver-names');
+  wrap.innerHTML = DRIVER_NAMES.map(n=>
+    `<button type="button" class="pay-btn" data-driver="${escapeHtml(n)}" onclick="selectLoginDriverName('${n.replace(/'/g,"\\'")}')">${escapeHtml(n)}</button>`
+  ).join('');
+}
+function selectLoginDriverName(name){
+  LOGIN_STATE.driverName = name;
+  document.querySelectorAll('#login-driver-names .pay-btn').forEach(b=>b.classList.toggle('sel', b.dataset.driver===name));
+  showLoginPasswordForm();
+}
+async function showLoginPasswordForm(){
+  document.getElementById('login-password-form').style.display = 'block';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-remember').checked = false;
+  document.getElementById('login-error').textContent = '';
+  await refreshLoginFaceButton();
+}
+function loginGoBack(){
+  document.getElementById('login-password-form').style.display = 'none';
+  document.getElementById('login-driver-picker').style.display = 'none';
+  document.getElementById('login-role-choice').style.display = 'grid';
+  LOGIN_STATE = { role:null, driverName:null };
+}
+// The credential/settings key for whichever login slot is currently on
+// screen: one shared slot for Admin, one per driver name.
+function loginSlot(){
+  return LOGIN_STATE.role==='admin' ? 'admin' : ('driver_'+LOGIN_STATE.driverName);
+}
+async function refreshLoginFaceButton(){
+  const wrap = document.getElementById('login-face-btn-wrap');
+  wrap.style.display = 'none';
+  if(LOGIN_STATE.role==='driver' && !LOGIN_STATE.driverName) return;
+  try{
+    const cred = await settingsGet('faceCred_'+loginSlot(), null);
+    if(cred && await faceUnlockAvailable()){
+      wrap.style.display = 'block';
+    }
+  }catch(e){ /* feature-detect failure — just hide the button */ }
+}
+async function submitLogin(){
+  const role = LOGIN_STATE.role;
+  if(role==='driver' && !LOGIN_STATE.driverName){ toast('Pick your name'); return; }
+  const pw = document.getElementById('login-password').value;
+  const expected = (role==='admin') ? ADMIN_PASSWORD : DRIVER_PASSWORD;
+  if(!pw || pw !== expected){
+    document.getElementById('login-error').textContent = 'Wrong password, try again';
+    document.getElementById('login-password').value = '';
+    return;
+  }
+  const remember = document.getElementById('login-remember').checked;
+  const driverName = (role==='admin') ? 'Esa' : LOGIN_STATE.driverName;
+  await completeLogin(role, driverName, remember, true);
+}
+// Finishes a login (from password OR face unlock): stores the role/driver
+// this device is now logged in as, sets IS_ADMIN_DEVICE (the single source
+// of truth the rest of the app already reads), and goes to Home.
+async function completeLogin(role, driverName, remember, offerFaceSetup){
+  await settingsSet('role', role);
+  await settingsSet('driverName', driverName);
+  await settingsSet('rememberLogin', !!remember);
+  IS_ADMIN_DEVICE = (role==='admin');
+  updateHomeDriverLabel(driverName);
+  updateAdminLinkVisibility();
   replaceScreen('screen-home');
   await refreshAll();
+  if(remember && offerFaceSetup){
+    maybeOfferFaceSetup(role==='admin' ? 'admin' : ('driver_'+driverName));
+  }
 }
-// Shows the current driver name on Home, plus a clear "Admin Mode" tag when
-// this device auto-approves its own entries — so it's always obvious which
-// mode a given phone is in, instead of guessing.
+// Logs this device out entirely, back to the login screen — replaces the old
+// "Switch Driver" / Admin-Mode-toggle system now that login decides the role.
+async function logoutUser(){
+  if(!confirm('Log out of this device?')) return;
+  await settingsSet('role', '');
+  await settingsSet('driverName', '');
+  await settingsSet('rememberLogin', false);
+  IS_ADMIN_DEVICE = false;
+  document.getElementById('home-driver-name').textContent = '';
+  updateAdminLinkVisibility();
+  resetLoginScreen();
+  replaceScreen('screen-login');
+}
+function updateAdminLinkVisibility(){
+  const el = document.getElementById('home-admin-link');
+  if(el) el.style.display = IS_ADMIN_DEVICE ? '' : 'none';
+}
+
+/* ---- Optional Face/Fingerprint unlock (best-effort, client-side only —
+   there is no user database, this is a faster stand-in for the same plain-
+   text passwords above, never the only way to log in) ---- */
+async function faceUnlockAvailable(){
+  try{ return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); }catch(e){ return false; }
+}
+async function maybeOfferFaceSetup(slot){
+  try{
+    if(!(await faceUnlockAvailable())) return;
+    const existing = await settingsGet('faceCred_'+slot, null);
+    if(existing) return;
+    if(!confirm('Set up Face/Fingerprint unlock on this device so you don\'t have to type the password next time?')) return;
+    const challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
+    const userId = new Uint8Array(16); crypto.getRandomValues(userId);
+    const cred = await navigator.credentials.create({ publicKey: {
+      challenge,
+      rp: { name: 'Garden Grow Petty Cash' },
+      user: { id: userId, name: slot, displayName: slot },
+      pubKeyCredParams: [{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
+      authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required' },
+      timeout: 60000,
+      attestation: 'none',
+    }});
+    if(cred && cred.rawId){
+      await settingsSet('faceCred_'+slot, arrayBufferToBase64(cred.rawId));
+    }
+  }catch(e){ /* cancelled or unsupported — password login already succeeded, this is just a bonus */ }
+}
+async function attemptFaceUnlock(){
+  try{
+    const slot = loginSlot();
+    const credB64 = await settingsGet('faceCred_'+slot, null);
+    if(!credB64) return;
+    const challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
+    await navigator.credentials.get({ publicKey: {
+      challenge,
+      allowCredentials: [{ id: base64ToArrayBuffer(credB64), type:'public-key' }],
+      userVerification: 'required',
+      timeout: 60000,
+    }});
+    // Resolved without throwing — the OS/browser already did the biometric
+    // check before returning, so treat this exactly like a correct password.
+    const role = LOGIN_STATE.role;
+    const driverName = (role==='admin') ? 'Esa' : LOGIN_STATE.driverName;
+    const remember = document.getElementById('login-remember').checked;
+    await completeLogin(role, driverName, remember, false);
+  }catch(e){
+    toast('Face/Fingerprint unlock failed — use your password instead');
+  }
+}
+function arrayBufferToBase64(buf){
+  let binary = '';
+  const bytes = new Uint8Array(buf);
+  for(let i=0;i<bytes.byteLength;i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+function base64ToArrayBuffer(b64){
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
 function updateHomeDriverLabel(name){
   document.getElementById('home-driver-name').textContent =
-    'Driver: ' + name + (IS_ADMIN_DEVICE ? '  ·  🔐 Admin Mode ON' : '');
+    IS_ADMIN_DEVICE ? ('🔐 Logged in as Admin (' + name + ')') : ('Driver: ' + name);
 }
 
 function renderHome(){
+  updateAdminLinkVisibility();
   const errBox = document.getElementById('home-load-error');
   if(errBox) errBox.style.display = lastLoadOk ? 'none' : 'block';
   document.getElementById('cashLeftVal').textContent = lastLoadOk ? fmt(currentBalances.companyCash) : '—';
@@ -1046,7 +1226,7 @@ function renderHome(){
   card.classList.toggle('low', lastLoadOk && currentBalances.companyCash < 0);
   const badge = document.getElementById('home-approvals-badge');
   if(IS_ADMIN_DEVICE){
-    const n = pendingEntries().length;
+    const n = approvalsNeededCount();
     if(n){ badge.style.display='inline-block'; badge.textContent = n; }
     else { badge.style.display='none'; }
   } else {
@@ -1103,49 +1283,19 @@ async function refreshCurrentScreen(){
   else result = await refreshAll();
   toast(result && result.ok ? 'Up to date' : friendlySyncError(result && result.error));
 }
-// Fixed Admin PIN — the SAME on every phone (unlike the old per-device PIN),
-// so a driver can never set their own and lock themselves into Admin. Only
-// people Esa shares this with can ever reach Admin, deletion, or approvals.
-const ADMIN_PIN = '5612';
-async function goAdmin(){
-  pushScreen('screen-admin-pin');
-  document.getElementById('pin-mode-enter').style.display='block';
-  document.getElementById('pin-enter').value='';
-  document.getElementById('pin-enter-error').textContent='';
-}
-async function submitEnterPin(){
-  const entered = document.getElementById('pin-enter').value.trim();
-  if(entered && entered===ADMIN_PIN){
-    // Proves this device belongs to Esa — from now on, entries saved on THIS
-    // device auto-approve instantly instead of waiting in the Approvals queue.
-    await settingsSet('isAdminDevice', true);
-    IS_ADMIN_DEVICE = true;
-    settingsGet('driverName','').then(updateHomeDriverLabel);
-    replaceScreen('screen-admin');
-    refreshAdmin();
-  } else {
-    document.getElementById('pin-enter-error').textContent = 'Wrong PIN, try again';
-    document.getElementById('pin-enter').value='';
-  }
-}
-// Lets Esa un-flag a phone that no longer needs to be an Admin device — e.g.
-// switching this phone over to a driver, or just testing what a driver sees.
-// Re-entering the PIN via Admin at any time turns it back on.
-async function turnOffAdminMode(){
-  if(!confirm('Turn off Admin Mode on this device? New entries from this phone will then go to Approvals like a driver\'s, until the PIN is entered again.')) return;
-  await settingsSet('isAdminDevice', false);
-  IS_ADMIN_DEVICE = false;
-  const dn = await settingsGet('driverName','');
-  updateHomeDriverLabel(dn);
-  document.getElementById('d-admin-mode').textContent = '🔓 Admin Mode OFF';
-  toast('Admin Mode turned off on this device');
-  await refreshAdmin();
+// By the time someone can tap this link on Home, they're already logged in
+// as Admin this session (IS_ADMIN_DEVICE was set at login) — no second gate
+// needed, and the link itself is hidden on Home whenever it's a driver login.
+function goAdmin(){
+  pushScreen('screen-admin');
+  refreshAdmin();
 }
 function goBack(){ history.back(); }
-// Entries made on Esa's own (PIN-verified) device count immediately. Anything
-// from any other device — i.e. the driver — starts as 'pending' until Esa
-// approves it from Admin → Approvals.
-async function entryStatus(){ return (await settingsGet('isAdminDevice', false)) ? 'approved' : 'pending'; }
+// Entries made on a device logged in as Admin count immediately. Anything
+// from a driver login starts as 'pending' until Esa approves it from
+// Admin → Approvals. IS_ADMIN_DEVICE is set once, at login, and is the single
+// source of truth for this — see completeLogin()/logoutUser().
+async function entryStatus(){ return IS_ADMIN_DEVICE ? 'approved' : 'pending'; }
 
 /* ================= EXPENSE ENTRY ================= */
 // Local calendar date as YYYY-MM-DD. Deliberately NOT toISOString(), which
@@ -1726,23 +1876,27 @@ async function generateHistoryStatement(){
 }
 function renderHistItem(t){
   const thumb = t.photo ? `<img class="hist-thumb" src="${t.photo}" onclick="openPhotoModal('${t.id}')">` : '';
-  // Delete is admin-only and hidden from a driver's phone entirely — not just
-  // PIN-gated — so a driver's screen never even shows a delete option.
-  const delBtn = IS_ADMIN_DEVICE ? `<button class="hist-del" onclick="requestDeleteFromHistory('${t.id}')" title="Delete (Admin PIN required)">🗑</button>` : '';
+  // Everyone sees the delete icon, but it does different things depending on
+  // the device: Esa's Admin device deletes for real right away; any other
+  // device only SENDS A REQUEST — nothing is actually removed until Esa
+  // approves it from Admin → Approvals.
+  const delTitle = IS_ADMIN_DEVICE ? 'Delete' : 'Request deletion (needs Esa\'s approval)';
+  const delBtn = `<button class="hist-del" onclick="requestDeleteFromHistory('${t.id}')" title="${delTitle}">🗑</button>`;
   const statusTag = t.status==='pending' ? `<span class="hi-tag" style="background:#fff3cd;color:#8a6d00;">⏳ PENDING APPROVAL</span>`
     : t.status==='rejected' ? `<span class="hi-tag" style="background:#fde3e3;color:#a11;">❌ REJECTED</span>` : '';
+  const deleteTag = t.deleteRequested ? `<span class="hi-tag" style="background:#e6e6ff;color:#3a3ac1;">🗑 DELETE REQUESTED</span>` : '';
   if(t.type==='cash_in'){
     return `<div class="hist-item"><div class="hi-ic">💰</div><div class="hi-body">
       <div class="hi-top"><span>Cash In</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-cashin">CASH IN</span>${statusTag}
+      <span class="hi-tag tag-cashin">CASH IN</span>${statusTag}${deleteTag}
     </div>${thumb}${delBtn}</div>`;
   }
   if(t.type==='reimbursement'){
     return `<div class="hist-item"><div class="hi-ic">↩️</div><div class="hi-body">
       <div class="hi-top"><span>Reimbursement</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.note?escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-reimb">REIMBURSED</span>${statusTag}
+      <span class="hi-tag tag-reimb">REIMBURSED</span>${statusTag}${deleteTag}
     </div>${thumb}${delBtn}</div>`;
   }
   const c = CAT_MAP[t.category] || {ic:'➕', lbl:t.category};
@@ -1750,29 +1904,56 @@ function renderHistItem(t){
   return `<div class="hist-item"><div class="hi-ic">${c.ic}</div><div class="hi-body">
     <div class="hi-top"><span>${c.lbl}</span><span>${fmt(t.amount)}</span></div>
     <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${statusTag}
+    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${statusTag}${deleteTag}
   </div>${thumb}${delBtn}</div>`;
 }
-// Deleting from the everyday History list still requires the Admin PIN, so a
-// driver can't erase entries — only whoever knows the PIN can.
-// Requires an awaited, successful server round-trip before the entry
-// disappears anywhere — no optimistic local removal.
+// Actually, permanently removes the row from the sheet — used when Esa's own
+// (Admin) device deletes directly, and when Esa approves a driver's delete
+// request. Requires an awaited, successful server round-trip before the
+// entry disappears anywhere — no optimistic local removal.
 async function deleteEntryEverywhere(id){
   const result = await postToSync({deletes:[id]});
   if(!result.ok) return result;
   await refreshAll();
   return result;
 }
+// A driver's device never deletes anything directly — it only flags the
+// entry so it shows up under Admin → Approvals for Esa to decide. Nothing is
+// removed until deleteEntryEverywhere() actually runs, from Esa's approval.
+async function requestDeleteEntry(id){
+  const result = await postToSync({deleteRequests:[id]});
+  if(!result.ok) return result;
+  await refreshAll();
+  return result;
+}
+// Esa rejecting a delete request just clears the flag — the entry stays
+// exactly as it was, nothing is removed.
+async function clearDeleteRequest(id){
+  const result = await postToSync({clearDeleteRequests:[id]});
+  if(!result.ok) return result;
+  await refreshAll();
+  return result;
+}
+// The 🗑 tap in History. What it does depends on whose device this is:
+// Esa's Admin device deletes for real right away (he already proved who he
+// is by unlocking Admin Mode — no PIN prompt needed on top of that); any
+// other device only sends a request that Esa has to approve first.
 async function requestDeleteFromHistory(id){
-  const entered = prompt('Enter Admin PIN to delete this entry:');
-  if(entered===null) return;
-  if(entered.trim()!==ADMIN_PIN){ toast('Wrong PIN'); return; }
-  if(!confirm('Delete this entry? This cannot be undone.')) return;
-  toast('Deleting…');
-  const result = await deleteEntryEverywhere(id);
-  if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
-  toast('Deleted');
-  await renderTodayList();
+  if(IS_ADMIN_DEVICE){
+    if(!confirm('Delete this entry? This cannot be undone.')) return;
+    toast('Deleting…');
+    const result = await deleteEntryEverywhere(id);
+    if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
+    toast('Deleted');
+    await renderTodayList();
+  } else {
+    if(!confirm('Request deletion of this entry? Esa will need to approve it before it is actually removed.')) return;
+    toast('Sending request…');
+    const result = await requestDeleteEntry(id);
+    if(!result.ok){ toast("Couldn't send the request — check your connection and try again."); return; }
+    toast('Delete request sent to Esa');
+    await renderTodayList();
+  }
 }
 function openPhotoModal(id){
   const t = ALL_TXNS.find(x=>x.id===id);
@@ -1796,10 +1977,30 @@ async function selectAdminTab(tab){
   }
   if(tab==='dash') renderDashboardStats();
   if(tab==='approvals') renderApprovalsTab();
-  if(tab==='txns') renderTxnTable();
+  if(tab==='txns'){
+    // Default the Transactions filter to the last 7 days the first time this
+    // tab is opened, so it doesn't silently show every entry ever by default
+    // — but never clobber a range Esa already picked during the session.
+    const fromEl = document.getElementById('f-from'), toEl = document.getElementById('f-to');
+    if(fromEl && toEl && !fromEl.value && !toEl.value){
+      const today = new Date();
+      const weekAgo = new Date(today); weekAgo.setDate(today.getDate()-7);
+      fromEl.value = localDateStr(weekAgo);
+      toEl.value = localDateStr(today);
+    }
+    renderTxnTable();
+  }
   if(tab==='reimb') renderReimbTab();
   if(tab==='reports') renderDailySummary();
   if(tab==='sync') renderSyncStatus();
+  if(tab==='settings') renderAdminSettingsStatus();
+}
+function renderAdminSettingsStatus(){
+  const el = document.getElementById('admin-login-status');
+  if(!el) return;
+  settingsGet('driverName','').then(dn=>{
+    el.textContent = `${IS_ADMIN_DEVICE ? 'Admin' : 'Driver'} (${dn || '—'})`;
+  });
 }
 function renderDashboardStats(){
   const b = currentBalances;
@@ -1813,7 +2014,6 @@ function renderDashboardStats(){
 async function refreshAdmin(){
   const result = await refreshAll();
   document.getElementById('d-driver').textContent = (await settingsGet('driverName','')) || '(not set)';
-  document.getElementById('d-admin-mode').textContent = IS_ADMIN_DEVICE ? '🔐 Admin Mode ON' : '🔓 Admin Mode OFF';
   renderDashboardStats();
   if(!result.ok){ toast(friendlySyncError(result.error)); }
   renderApprovalsTab();
@@ -1823,31 +2023,72 @@ async function refreshAdmin(){
 }
 /* ---- Approvals ---- */
 function pendingEntries(){ return ALL_TXNS.filter(t=>t.status==='pending').slice().reverse(); }
+function deleteRequestEntries(){ return ALL_TXNS.filter(t=>t.deleteRequested).slice().reverse(); }
+// The single number shown on both the Home and Admin badges — new entries
+// waiting AND delete requests waiting both count as something Esa needs to
+// look at.
+function approvalsNeededCount(){ return pendingEntries().length + deleteRequestEntries().length; }
 function renderApprovalsTab(){
   const rows = pendingEntries();
+  const delRows = deleteRequestEntries();
   const badge = document.getElementById('approvals-badge');
-  if(rows.length){ badge.style.display='inline-block'; badge.textContent = rows.length; }
+  const total = rows.length + delRows.length;
+  if(total){ badge.style.display='inline-block'; badge.textContent = total; }
   else { badge.style.display='none'; }
   const list = document.getElementById('approvals-list');
-  if(!rows.length){
-    list.innerHTML = `<div class="empty-note">Nothing waiting on you right now.</div>`;
-    return;
+  let html = '';
+  if(delRows.length){
+    html += `<div class="section-title">Delete Requests</div>`;
+    html += delRows.map(t=>{
+      const typeLbl = t.type==='cash_in'?'Cash In':(t.type==='expense'?('Expense — '+(CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category)):'Reimbursement');
+      return `<div class="stat-card" style="margin-bottom:10px;text-align:left;border:1px solid #c7c7f5;">
+        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:15px;">
+          <span>🗑 ${escapeHtml(typeLbl)}</span><span>${fmt(t.amount)}</span>
+        </div>
+        <div style="color:var(--muted);font-size:13px;margin:4px 0 10px;">
+          ${t.date} ${t.time||''} · By ${escapeHtml(t.driver||'Unknown')}${t.note?' · '+escapeHtml(t.note):''}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn danger block" onclick="approveDeleteRequest('${t.id}')">🗑 Approve Delete</button>
+          <button class="btn block" style="background:var(--green-dark);color:#fff;" onclick="rejectDeleteRequest('${t.id}')">✗ Keep Entry</button>
+        </div>
+      </div>`;
+    }).join('');
   }
-  list.innerHTML = rows.map(t=>{
-    const typeLbl = t.type==='cash_in'?'Cash In':(t.type==='expense'?('Expense — '+(CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category)):'Reimbursement');
-    return `<div class="stat-card" style="margin-bottom:10px;text-align:left;">
-      <div style="display:flex;justify-content:space-between;font-weight:800;font-size:15px;">
-        <span>${escapeHtml(typeLbl)}</span><span>${fmt(t.amount)}</span>
-      </div>
-      <div style="color:var(--muted);font-size:13px;margin:4px 0 10px;">
-        ${t.date} ${t.time||''} · By ${escapeHtml(t.driver||'Unknown')}${t.note?' · '+escapeHtml(t.note):''}
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn block" style="background:var(--green-dark);color:#fff;" onclick="approveEntry('${t.id}')">✓ Approve</button>
-        <button class="btn danger block" onclick="rejectEntry('${t.id}')">✗ Reject</button>
-      </div>
-    </div>`;
-  }).join('');
+  if(rows.length){
+    html += `<div class="section-title">New Entries</div>`;
+    html += rows.map(t=>{
+      const typeLbl = t.type==='cash_in'?'Cash In':(t.type==='expense'?('Expense — '+(CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category)):'Reimbursement');
+      return `<div class="stat-card" style="margin-bottom:10px;text-align:left;">
+        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:15px;">
+          <span>${escapeHtml(typeLbl)}</span><span>${fmt(t.amount)}</span>
+        </div>
+        <div style="color:var(--muted);font-size:13px;margin:4px 0 10px;">
+          ${t.date} ${t.time||''} · By ${escapeHtml(t.driver||'Unknown')}${t.note?' · '+escapeHtml(t.note):''}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn block" style="background:var(--green-dark);color:#fff;" onclick="approveEntry('${t.id}')">✓ Approve</button>
+          <button class="btn danger block" onclick="rejectEntry('${t.id}')">✗ Reject</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  list.innerHTML = html || `<div class="empty-note">Nothing waiting on you right now.</div>`;
+}
+async function approveDeleteRequest(id){
+  if(!confirm('Permanently delete this entry? This cannot be undone.')) return;
+  toast('Deleting…');
+  const result = await deleteEntryEverywhere(id);
+  if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
+  toast('Deleted');
+  await refreshAdmin();
+}
+async function rejectDeleteRequest(id){
+  toast('Keeping entry…');
+  const result = await clearDeleteRequest(id);
+  if(!result.ok){ toast("Couldn't update — check your connection and try again."); return; }
+  toast('Entry kept — delete request cleared');
+  await refreshAdmin();
 }
 // Requires an awaited, successful server round-trip before anything local
 // changes — no optimistic update. Returns the postToSync result so callers
@@ -1892,7 +2133,8 @@ function renderTxnTable(){
     const cat = t.type==='expense' ? (CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category) : (t.type==='cash_in'?'—':'—');
     const paid = t.type==='expense' ? t.payMode.toUpperCase() : '—';
     const typeLbl = t.type==='cash_in'?'Cash In':(t.type==='expense'?'Expense':'Reimburse');
-    const statusLbl = t.status==='pending' ? '⏳ Pending' : (t.status==='rejected' ? '❌ Rejected' : '✅ Approved');
+    let statusLbl = t.status==='pending' ? '⏳ Pending' : (t.status==='rejected' ? '❌ Rejected' : '✅ Approved');
+    if(t.deleteRequested) statusLbl += ' · 🗑 Delete Requested';
     return `<tr>
       <td>${t.date}</td><td>${typeLbl}</td><td>${escapeHtml(cat)}</td><td>${fmt(t.amount)}</td>
       <td>${paid}</td><td>${escapeHtml(t.note||'')}</td>
