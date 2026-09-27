@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gg-pettycash-v9';
+const CACHE_NAME = 'gg-pettycash-v11';
 // Only truly static, rarely-changing assets go through cache-first below.
 // index.html itself is deliberately network-first (see fetch handler) so a
 // new deploy is picked up the moment the app opens with internet, instead of
@@ -41,6 +41,16 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
+
+  // Never intercept or cache cross-origin requests (in particular, the live
+  // sync calls to script.google.com / the Apps Script host). This app is
+  // live-only now — every fetch to the sync endpoint must reach the network
+  // fresh every time, never be served or silently replayed from the cache.
+  if (url.origin !== self.location.origin) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   const isAppShell = event.request.mode === 'navigate' ||
     url.pathname.endsWith('/index.html') ||
     (url.origin === self.location.origin && url.pathname.endsWith('/'));

@@ -285,6 +285,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 </head>
 <body>
 <div class="app" id="app">
+  <div id="conn-banner" style="display:none;position:sticky;top:0;left:0;right:0;z-index:25;background:var(--red);color:#fff;text-align:center;font-weight:800;font-size:13px;padding:9px 12px;">⚠ No internet connection</div>
 
   <!-- ============ DRIVER HOME ============ -->
   <div class="screen active" id="screen-home">
@@ -299,6 +300,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
     </div>
     <div class="home-wrap">
+      <div id="home-load-error" style="display:none;background:var(--red-light);color:var(--red);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-weight:700;font-size:14px;text-align:center;">
+        No internet connection — can't load data.<br>
+        <button class="btn" style="margin-top:8px;" onclick="refreshAll()">Retry</button>
+      </div>
       <div class="balance-cards">
         <div class="bal-card" id="cashLeftCard">
           <div class="lbl">Cash Left</div>
@@ -413,7 +418,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 
     </div>
     <div class="bottom-bar">
-      <button class="save-btn" onclick="saveExpense()">✓ SAVE</button>
+      <button class="save-btn" id="exp-save-btn" onclick="saveExpense()">✓ SAVE</button>
     </div>
   </div>
 
@@ -443,7 +448,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
     </div>
     <div class="bottom-bar">
-      <button class="save-btn" onclick="saveCashIn()">✓ SAVE</button>
+      <button class="save-btn" id="ci-save-btn" onclick="saveCashIn()">✓ SAVE</button>
     </div>
   </div>
 
@@ -515,13 +520,6 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <h1>🔒 Admin</h1>
     </div>
     <div class="home-wrap" style="padding-top:50px;text-align:center;">
-      <div id="pin-mode-set" style="display:none;">
-        <p style="color:var(--muted);font-size:14px;">Set a PIN to protect Admin (4–6 digits). Only share this with people who should see the finances.</p>
-        <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" id="pin-set-1" placeholder="New PIN" style="width:100%;padding:16px;margin-bottom:10px;border:2px solid var(--line);border-radius:var(--radius-sm);font-size:22px;text-align:center;letter-spacing:6px;">
-        <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" id="pin-set-2" placeholder="Confirm PIN" style="width:100%;padding:16px;border:2px solid var(--line);border-radius:var(--radius-sm);font-size:22px;text-align:center;letter-spacing:6px;">
-        <div id="pin-set-error" style="color:var(--red);font-size:13px;margin-top:8px;"></div>
-        <button class="save-btn" style="margin-top:18px;" onclick="submitSetPin()">✓ SET PIN</button>
-      </div>
       <div id="pin-mode-enter" style="display:none;">
         <p style="color:var(--muted);font-size:14px;">Enter Admin PIN</p>
         <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" id="pin-enter" placeholder="PIN" style="width:100%;padding:16px;border:2px solid var(--line);border-radius:var(--radius-sm);font-size:22px;text-align:center;letter-spacing:6px;">
@@ -543,7 +541,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="admin-tab" data-tab="txns" onclick="selectAdminTab('txns')">Transactions</button>
       <button class="admin-tab" data-tab="reimb" onclick="selectAdminTab('reimb')">Reimbursement</button>
       <button class="admin-tab" data-tab="reports" onclick="selectAdminTab('reports')">Reports</button>
-      <button class="admin-tab" data-tab="sync" onclick="selectAdminTab('sync')">Live Sync</button>
+      <button class="admin-tab" data-tab="sync" onclick="selectAdminTab('sync')">Connection</button>
       <button class="admin-tab" data-tab="backup" onclick="selectAdminTab('backup')">Backup</button>
       <button class="admin-tab" data-tab="settings" onclick="selectAdminTab('settings')">Settings</button>
     </div>
@@ -605,7 +603,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <div class="field"><label>Date</label><input type="date" id="r-date"></div>
       <div class="amount-box"><div class="cur">AED</div><input type="text" inputmode="decimal" id="r-amount" placeholder="0"></div>
       <div class="field"><label>Note (optional)</label><input type="text" id="r-note" placeholder="e.g. Paid via bank transfer"></div>
-      <button class="btn primary block" onclick="saveReimbursement()">✓ Record Reimbursement</button>
+      <button class="btn primary block" id="reimb-save-btn" onclick="saveReimbursement()">✓ Record Reimbursement</button>
       <div class="section-title">Reimbursement History</div>
       <div class="admin-table-wrap">
         <table class="admin-table"><thead><tr><th>Date</th><th>Amount</th><th>Note</th></tr></thead><tbody id="reimb-tbody"></tbody></table>
@@ -633,35 +631,21 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="btn block" onclick="sendReportWhatsApp()">📱 Send Text Summary via WhatsApp</button>
     </div>
 
-    <!-- Live Sync -->
+    <!-- Connection -->
     <div class="admin-panel" data-panel="sync">
       <div class="stat-card" style="margin-bottom:16px;">
-        <div class="lbl">Live Sync Status</div>
+        <div class="lbl">Connection Status</div>
         <div class="val" id="sync-status" style="font-size:16px;">Checking…</div>
-        <p style="font-size:12px;color:var(--muted);margin:8px 0 0;">Every entry is silently sent to your Google Sheet in the background when the phone is online. Nothing for the driver to do — no sign-in, no setup.</p>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 0;">This app needs internet for everything — every save, delete and approval goes straight to your Google Sheet. Nothing is stored on the phone.</p>
       </div>
-      <div class="admin-grid">
-        <div class="stat-card"><div class="lbl">Synced</div><div class="val" id="sync-count-done">0</div></div>
-        <div class="stat-card"><div class="lbl">Waiting to Sync</div><div class="val" id="sync-count-pending">0</div></div>
-      </div>
-      <button class="btn primary block" onclick="syncNow(true)">🔄 Sync Now</button>
-      <p style="font-size:12px;color:var(--muted);">"Waiting to Sync" clears automatically once the phone has internet — this button just forces it right away.</p>
+      <button class="btn primary block" onclick="refreshNow()">🔄 Refresh Now</button>
     </div>
 
     <!-- Backup -->
     <div class="admin-panel" data-panel="backup">
-      <div class="stat-card" style="margin-bottom:16px;">
-        <div class="lbl">Auto-Backup — Last Saved</div>
-        <div class="val" id="auto-backup-status" style="font-size:16px;">Not yet</div>
-        <p style="font-size:12px;color:var(--muted);margin:8px 0 0;">Downloads a backup file automatically to the phone's Downloads folder — after every 5 new entries, or at least once every 24 hours, whichever comes first. No account or internet needed.</p>
-      </div>
       <div class="section-title">Backup</div>
+      <p style="font-size:12.5px;color:var(--muted);">Downloads everything currently on the server as a JSON file, so you have a copy on this phone.</p>
       <button class="btn primary block" onclick="backupData()">⬇ Download Backup Now (JSON)</button>
-      <div class="section-title">Restore</div>
-      <button class="btn danger block" onclick="document.getElementById('restore-input').click()">⬆ Restore From Backup File</button>
-      <input type="file" accept="application/json" class="hidden-input" id="restore-input" onchange="restoreData(event)">
-      <p style="font-size:12.5px;color:var(--muted);">Restoring will ask for confirmation twice, and will replace all current data with the backup file's data.</p>
-      <p style="font-size:12.5px;color:var(--muted);">Tip: every so often, move the backup files out of Downloads into Google Drive or email them to yourself — auto-backup protects against app data being cleared, but not against losing or resetting the phone itself.</p>
     </div>
 
     <!-- Settings -->
@@ -686,8 +670,6 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <p style="color:var(--muted);font-size:13px;">The Admin PIN is fixed in the app's code (not changeable from here) so it can never be reset from a driver's phone. Ask your developer to change it if needed.</p>
       <button class="btn block" onclick="switchDriver()">🔄 Switch Driver (Logout)</button>
       <button class="btn block" onclick="goHome()">🚪 Exit Admin</button>
-      <div class="section-title">Danger Zone</div>
-      <button class="btn danger block" onclick="wipeAllData()">🗑 Erase All Data</button>
     </div>
   </div>
 
@@ -717,8 +699,12 @@ const CATEGORIES = [
 const CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
 const QUICK_NOTES = ['Site Material','Vehicle','Delivery','Nursery','Sand','Repair','Other'];
 
-/* ================= INDEXEDDB LAYER ================= */
-const DB_NAME='ggPettyCashDB', DB_VER=1;
+/* ================= INDEXEDDB LAYER (device-local settings only) =================
+   Transactions are NOT stored locally anymore — this app requires internet for
+   everything, so 'transactions' is never written to IndexedDB. Only device
+   preferences (driver name, admin flag, WhatsApp number) live here, since
+   those are per-phone settings, not shared transactional data. */
+const DB_NAME='ggPettyCashDB', DB_VER=2;
 let dbP=null;
 function openDB(){
   if(dbP) return dbP;
@@ -726,46 +712,19 @@ function openDB(){
     const req = indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded = (e)=>{
       const db=e.target.result;
-      if(!db.objectStoreNames.contains('transactions')){
-        const s = db.createObjectStore('transactions',{keyPath:'id'});
-        s.createIndex('date','date');
-        s.createIndex('type','type');
-      }
       if(!db.objectStoreNames.contains('settings')){
         db.createObjectStore('settings',{keyPath:'key'});
+      }
+      // Old versions of this app kept an offline 'transactions' queue here.
+      // It's no longer used (everything is live-only now) — drop it if present.
+      if(db.objectStoreNames.contains('transactions')){
+        db.deleteObjectStore('transactions');
       }
     };
     req.onsuccess = ()=>resolve(req.result);
     req.onerror = ()=>reject(req.error);
   });
   return dbP;
-}
-async function txAdd(record){
-  const db = await openDB();
-  return new Promise((resolve,reject)=>{
-    const tx = db.transaction('transactions','readwrite');
-    tx.objectStore('transactions').put(record);
-    tx.oncomplete=()=>resolve(record);
-    tx.onerror=()=>reject(tx.error);
-  });
-}
-async function txGetAll(){
-  const db = await openDB();
-  return new Promise((resolve,reject)=>{
-    const tx = db.transaction('transactions','readonly');
-    const req = tx.objectStore('transactions').getAll();
-    req.onsuccess=()=>resolve(req.result.sort((a,b)=> (a.date+((a.time)||'00:00')).localeCompare(b.date+((b.time)||'00:00')) || (a.createdAt-b.createdAt) ));
-    req.onerror=()=>reject(req.error);
-  });
-}
-async function txDeleteAll(){
-  const db = await openDB();
-  return new Promise((resolve,reject)=>{
-    const tx = db.transaction('transactions','readwrite');
-    tx.objectStore('transactions').clear();
-    tx.oncomplete=()=>resolve();
-    tx.onerror=()=>reject(tx.error);
-  });
 }
 async function settingsGet(key, def){
   const db = await openDB();
@@ -860,16 +819,146 @@ let ALL_TXNS = [];
 let currentBalances = {companyCash:0, driverOwed:0};
 let expState = { category:null, pay:null, photo:null, noteChip:null };
 let lastSavedTxn = null;
+let IS_ADMIN_DEVICE = false;
+
+/* ================= LIVE DATA LAYER (no offline storage) =================
+   Every screen requires a fresh, live round-trip to the server. Nothing is
+   queued or cached locally: ALL_TXNS is only ever populated by a successful
+   loadFromServer() call, and every save/delete/approval must be confirmed by
+   the server before touching ALL_TXNS or the UI. */
+// SYNC_URL is baked into the app itself, so every phone running this same
+// file talks to the same Google Sheet automatically — nothing for the
+// driver to type, sign into, or approve.
+const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxRL0Q-eVgmoQrphSsS1l1nfLXrVPgzpG2vHiRTpy8u2rUZo59gTFACqSYZHY9oWHPC/exec'; // <-- set once to your deployed Apps Script Web App URL
+const SYNC_TIMEOUT_MS = 15000;
+// Photos never round-trip through the server (the Sheet only stores a Y/N
+// flag), so we keep this session's own just-saved photos in memory purely so
+// History/PDF can still show them for entries made on THIS phone during this
+// visit. It is not a source of truth and is never used for balances.
+const SESSION_PHOTOS = new Map();
+
+function friendlySyncError(err){
+  if(err==='offline') return 'No internet connection. Please check your connection and try again.';
+  if(err==='timeout') return 'That took too long. Please check your connection and try again.';
+  if(err==='not_configured') return 'Sync is not set up yet.';
+  return 'Could not reach the server. Please check your connection and try again.';
+}
+function updateConnBanner(){
+  const el = document.getElementById('conn-banner');
+  if(!el) return;
+  el.style.display = navigator.onLine ? 'none' : 'block';
+}
+window.addEventListener('online', ()=>{ updateConnBanner(); refreshAll(); });
+window.addEventListener('offline', updateConnBanner);
+
+// Low-level helper: an awaited POST to SYNC_URL with a timeout, used by every
+// save/delete/status-change so nothing is ever assumed to have succeeded.
+async function postToSync(payload){
+  if(!SYNC_URL) return {ok:false, error:'not_configured'};
+  if(!navigator.onLine) return {ok:false, error:'offline'};
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), SYNC_TIMEOUT_MS);
+  try{
+    const resp = await fetch(SYNC_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids a CORS preflight against Apps Script
+      body: JSON.stringify(payload),
+      cache:'no-store',
+      signal: controller.signal,
+    });
+    if(!resp.ok) return {ok:false, error:'http_'+resp.status};
+    const data = await resp.json().catch(()=>null);
+    if(data && data.ok===false) return {ok:false, error:data.error||'server_error'};
+    return {ok:true, data};
+  }catch(e){
+    return {ok:false, error: e.name==='AbortError' ? 'timeout' : 'network'};
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+// The ONLY place ALL_TXNS is ever populated: a fresh, live GET to SYNC_URL,
+// with no caching anywhere in the chain (fetch cache:'no-store' here, and the
+// service worker never intercepts this cross-origin request at all).
+async function loadFromServer(){
+  updateConnBanner();
+  if(!SYNC_URL) return {ok:false, error:'not_configured'};
+  if(!navigator.onLine) return {ok:false, error:'offline'};
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), SYNC_TIMEOUT_MS);
+  try{
+    const resp = await fetch(SYNC_URL, { method:'GET', cache:'no-store', signal: controller.signal });
+    if(!resp.ok) return {ok:false, error:'http_'+resp.status};
+    const data = await resp.json().catch(()=>null);
+    if(!data || !Array.isArray(data.records)) return {ok:false, error:'bad_response'};
+    ALL_TXNS = data.records.map(r=>({
+      id: r.id,
+      driver: r.driver||'',
+      type: r.type||'expense',
+      date: r.date||'',
+      time: r.time||'',
+      category: r.category||'',
+      note: r.note||'',
+      amount: Number(r.amount)||0,
+      companyAmount: r.companyAmount===''?undefined:Number(r.companyAmount),
+      meAmount: r.meAmount===''?undefined:Number(r.meAmount),
+      payMode: r.payMode||'',
+      supplier: r.supplier||'',
+      site: r.site||'',
+      receiptNo: r.receiptNo||'',
+      vehicle: r.vehicle||'',
+      remarks: r.remarks||'',
+      givenBy: r.givenBy||'',
+      status: r.status || 'approved', // blank = recorded before approvals existed
+      photo: SESSION_PHOTOS.get(r.id) || null,
+    })).sort((a,b)=> (a.date+((a.time)||'00:00')).localeCompare(b.date+((b.time)||'00:00')));
+    currentBalances = computeBalances(approvedOnly(ALL_TXNS));
+    return {ok:true};
+  }catch(e){
+    return {ok:false, error: e.name==='AbortError' ? 'timeout' : 'network'};
+  }finally{
+    clearTimeout(timer);
+  }
+}
+// Refreshes the Home balances from the server. Used on init, after every
+// save/delete/approval, and whenever navigation returns to Home.
+let lastLoadOk = true;
+async function refreshAll(){
+  const result = await loadFromServer();
+  lastLoadOk = result.ok;
+  renderHome();
+  return result;
+}
+function refreshNow(){
+  toast('Refreshing…');
+  refreshAll().then(r=>{ toast(r.ok ? 'Up to date' : friendlySyncError(r.error)); renderSyncStatus(); });
+}
+async function renderSyncStatus(){
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  if(!SYNC_URL){ el.textContent = 'Not set up'; return; }
+  el.textContent = navigator.onLine ? 'Online — live' : 'Offline — nothing can load or save right now';
+}
+
+function setBusy(btn, busyLabel){
+  if(!btn) return;
+  if(btn.dataset.origText===undefined) btn.dataset.origText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = busyLabel;
+}
+function clearBusy(btn){
+  if(!btn) return;
+  if(btn.dataset.origText!==undefined) btn.innerHTML = btn.dataset.origText;
+  btn.disabled = false;
+}
 
 /* ================= INIT ================= */
 async function init(){
   // Establish the base "home" history entry so the phone's back button
   // and Chrome's back arrow have a well-defined screen to return to.
   history.replaceState({screen:'screen-home'}, '', '#screen-home');
+  updateConnBanner();
   IS_ADMIN_DEVICE = await settingsGet('isAdminDevice', false);
-  ALL_TXNS = await txGetAll();
-  currentBalances = computeBalances(approvedOnly(ALL_TXNS));
-  renderHome();
   buildCatGrid();
   buildQuickNotes();
   setTodayDefaults();
@@ -884,8 +973,7 @@ async function init(){
   document.getElementById('set-wa-number').value = wn||'';
   registerSW();
   setupInstallPrompt();
-  maybeAutoBackupOnOpen();
-  syncNow(false);
+  await refreshAll();
 }
 init();
 async function switchDriver(){
@@ -903,29 +991,14 @@ async function finishDriverSetup(){
   replaceScreen('screen-home');
   await refreshAll();
 }
-async function maybeAutoBackupOnOpen(){
-  // Best-effort: some browsers block downloads that aren't tied to a tap,
-  // so this may silently no-op — the per-save check in maybeAutoBackup()
-  // is the reliable path. This just catches the case of a driver who opens
-  // the app but doesn't log anything for a long stretch.
-  try{
-    if(!ALL_TXNS.length) return;
-    const lastAt = await settingsGet('lastAutoBackupAt', 0);
-    const hoursSince = (Date.now() - lastAt) / 3600000;
-    if(hoursSince >= AUTO_BACKUP_MIN_HOURS){
-      await backupData(true);
-      await settingsSet('lastAutoBackupAt', Date.now());
-      await settingsSet('entriesSinceBackup', 0);
-    }
-  }catch(e){ /* ignore */ }
-}
 
-let IS_ADMIN_DEVICE = false;
 function renderHome(){
-  document.getElementById('cashLeftVal').textContent = fmt(currentBalances.companyCash);
-  document.getElementById('myMoneyVal').textContent = fmt(currentBalances.driverOwed);
+  const errBox = document.getElementById('home-load-error');
+  if(errBox) errBox.style.display = lastLoadOk ? 'none' : 'block';
+  document.getElementById('cashLeftVal').textContent = lastLoadOk ? fmt(currentBalances.companyCash) : '—';
+  document.getElementById('myMoneyVal').textContent = lastLoadOk ? fmt(currentBalances.driverOwed) : '—';
   const card = document.getElementById('cashLeftCard');
-  card.classList.toggle('low', currentBalances.companyCash < 0);
+  card.classList.toggle('low', lastLoadOk && currentBalances.companyCash < 0);
   const badge = document.getElementById('home-approvals-badge');
   if(IS_ADMIN_DEVICE){
     const n = pendingEntries().length;
@@ -970,18 +1043,12 @@ async function applyScreenForState(id){
   else { showScreen(id); }
 }
 function goHome(){ replaceScreen('screen-home'); refreshAll(); }
-async function refreshAll(){
-  ALL_TXNS = await txGetAll();
-  currentBalances = computeBalances(approvedOnly(ALL_TXNS));
-  renderHome();
-}
 // Fixed Admin PIN — the SAME on every phone (unlike the old per-device PIN),
 // so a driver can never set their own and lock themselves into Admin. Only
 // people Esa shares this with can ever reach Admin, deletion, or approvals.
 const ADMIN_PIN = '5612';
 async function goAdmin(){
   pushScreen('screen-admin-pin');
-  document.getElementById('pin-mode-set').style.display='none';
   document.getElementById('pin-mode-enter').style.display='block';
   document.getElementById('pin-enter').value='';
   document.getElementById('pin-enter-error').textContent='';
@@ -1034,9 +1101,11 @@ function pickQuickNote(n){
   document.getElementById('exp-note').value = n;
   document.querySelectorAll('#quick-notes .qn').forEach(b=>b.classList.toggle('sel', b.textContent===n));
 }
-function openExpenseEntry(){
-  resetExpenseForm();
+async function openExpenseEntry(){
   pushScreen('screen-expense');
+  const r = await refreshAll(); // fresh balance so the auto-split and "not enough cash" warning are never stale
+  resetExpenseForm();
+  if(!r.ok) toast(friendlySyncError(r.error));
 }
 function resetExpenseForm(){
   expState = { category:null, pay:null, photo:null };
@@ -1191,16 +1260,21 @@ async function saveExpense(){
     photo: expState.photo,
     driver: await settingsGet('driverName',''),
     status: await entryStatus(),
-    synced: false,
     createdAt: Date.now(),
   };
-  await txAdd(record);
+  const saveBtn = document.getElementById('exp-save-btn');
+  setBusy(saveBtn, 'SAVING…');
+  const result = await postToSync({records:[record]});
+  clearBusy(saveBtn);
+  if(!result.ok){
+    toast(friendlySyncError(result.error));
+    return; // nothing saved anywhere — the driver can fix the connection and tap SAVE again
+  }
+  if(record.photo) SESSION_PHOTOS.set(record.id, record.photo);
   lastSavedTxn = record;
   await refreshAll();
   document.getElementById('saved-sub').textContent = `${CAT_MAP[record.category].lbl} · ${fmt(record.amount)} saved.`;
   replaceScreen('screen-saved');
-  maybeAutoBackup();
-  syncNow(false);
 }
 
 /* ================= CASH IN ================= */
@@ -1225,16 +1299,20 @@ async function saveCashIn(){
     givenBy: document.getElementById('ci-givenby').value.trim(),
     driver: await settingsGet('driverName',''),
     status: await entryStatus(),
-    synced: false,
     createdAt: Date.now(),
   };
-  await txAdd(record);
+  const saveBtn = document.getElementById('ci-save-btn');
+  setBusy(saveBtn, 'SAVING…');
+  const result = await postToSync({records:[record]});
+  clearBusy(saveBtn);
+  if(!result.ok){
+    toast(friendlySyncError(result.error));
+    return;
+  }
   lastSavedTxn = record;
   await refreshAll();
   document.getElementById('saved-sub').textContent = `Cash In ${fmt(record.amount)} saved.`;
   replaceScreen('screen-saved');
-  maybeAutoBackup();
-  syncNow(false);
 }
 
 /* ================= SAVED SCREEN ACTIONS ================= */
@@ -1302,14 +1380,17 @@ async function sendPeriodSummary(key){
     await buildAndDeliverStatementPDF(label, from, to, {share:true});
     statusEl.textContent = '';
   }catch(err){
-    // Fallback to plain WhatsApp text if the PDF library isn't available
-    // (e.g. very first app open with no internet yet to fetch it)
-    await refreshAll();
+    if(err && err.code==='no_internet'){
+      statusEl.textContent = 'No internet connection. Please check your connection and try again.';
+      return;
+    }
+    // PDF library or share failed for some other reason — fall back to plain
+    // WhatsApp text, using the data we already have live from the server.
     const txns = approvedOnly(ALL_TXNS).filter(t=> t.date>=from && t.date<=to);
     const opening = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<from));
     const closing = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<=to));
     openWhatsApp(buildStatementText(label, from, to, txns, opening, closing));
-    statusEl.textContent = 'Sent as text — PDF needs internet the first time.';
+    statusEl.textContent = 'Sent as text instead of PDF.';
   }
 }
 function buildStatementText(label, fromStr, toStr, txns, opening, closing){
@@ -1360,7 +1441,8 @@ function buildStatementText(label, fromStr, toStr, txns, opening, closing){
 /* ================= PDF STATEMENT GENERATION ================= */
 async function buildAndDeliverStatementPDF(label, fromStr, toStr, opts){
   opts = opts || {};
-  await refreshAll();
+  const loadResult = await refreshAll();
+  if(!loadResult.ok){ const err = new Error('no_internet'); err.code='no_internet'; throw err; }
   const txns = approvedOnly(ALL_TXNS).filter(t=> t.date>=fromStr && t.date<=toStr);
   const opening = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<fromStr));
   const closing = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<=toStr));
@@ -1496,8 +1578,8 @@ async function sharePDFOrDownload(doc, filename, fallbackText){
 let histFilterKey = 'today';
 function openHistory(){
   pushScreen('screen-today');
+  document.getElementById('today-list').innerHTML = `<div class="empty-note">Loading…</div>`;
   renderTodayList();
-  pullFromCloud().then(renderTodayList); // refresh with the other person's latest entries too
 }
 function setHistFilter(key){
   histFilterKey = key;
@@ -1519,10 +1601,14 @@ function getHistRange(){
   return periodRange(histFilterKey);
 }
 async function renderTodayList(){
-  await refreshAll();
+  const list = document.getElementById('today-list');
+  const result = await refreshAll();
+  if(!result.ok){
+    list.innerHTML = `<div class="empty-note">⚠ No internet connection — can't load data.<br><button class="btn" style="margin-top:10px;" onclick="renderTodayList()">Retry</button></div>`;
+    return;
+  }
   const {from, to} = getHistRange();
   const rows = ALL_TXNS.filter(t=> t.date>=from && t.date<=to).slice().reverse();
-  const list = document.getElementById('today-list');
   if(!rows.length){
     list.innerHTML = `<div class="empty-note">No entries in this period.<br>Tap 🛒 BUY / PAY or 💰 CASH IN to add one.</div>`;
   } else {
@@ -1535,7 +1621,7 @@ async function generateHistoryStatement(){
   try{
     await buildAndDeliverStatementPDF(label, from, to, {share:true});
   }catch(e){
-    toast('Could not create PDF — check connection for first-time use');
+    toast(e && e.code==='no_internet' ? 'No internet connection. Please check your connection and try again.' : 'Could not create PDF. Please try again.');
   }
 }
 function renderHistItem(t){
@@ -1566,33 +1652,23 @@ function renderHistItem(t){
   </div>${thumb}${delBtn}</div>`;
 }
 // Deleting from the everyday History list still requires the Admin PIN, so a
-// driver can't erase entries — only whoever knows the PIN can. If no PIN has
-// been set yet at all, this just tells you to set one first (Admin > Settings).
-// Deletes locally AND tells the cloud to remove the row, so it doesn't just
-// come back on the next pull (here or on the OTHER person's phone).
+// driver can't erase entries — only whoever knows the PIN can.
+// Requires an awaited, successful server round-trip before the entry
+// disappears anywhere — no optimistic local removal.
 async function deleteEntryEverywhere(id){
-  const db = await openDB();
-  await new Promise((res,rej)=>{
-    const tx = db.transaction('transactions','readwrite');
-    tx.objectStore('transactions').delete(id);
-    tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
-  });
-  if(SYNC_URL && navigator.onLine){
-    try{
-      await fetch(SYNC_URL, {
-        method:'POST',
-        headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify({deletes:[id]})
-      });
-    }catch(e){ /* local delete already done; cloud row may reappear until this succeeds later */ }
-  }
+  const result = await postToSync({deletes:[id]});
+  if(!result.ok) return result;
+  await refreshAll();
+  return result;
 }
 async function requestDeleteFromHistory(id){
   const entered = prompt('Enter Admin PIN to delete this entry:');
   if(entered===null) return;
   if(entered.trim()!==ADMIN_PIN){ toast('Wrong PIN'); return; }
   if(!confirm('Delete this entry? This cannot be undone.')) return;
-  await deleteEntryEverywhere(id);
+  toast('Deleting…');
+  const result = await deleteEntryEverywhere(id);
+  if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
   toast('Deleted');
   await renderTodayList();
 }
@@ -1608,27 +1684,35 @@ function closePhotoModal(){
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ================= ADMIN ================= */
-function selectAdminTab(tab){
+async function selectAdminTab(tab){
   document.querySelectorAll('.admin-tab').forEach(b=>b.classList.toggle('sel', b.dataset.tab===tab));
   document.querySelectorAll('.admin-panel').forEach(p=>p.classList.toggle('active', p.dataset.panel===tab));
+  // Every tab that shows money or entries pulls fresh data the moment it's opened.
+  if(tab==='dash' || tab==='approvals' || tab==='txns' || tab==='reimb' || tab==='reports'){
+    const result = await refreshAll();
+    if(!result.ok){ toast(friendlySyncError(result.error)); }
+  }
+  if(tab==='dash') renderDashboardStats();
   if(tab==='approvals') renderApprovalsTab();
   if(tab==='txns') renderTxnTable();
   if(tab==='reimb') renderReimbTab();
   if(tab==='reports') renderDailySummary();
-  if(tab==='backup') renderAutoBackupStatus();
   if(tab==='sync') renderSyncStatus();
 }
-async function refreshAdmin(){
-  await pullFromCloud(); // pick up anything the driver has logged since last check
-  await refreshAll();
+function renderDashboardStats(){
   const b = currentBalances;
+  document.getElementById('d-cash').textContent = lastLoadOk ? fmt(b.companyCash) : '—';
+  document.getElementById('d-owed').textContent = lastLoadOk ? fmt(b.driverOwed) : '—';
+  document.getElementById('d-cashin').textContent = lastLoadOk ? fmt(b.totalCashIn) : '—';
+  document.getElementById('d-exp').textContent = lastLoadOk ? fmt(b.totalExpense) : '—';
+  document.getElementById('d-reimb').textContent = lastLoadOk ? fmt(b.totalReimb) : '—';
+  document.getElementById('d-count').textContent = lastLoadOk ? ALL_TXNS.length : '—';
+}
+async function refreshAdmin(){
+  const result = await refreshAll();
   document.getElementById('d-driver').textContent = (await settingsGet('driverName','')) || '(not set)';
-  document.getElementById('d-cash').textContent = fmt(b.companyCash);
-  document.getElementById('d-owed').textContent = fmt(b.driverOwed);
-  document.getElementById('d-cashin').textContent = fmt(b.totalCashIn);
-  document.getElementById('d-exp').textContent = fmt(b.totalExpense);
-  document.getElementById('d-reimb').textContent = fmt(b.totalReimb);
-  document.getElementById('d-count').textContent = ALL_TXNS.length;
+  renderDashboardStats();
+  if(!result.ok){ toast(friendlySyncError(result.error)); }
   renderApprovalsTab();
   renderTxnTable();
   renderReimbTab();
@@ -1661,30 +1745,24 @@ function renderApprovalsTab(){
     </div>`;
   }).join('');
 }
+// Requires an awaited, successful server round-trip before anything local
+// changes — no optimistic update. Returns the postToSync result so callers
+// can show a clear error and leave the entry exactly as it was on failure.
 async function setEntryStatus(id, status){
-  const t = ALL_TXNS.find(x=>x.id===id);
-  if(!t) return;
-  t.status = status;
-  await txAdd(t);
-  // Tell the cloud too, so the driver's own phone sees the outcome next time it syncs.
-  if(SYNC_URL && navigator.onLine){
-    try{
-      await fetch(SYNC_URL, {
-        method:'POST',
-        headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify({statusUpdates:[{id, status}]})
-      });
-    }catch(e){ /* local change already saved; cloud will pick it up on next sync */ }
-  }
+  return await postToSync({statusUpdates:[{id, status}]});
 }
 async function approveEntry(id){
-  await setEntryStatus(id, 'approved');
+  toast('Approving…');
+  const result = await setEntryStatus(id, 'approved');
+  if(!result.ok){ toast("Couldn't approve — check your connection and try again."); return; }
   toast('Approved');
   await refreshAdmin();
 }
 async function rejectEntry(id){
   if(!confirm('Reject this entry? It will never count toward the balance.')) return;
-  await setEntryStatus(id, 'rejected');
+  toast('Rejecting…');
+  const result = await setEntryStatus(id, 'rejected');
+  if(!result.ok){ toast("Couldn't reject — check your connection and try again."); return; }
   toast('Rejected');
   await refreshAdmin();
 }
@@ -1722,7 +1800,9 @@ function renderTxnTable(){
 }
 async function deleteTxn(id){
   if(!confirm('Delete this entry? This cannot be undone.')) return;
-  await deleteEntryEverywhere(id);
+  toast('Deleting…');
+  const result = await deleteEntryEverywhere(id);
+  if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
   await refreshAdmin();
   toast('Deleted');
 }
@@ -1747,16 +1827,20 @@ async function saveReimbursement(){
     note: document.getElementById('r-note').value.trim(),
     driver: await settingsGet('driverName',''),
     status: await entryStatus(),
-    synced: false,
     createdAt: Date.now(),
   };
-  await txAdd(record);
+  const saveBtn = document.getElementById('reimb-save-btn');
+  setBusy(saveBtn, 'SAVING…');
+  const result = await postToSync({records:[record]});
+  clearBusy(saveBtn);
+  if(!result.ok){
+    toast(friendlySyncError(result.error));
+    return;
+  }
   document.getElementById('r-amount').value='';
   document.getElementById('r-note').value='';
   await refreshAdmin();
   toast('Reimbursement recorded');
-  maybeAutoBackup();
-  syncNow(false);
 }
 
 /* ---- Reports ---- */
@@ -1794,7 +1878,7 @@ async function generateReportPDF(){
   try{
     await buildAndDeliverStatementPDF(label, from, to, {share:false});
   }catch(e){
-    toast('Could not create PDF — check internet connection');
+    toast(e && e.code==='no_internet' ? 'No internet connection. Please check your connection and try again.' : 'Could not create PDF. Please try again.');
   }
 }
 function exportCSV(){
@@ -1825,233 +1909,20 @@ function downloadBlob(blob, filename){
   setTimeout(()=>URL.revokeObjectURL(url), 3000);
 }
 
-/* ---- Backup / Restore ---- */
-async function backupData(silent){
-  const all = await txGetAll();
+/* ---- Backup (export only — there is no local database to restore into) ---- */
+async function backupData(){
+  const result = await refreshAll(); // always export the current, live server data
+  if(!result.ok){ toast(friendlySyncError(result.error)); return; }
   const driverName = await settingsGet('driverName','');
   const waNumber = await settingsGet('waNumber','');
-  const payload = { app:'gg-pettycash', version:1, exportedAt:new Date().toISOString(), transactions: all, settings:{driverName, waNumber} };
+  const payload = { app:'gg-pettycash', version:2, exportedAt:new Date().toISOString(), transactions: ALL_TXNS, settings:{driverName, waNumber} };
   const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
   const stamp = new Date().toISOString().replace(/[:T]/g,'-').slice(0,16);
   downloadBlob(blob, `petty-cash-backup-${stamp}.json`);
-  if(!silent) toast('Backup downloaded');
+  toast('Backup downloaded');
   return payload.transactions.length;
 }
 
-/* ---- Auto-Backup (local, no account needed) ----
-   Downloads a fresh backup .json to the phone's Downloads folder automatically,
-   triggered right after a save so it still counts as a user-gesture download.
-   Runs at most once per AUTO_BACKUP_MIN_HOURS, or sooner if AUTO_BACKUP_EVERY_N
-   new entries have piled up since the last auto-backup. */
-const AUTO_BACKUP_MIN_HOURS = 24;
-const AUTO_BACKUP_EVERY_N = 5;
-async function maybeAutoBackup(){
-  try{
-    const now = Date.now();
-    const lastAt = await settingsGet('lastAutoBackupAt', 0);
-    const countSince = (await settingsGet('entriesSinceBackup', 0)) + 1;
-    const hoursSince = (now - lastAt) / 3600000;
-    if(hoursSince >= AUTO_BACKUP_MIN_HOURS || countSince >= AUTO_BACKUP_EVERY_N){
-      await backupData(true);
-      await settingsSet('lastAutoBackupAt', now);
-      await settingsSet('entriesSinceBackup', 0);
-      toast('Auto-backup saved to Downloads');
-      renderAutoBackupStatus();
-    } else {
-      await settingsSet('entriesSinceBackup', countSince);
-    }
-  }catch(e){ /* never let backup issues block the driver's save */ }
-}
-async function renderAutoBackupStatus(){
-  const el = document.getElementById('auto-backup-status');
-  if(!el) return;
-  const lastAt = await settingsGet('lastAutoBackupAt', 0);
-  el.textContent = lastAt ? new Date(lastAt).toLocaleString('en-AE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Not yet';
-}
-
-/* ================= LIVE SYNC (silent, built-in — no driver action) =================
-   SYNC_URL is baked into the app itself, so every phone running this same
-   file syncs to the same Google Sheet automatically — nothing for the
-   driver to type, sign into, or approve. Leave it blank ('') to keep the
-   app fully offline with no live sync at all; every other feature (photos,
-   PDF statements, local backup) works exactly the same either way. */
-const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxRL0Q-eVgmoQrphSsS1l1nfLXrVPgzpG2vHiRTpy8u2rUZo59gTFACqSYZHY9oWHPC/exec'; // <-- set once to your deployed Apps Script Web App URL
-
-let syncInFlight = false;
-async function markSynced(ids){
-  if(!ids.length) return;
-  const db = await openDB();
-  const all = await txGetAll();
-  const map = new Map(all.map(t=>[t.id,t]));
-  await Promise.all(ids.map(id=>{
-    const rec = map.get(id);
-    if(!rec) return Promise.resolve();
-    rec.synced = true;
-    return txAdd(rec);
-  }));
-}
-async function syncNow(manual){
-  if(!SYNC_URL) { if(manual) toast('Live Sync isn\'t set up yet'); return; }
-  if(syncInFlight) return;
-  if(!navigator.onLine){ if(manual) toast('No internet right now — will sync automatically once online'); return; }
-  syncInFlight = true;
-  try{
-    const all = await txGetAll();
-    const pending = all.filter(t=>!t.synced);
-    if(pending.length){
-      const driverName = await settingsGet('driverName','');
-      // Send in small batches so one slow request doesn't hold up everything
-      const BATCH = 25;
-      for(let i=0;i<pending.length;i+=BATCH){
-        const batch = pending.slice(i, i+BATCH).map(t=>({...t, driver: t.driver || driverName}));
-        const resp = await fetch(SYNC_URL, {
-          method:'POST',
-          headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids a CORS preflight against Apps Script
-          body: JSON.stringify({records: batch})
-        });
-        if(!resp.ok) throw new Error('Sync request failed: '+resp.status);
-        await markSynced(batch.map(t=>t.id));
-      }
-      await settingsSet('lastSyncAt', Date.now());
-    }
-    // Always pull, even when there was nothing new of ours to push — otherwise
-    // a device that isn't actively logging anything never picks up what the
-    // OTHER person has added.
-    await pullFromCloud();
-    if(manual) toast(pending.length ? 'Synced' : 'Already up to date');
-  }catch(e){
-    if(manual) toast('Could not sync — will retry automatically');
-  } finally {
-    syncInFlight = false;
-    renderSyncStatus();
-  }
-}
-// Pulls every record anyone has pushed to the shared sheet (you and your
-// driver) and merges in any that this phone doesn't have locally yet, so
-// the app itself — not just the spreadsheet — shows the combined picture.
-// Note: photos aren't synced to the cloud, so a pulled entry from the other
-// person's phone won't carry its photo (only entries saved on THIS phone do).
-async function pullFromCloud(){
-  if(!SYNC_URL) return;
-  if(!navigator.onLine) return;
-  try{
-    const resp = await fetch(SYNC_URL, { method:'GET' });
-    if(!resp.ok) return;
-    const data = await resp.json();
-    if(!data || !Array.isArray(data.records)) return;
-    const localAll = await txGetAll();
-    const localMap = new Map(localAll.map(t=>[t.id,t]));
-    let changed = 0;
-    for(const r of data.records){
-      if(!r.id) continue;
-      const cloudStatus = r.status || 'approved'; // blank = recorded before approvals existed
-      const existing = localMap.get(r.id);
-      if(!existing){
-        await txAdd({
-          id: r.id,
-          driver: r.driver||'',
-          type: r.type||'expense',
-          date: r.date||'',
-          time: r.time||'',
-          category: r.category||'',
-          note: r.note||'',
-          amount: Number(r.amount)||0,
-          companyAmount: r.companyAmount===''?undefined:Number(r.companyAmount),
-          meAmount: r.meAmount===''?undefined:Number(r.meAmount),
-          payMode: r.payMode||'',
-          supplier: r.supplier||'',
-          site: r.site||'',
-          receiptNo: r.receiptNo||'',
-          vehicle: r.vehicle||'',
-          remarks: r.remarks||'',
-          givenBy: r.givenBy||'',
-          status: cloudStatus,
-          synced: true,
-          createdAt: Date.now(),
-        });
-        changed++;
-      } else if(existing.status !== cloudStatus){
-        // Someone (Esa, from another device) approved/rejected this since we last checked.
-        existing.status = cloudStatus;
-        await txAdd(existing);
-        changed++;
-      }
-    }
-    // Anything that WAS synced to the cloud before but is no longer in the
-    // cloud's list has been deleted (by Esa, possibly from a different
-    // device) — remove it here too so it doesn't linger forever.
-    const cloudIds = new Set(data.records.map(r=>r.id));
-    const db = await openDB();
-    for(const t of localAll){
-      if(t.synced && !cloudIds.has(t.id)){
-        await new Promise((res,rej)=>{
-          const tx = db.transaction('transactions','readwrite');
-          tx.objectStore('transactions').delete(t.id);
-          tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
-        });
-        changed++;
-      }
-    }
-    if(changed){ ALL_TXNS = await txGetAll(); currentBalances = computeBalances(approvedOnly(ALL_TXNS)); renderHome(); }
-  }catch(e){ /* best-effort — local data still works fine offline */ }
-}
-async function renderSyncStatus(){
-  const el = document.getElementById('sync-status');
-  if(!el) return;
-  if(!SYNC_URL){
-    el.textContent = 'Not set up';
-    document.getElementById('sync-count-done').textContent = '—';
-    document.getElementById('sync-count-pending').textContent = '—';
-    return;
-  }
-  const all = await txGetAll();
-  const done = all.filter(t=>t.synced).length;
-  const pending = all.length - done;
-  document.getElementById('sync-count-done').textContent = done;
-  document.getElementById('sync-count-pending').textContent = pending;
-  const lastAt = await settingsGet('lastSyncAt', 0);
-  if(pending===0) el.textContent = lastAt ? ('Up to date — '+new Date(lastAt).toLocaleString('en-AE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})) : 'Up to date';
-  else el.textContent = navigator.onLine ? 'Syncing…' : 'Offline — will sync when back online';
-}
-// Retry automatically whenever the phone regains internet, and on app open.
-window.addEventListener('online', ()=>syncNow(false));
-async function restoreData(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  try{
-    const text = await file.text();
-    const payload = JSON.parse(text);
-    if(!payload.transactions || !Array.isArray(payload.transactions)) throw new Error('Invalid file');
-    if(!confirm(`This backup has ${payload.transactions.length} entries. Restoring will REPLACE all current data. Continue?`)) { e.target.value=''; return; }
-    if(!confirm('Are you sure? This cannot be undone.')) { e.target.value=''; return; }
-    await txDeleteAll();
-    const db = await openDB();
-    await new Promise((res,rej)=>{
-      const tx = db.transaction('transactions','readwrite');
-      const store = tx.objectStore('transactions');
-      payload.transactions.forEach(r=>store.put(r));
-      tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
-    });
-    if(payload.settings){
-      if(payload.settings.driverName!=null) await settingsSet('driverName', payload.settings.driverName);
-      if(payload.settings.waNumber!=null) await settingsSet('waNumber', payload.settings.waNumber);
-    }
-    await refreshAdmin();
-    document.getElementById('set-driver-name').value = payload.settings?.driverName || '';
-    document.getElementById('set-wa-number').value = payload.settings?.waNumber || '';
-    toast('Restore complete');
-  }catch(err){
-    alert('Could not read this backup file. Please check the file and try again.');
-  }
-  e.target.value='';
-}
-async function wipeAllData(){
-  if(!confirm('Erase ALL data (all expenses, cash-ins, reimbursements)? This cannot be undone.')) return;
-  if(!confirm('Really erase everything? Consider taking a Backup first.')) return;
-  await txDeleteAll();
-  await refreshAdmin();
-  toast('All data erased');
-}
 async function saveSetting(key, value){
   await settingsSet(key, value);
   if(key==='driverName'){
