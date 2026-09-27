@@ -57,6 +57,12 @@ input,select,textarea{font-family:inherit;}
 }
 .topbar h1{font-size:18px;margin:0;flex:1;font-weight:700;}
 .topbar .adminlink{background:none;border:none;color:#fff;opacity:.8;font-size:13px;}
+.topbar-actions{display:flex;gap:8px;margin-left:auto;flex-shrink:0;}
+.topbar .icon-btn{
+  width:40px;height:40px;border-radius:12px;border:none;background:rgba(255,255,255,.15);
+  color:#fff;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.topbar .icon-btn:active{background:rgba(255,255,255,.32);}
 
 /* ===== Driver Home ===== */
 .home-wrap{padding:18px 16px 100px;}
@@ -295,8 +301,11 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <div id="home-driver-name" style="font-size:12px;opacity:.85;"></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-        <button class="adminlink" onclick="goAdmin()">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
-        <button class="adminlink" onclick="switchDriver()">🔄 Switch Driver</button>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh" style="width:32px;height:32px;font-size:15px;">🔄</button>
+          <button class="adminlink" onclick="goAdmin()">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
+        </div>
+        <button class="adminlink" onclick="switchDriver()">👤 Switch Driver</button>
       </div>
     </div>
     <div class="home-wrap">
@@ -351,6 +360,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
       <h1>🛒 Buy / Pay</h1>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
+        <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
+      </div>
     </div>
     <div class="form-wrap">
 
@@ -427,6 +440,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
       <h1>💰 Cash In</h1>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
+        <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
+      </div>
     </div>
     <div class="form-wrap">
       <div class="field">
@@ -456,7 +473,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
   <div class="screen" id="screen-saved">
     <div class="saved-wrap">
       <div class="saved-check">✓</div>
-      <h2>SAVED</h2>
+      <h2 id="saved-title">SAVED</h2>
       <p id="saved-sub">Your entry was saved.</p>
       <div class="saved-actions">
         <button class="wa" onclick="whatsappLast()">📱 WHATSAPP</button>
@@ -471,6 +488,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
       <h1>📋 History</h1>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
+        <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
+      </div>
     </div>
     <div class="hist-filter-bar">
       <button class="hist-chip sel" data-hf="today" onclick="setHistFilter('today')">TODAY</button>
@@ -500,6 +521,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
       <h1>📱 Send Summary</h1>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
+        <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
+      </div>
     </div>
     <div class="home-wrap">
       <p style="color:var(--muted);font-size:14px;margin:0 0 16px;">Pick the period. Makes a PDF statement (with your photos) and opens WhatsApp to send it.</p>
@@ -518,6 +543,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
       <h1>🔒 Admin</h1>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
+      </div>
     </div>
     <div class="home-wrap" style="padding-top:50px;text-align:center;">
       <div id="pin-mode-enter" style="display:none;">
@@ -534,6 +562,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
       <h1>⚙️ Admin / Management</h1>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
+        <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
+      </div>
     </div>
     <div class="admin-tabs">
       <button class="admin-tab sel" data-tab="dash" onclick="selectAdminTab('dash')">Dashboard</button>
@@ -668,7 +700,13 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
       <div class="section-title">Security</div>
       <p style="color:var(--muted);font-size:13px;">The Admin PIN is fixed in the app's code (not changeable from here) so it can never be reset from a driver's phone. Ask your developer to change it if needed.</p>
-      <button class="btn block" onclick="switchDriver()">🔄 Switch Driver (Logout)</button>
+      <div class="settings-row">
+        <span>This Device</span>
+        <span style="font-weight:700;" id="d-admin-mode">🔐 Admin Mode ON</span>
+      </div>
+      <p style="color:var(--muted);font-size:12.5px;">Any entry saved from THIS device counts immediately — it never waits for approval. Turn this off if you want to test what a driver's phone sees (entries will then go to Approvals like normal), or if this phone will now be used by a driver instead of you.</p>
+      <button class="btn danger block" onclick="turnOffAdminMode()">🔓 Turn Off Admin Mode On This Device</button>
+      <button class="btn block" onclick="switchDriver()">👤 Switch Driver (Logout)</button>
       <button class="btn block" onclick="goHome()">🚪 Exit Admin</button>
     </div>
   </div>
@@ -967,7 +1005,7 @@ async function init(){
   if(!dn){
     replaceScreen('screen-driver-setup');
   } else {
-    document.getElementById('home-driver-name').textContent = 'Driver: '+dn;
+    updateHomeDriverLabel(dn);
   }
   const wn = await settingsGet('waNumber','');
   document.getElementById('set-wa-number').value = wn||'';
@@ -987,9 +1025,16 @@ async function finishDriverSetup(){
   if(!name){ toast('Enter your name'); return; }
   await settingsSet('driverName', name);
   document.getElementById('set-driver-name').value = name;
-  document.getElementById('home-driver-name').textContent = 'Driver: '+name;
+  updateHomeDriverLabel(name);
   replaceScreen('screen-home');
   await refreshAll();
+}
+// Shows the current driver name on Home, plus a clear "Admin Mode" tag when
+// this device auto-approves its own entries — so it's always obvious which
+// mode a given phone is in, instead of guessing.
+function updateHomeDriverLabel(name){
+  document.getElementById('home-driver-name').textContent =
+    'Driver: ' + name + (IS_ADMIN_DEVICE ? '  ·  🔐 Admin Mode ON' : '');
 }
 
 function renderHome(){
@@ -1043,6 +1088,21 @@ async function applyScreenForState(id){
   else { showScreen(id); }
 }
 function goHome(){ replaceScreen('screen-home'); refreshAll(); }
+// One tap, from ANY screen, always lands cleanly on Home with fresh numbers
+// — the single predictable "get me out of here" button on every page.
+function goHomeHard(){ goHome(); }
+// One tap, from ANY screen, re-pulls live data from the server right now —
+// whichever screen is open gets its own view refreshed, not just Home.
+async function refreshCurrentScreen(){
+  toast('Refreshing…');
+  const active = document.querySelector('.screen.active');
+  const id = active ? active.id : 'screen-home';
+  let result;
+  if(id==='screen-admin') result = await refreshAdmin();
+  else if(id==='screen-today') result = await renderTodayList();
+  else result = await refreshAll();
+  toast(result && result.ok ? 'Up to date' : friendlySyncError(result && result.error));
+}
 // Fixed Admin PIN — the SAME on every phone (unlike the old per-device PIN),
 // so a driver can never set their own and lock themselves into Admin. Only
 // people Esa shares this with can ever reach Admin, deletion, or approvals.
@@ -1060,12 +1120,26 @@ async function submitEnterPin(){
     // device auto-approve instantly instead of waiting in the Approvals queue.
     await settingsSet('isAdminDevice', true);
     IS_ADMIN_DEVICE = true;
+    settingsGet('driverName','').then(updateHomeDriverLabel);
     replaceScreen('screen-admin');
     refreshAdmin();
   } else {
     document.getElementById('pin-enter-error').textContent = 'Wrong PIN, try again';
     document.getElementById('pin-enter').value='';
   }
+}
+// Lets Esa un-flag a phone that no longer needs to be an Admin device — e.g.
+// switching this phone over to a driver, or just testing what a driver sees.
+// Re-entering the PIN via Admin at any time turns it back on.
+async function turnOffAdminMode(){
+  if(!confirm('Turn off Admin Mode on this device? New entries from this phone will then go to Approvals like a driver\'s, until the PIN is entered again.')) return;
+  await settingsSet('isAdminDevice', false);
+  IS_ADMIN_DEVICE = false;
+  const dn = await settingsGet('driverName','');
+  updateHomeDriverLabel(dn);
+  document.getElementById('d-admin-mode').textContent = '🔓 Admin Mode OFF';
+  toast('Admin Mode turned off on this device');
+  await refreshAdmin();
 }
 function goBack(){ history.back(); }
 // Entries made on Esa's own (PIN-verified) device count immediately. Anything
@@ -1074,9 +1148,21 @@ function goBack(){ history.back(); }
 async function entryStatus(){ return (await settingsGet('isAdminDevice', false)) ? 'approved' : 'pending'; }
 
 /* ================= EXPENSE ENTRY ================= */
+// Local calendar date as YYYY-MM-DD. Deliberately NOT toISOString(), which
+// converts to UTC first — in the UAE (UTC+4) that silently shows YESTERDAY's
+// date for the first ~4 hours after midnight, which made entries land on the
+// wrong day and made "Today"/"This Week" history miss things that were
+// clearly entered today.
+function localDateStr(d){
+  d = d || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
 function setTodayDefaults(){
   const now = new Date();
-  const dateStr = now.toISOString().slice(0,10);
+  const dateStr = localDateStr(now);
   const timeStr = now.toTimeString().slice(0,5);
   document.getElementById('exp-date').value = dateStr;
   document.getElementById('exp-time').value = timeStr;
@@ -1273,8 +1359,7 @@ async function saveExpense(){
   if(record.photo) SESSION_PHOTOS.set(record.id, record.photo);
   lastSavedTxn = record;
   await refreshAll();
-  document.getElementById('saved-sub').textContent = `${CAT_MAP[record.category].lbl} · ${fmt(record.amount)} saved.`;
-  replaceScreen('screen-saved');
+  showSavedScreen(`${CAT_MAP[record.category].lbl} · ${fmt(record.amount)}`, record.status);
 }
 
 /* ================= CASH IN ================= */
@@ -1311,7 +1396,21 @@ async function saveCashIn(){
   }
   lastSavedTxn = record;
   await refreshAll();
-  document.getElementById('saved-sub').textContent = `Cash In ${fmt(record.amount)} saved.`;
+  showSavedScreen(`Cash In ${fmt(record.amount)}`, record.status);
+}
+// Shared by every "save" flow — makes crystal clear whether the entry counts
+// immediately (this device is an approved Admin device) or is waiting on
+// Esa to approve it first, instead of always just saying "saved" either way.
+function showSavedScreen(what, status){
+  const titleEl = document.getElementById('saved-title');
+  const subEl = document.getElementById('saved-sub');
+  if(status==='pending'){
+    titleEl.textContent = 'SENT FOR APPROVAL';
+    subEl.textContent = `${what} — sent to Esa for approval. It will count once approved.`;
+  } else {
+    titleEl.textContent = 'SAVED';
+    subEl.textContent = `${what} saved.`;
+  }
   replaceScreen('screen-saved');
 }
 
@@ -1357,16 +1456,16 @@ function openSummaryPeriod(){
 }
 function periodRange(key){
   const today = new Date();
-  const todayStr = today.toISOString().slice(0,10);
+  const todayStr = localDateStr(today);
   if(key==='today') return {from: todayStr, to: todayStr, label:'Today'};
   if(key==='week'){
     const dow = (today.getDay()+6)%7; // Mon=0..Sun=6
     const monday = new Date(today); monday.setDate(today.getDate()-dow);
-    return {from: monday.toISOString().slice(0,10), to: todayStr, label:'This Week'};
+    return {from: localDateStr(monday), to: todayStr, label:'This Week'};
   }
   if(key==='month'){
     const first = new Date(today.getFullYear(), today.getMonth(), 1);
-    return {from: first.toISOString().slice(0,10), to: todayStr, label:'This Month'};
+    return {from: localDateStr(first), to: todayStr, label:'This Month'};
   }
   // 'all' — since the very first recorded entry
   const earliest = ALL_TXNS.length ? ALL_TXNS.reduce((min,t)=> (t.date<min?t.date:min), ALL_TXNS[0].date) : todayStr;
@@ -1586,7 +1685,7 @@ function setHistFilter(key){
   document.querySelectorAll('.hist-chip').forEach(b=>b.classList.toggle('sel', b.dataset.hf===key));
   document.getElementById('hist-period-range').style.display = key==='period' ? 'flex':'none';
   if(key==='period'){
-    const t = new Date().toISOString().slice(0,10);
+    const t = localDateStr();
     if(!document.getElementById('hist-from').value) document.getElementById('hist-from').value = t;
     if(!document.getElementById('hist-to').value) document.getElementById('hist-to').value = t;
   }
@@ -1594,7 +1693,7 @@ function setHistFilter(key){
 }
 function getHistRange(){
   if(histFilterKey==='period'){
-    const from = document.getElementById('hist-from').value || new Date().toISOString().slice(0,10);
+    const from = document.getElementById('hist-from').value || localDateStr();
     const to = document.getElementById('hist-to').value || from;
     return {from, to, label:'Period'};
   }
@@ -1605,7 +1704,7 @@ async function renderTodayList(){
   const result = await refreshAll();
   if(!result.ok){
     list.innerHTML = `<div class="empty-note">⚠ No internet connection — can't load data.<br><button class="btn" style="margin-top:10px;" onclick="renderTodayList()">Retry</button></div>`;
-    return;
+    return result;
   }
   const {from, to} = getHistRange();
   const rows = ALL_TXNS.filter(t=> t.date>=from && t.date<=to).slice().reverse();
@@ -1614,6 +1713,7 @@ async function renderTodayList(){
   } else {
     list.innerHTML = rows.map(renderHistItem).join('');
   }
+  return result;
 }
 async function generateHistoryStatement(){
   const {from, to, label} = getHistRange();
@@ -1626,7 +1726,9 @@ async function generateHistoryStatement(){
 }
 function renderHistItem(t){
   const thumb = t.photo ? `<img class="hist-thumb" src="${t.photo}" onclick="openPhotoModal('${t.id}')">` : '';
-  const delBtn = `<button class="hist-del" onclick="requestDeleteFromHistory('${t.id}')" title="Delete (Admin PIN required)">🗑</button>`;
+  // Delete is admin-only and hidden from a driver's phone entirely — not just
+  // PIN-gated — so a driver's screen never even shows a delete option.
+  const delBtn = IS_ADMIN_DEVICE ? `<button class="hist-del" onclick="requestDeleteFromHistory('${t.id}')" title="Delete (Admin PIN required)">🗑</button>` : '';
   const statusTag = t.status==='pending' ? `<span class="hi-tag" style="background:#fff3cd;color:#8a6d00;">⏳ PENDING APPROVAL</span>`
     : t.status==='rejected' ? `<span class="hi-tag" style="background:#fde3e3;color:#a11;">❌ REJECTED</span>` : '';
   if(t.type==='cash_in'){
@@ -1711,11 +1813,13 @@ function renderDashboardStats(){
 async function refreshAdmin(){
   const result = await refreshAll();
   document.getElementById('d-driver').textContent = (await settingsGet('driverName','')) || '(not set)';
+  document.getElementById('d-admin-mode').textContent = IS_ADMIN_DEVICE ? '🔐 Admin Mode ON' : '🔓 Admin Mode OFF';
   renderDashboardStats();
   if(!result.ok){ toast(friendlySyncError(result.error)); }
   renderApprovalsTab();
   renderTxnTable();
   renderReimbTab();
+  return result;
 }
 /* ---- Approvals ---- */
 function pendingEntries(){ return ALL_TXNS.filter(t=>t.status==='pending').slice().reverse(); }
@@ -1851,7 +1955,7 @@ function setReportPreset(key){
   renderDailySummary();
 }
 function renderDailySummary(){
-  const from = document.getElementById('rep-from').value || new Date().toISOString().slice(0,10);
+  const from = document.getElementById('rep-from').value || localDateStr();
   const to = document.getElementById('rep-to').value || from;
   const txns = approvedOnly(ALL_TXNS).filter(t=> t.date>=from && t.date<=to);
   const opening = computeBalances(approvedOnly(ALL_TXNS).filter(t=>t.date<from));
@@ -1894,7 +1998,7 @@ function exportCSV(){
     csvRows.push(row.join(','));
   });
   const blob = new Blob([csvRows.join('\n')], {type:'text/csv'});
-  downloadBlob(blob, `petty-cash-export-${new Date().toISOString().slice(0,10)}.csv`);
+  downloadBlob(blob, `petty-cash-export-${localDateStr()}.csv`);
 }
 function csvEscape(v){
   v = String(v==null?'':v);
@@ -1926,7 +2030,8 @@ async function backupData(){
 async function saveSetting(key, value){
   await settingsSet(key, value);
   if(key==='driverName'){
-    document.getElementById('home-driver-name').textContent = value ? ('Driver: '+value) : '';
+    if(value) updateHomeDriverLabel(value);
+    else document.getElementById('home-driver-name').textContent = '';
   }
   toast('Saved');
 }
