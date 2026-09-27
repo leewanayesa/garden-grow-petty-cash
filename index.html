@@ -850,8 +850,13 @@ function approvedOnly(list){ return list.filter(isApproved); }
 // pool) — Esa asked for Jawad and Gul Bad Shah to be tracked independently.
 // Every record already carries a `driver` field, so this needs no backend
 // schema change: just filter the same approved transactions by driver name.
-function txnsForDriver(name){ return approvedOnly(ALL_TXNS).filter(t=>t.driver===name); }
+function txnsForDriver(name){ return approvedOnly(ALL_TXNS).filter(t=>(t.driver||'').trim()===name); }
 function driverBalances(name){ return computeBalances(txnsForDriver(name)); }
+// Anything not tagged to Jawad or Gul Bad Shah — Esa's own direct entries,
+// or (this is the useful part) any entry whose driver name doesn't exactly
+// match either driver for some reason, so money is never silently missing
+// from every driver's view without at least showing up somewhere.
+function otherTxns(){ return approvedOnly(ALL_TXNS).filter(t=>!DRIVER_NAMES.includes((t.driver||'').trim())); }
 
 /* ================= SELF-TEST ================= */
 function runDiagnostics(){
@@ -993,7 +998,7 @@ async function loadFromServer(){
     updateSchemaBanner();
     ALL_TXNS = data.records.map(r=>({
       id: r.id,
-      driver: r.driver||'',
+      driver: (r.driver||'').trim(),
       type: r.type||'expense',
       date: r.date||'',
       time: r.time||'',
@@ -1311,10 +1316,10 @@ function renderHome(){
         </div>
         <div class="drv-arrow">›</div>
       </button>`;
-    }).join('') + (txnsForDriver('Esa').length ? (()=>{
-      const b = driverBalances('Esa');
-      return `<button class="driver-row${b.companyCash<0?' low':''}" onclick="openHistory('Esa')">
-        <div class="drv-name">🔐 Esa (Office)</div>
+    }).join('') + (otherTxns().length ? (()=>{
+      const b = computeBalances(otherTxns());
+      return `<button class="driver-row${b.companyCash<0?' low':''}" onclick="openHistory('__other__')">
+        <div class="drv-name">📎 Other</div>
         <div class="drv-amounts">
           <div class="drv-amt cash"><span class="lbl">Cash Left</span><span class="val">${fmt(b.companyCash)}</span></div>
           <div class="drv-amt owed"><span class="lbl">Owed</span><span class="val">${fmt(b.driverOwed)}</span></div>
@@ -1956,7 +1961,10 @@ function openHistory(driverName){
   histDriverFilter = IS_ADMIN_DEVICE ? (driverName || null) : CURRENT_DRIVER_NAME;
   const title = document.getElementById('hist-title');
   const statsBox = document.getElementById('hist-driver-stats');
-  if(histDriverFilter){
+  if(histDriverFilter==='__other__'){
+    title.textContent = '📋 Other';
+    statsBox.style.display = 'grid';
+  } else if(histDriverFilter){
     title.textContent = '📋 ' + histDriverFilter;
     statsBox.style.display = 'grid';
   } else {
@@ -1994,14 +2002,15 @@ async function renderTodayList(){
     return result;
   }
   if(histDriverFilter){
-    const b = driverBalances(histDriverFilter);
+    const b = histDriverFilter==='__other__' ? computeBalances(otherTxns()) : driverBalances(histDriverFilter);
     document.getElementById('hist-driver-cash-val').textContent = fmt(b.companyCash);
     document.getElementById('hist-driver-owed-val').textContent = fmt(b.driverOwed);
     document.getElementById('hist-driver-cash-card').classList.toggle('low', b.companyCash<0);
   }
   const {from, to} = getHistRange();
   let rows = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
-  if(histDriverFilter) rows = rows.filter(t=>t.driver===histDriverFilter);
+  if(histDriverFilter==='__other__') rows = rows.filter(t=>!DRIVER_NAMES.includes((t.driver||'').trim()));
+  else if(histDriverFilter) rows = rows.filter(t=>(t.driver||'').trim()===histDriverFilter);
   rows = rows.slice().reverse();
   if(!rows.length){
     list.innerHTML = `<div class="empty-note">No entries in this period.<br>Tap 🛒 BUY / PAY or 💰 CASH IN to add one.</div>`;
@@ -2030,6 +2039,9 @@ function renderHistItem(t){
   const statusTag = t.status==='pending' ? `<span class="hi-tag" style="background:#fff3cd;color:#8a6d00;">⏳ PENDING APPROVAL</span>`
     : t.status==='rejected' ? `<span class="hi-tag" style="background:#fde3e3;color:#a11;">❌ REJECTED</span>` : '';
   const deleteTag = t.deleteRequested ? `<span class="hi-tag" style="background:#e6e6ff;color:#3a3ac1;">🗑 DELETE REQUESTED</span>` : '';
+  // Esa needs to see WHOSE entry this is when looking at an unfiltered or
+  // "Other" list (a driver viewing their own filtered History already knows).
+  const driverTag = (IS_ADMIN_DEVICE && !histDriverFilter) ? `<span class="hi-tag" style="background:#eef2ff;color:#3a3ac1;">🧑 ${escapeHtml(t.driver||'—')}</span>` : '';
   // Esa can approve/reject and approve/keep-a-deletion right here in History
   // — no need to jump into Admin → Approvals just to act on one entry.
   let actionsRow = '';
@@ -2048,14 +2060,14 @@ function renderHistItem(t){
     return `<div class="hist-item"><div class="hi-ic">💰</div><div class="hi-body">
       <div class="hi-top"><span>Cash In</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-cashin">CASH IN</span>${statusTag}${deleteTag}${actionsRow}
+      <span class="hi-tag tag-cashin">CASH IN</span>${driverTag}${statusTag}${deleteTag}${actionsRow}
     </div>${thumb}${delBtn}</div>`;
   }
   if(t.type==='reimbursement'){
     return `<div class="hist-item"><div class="hi-ic">↩️</div><div class="hi-body">
       <div class="hi-top"><span>Reimbursement</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.note?escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-reimb">REIMBURSED</span>${statusTag}${deleteTag}${actionsRow}
+      <span class="hi-tag tag-reimb">REIMBURSED</span>${driverTag}${statusTag}${deleteTag}${actionsRow}
     </div>${thumb}${delBtn}</div>`;
   }
   const c = CAT_MAP[t.category] || {ic:'➕', lbl:t.category};
@@ -2063,7 +2075,7 @@ function renderHistItem(t){
   return `<div class="hist-item"><div class="hi-ic">${c.ic}</div><div class="hi-body">
     <div class="hi-top"><span>${c.lbl}</span><span>${fmt(t.amount)}</span></div>
     <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${statusTag}${deleteTag}${actionsRow}
+    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${driverTag}${statusTag}${deleteTag}${actionsRow}
   </div>${thumb}${delBtn}</div>`;
 }
 // Actually, permanently removes the row from the sheet — used when Esa's own
