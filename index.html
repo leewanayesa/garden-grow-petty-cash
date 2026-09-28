@@ -402,7 +402,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     </div>
     <div class="home-wrap">
       <div id="home-load-error" style="display:none;background:var(--red-light);color:var(--red);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-weight:700;font-size:14px;text-align:center;">
-        No internet connection — can't load data.<br>
+        <span id="home-load-error-text">Could not load data.</span><br>
         <button class="btn" style="margin-top:8px;" onclick="refreshAll()">Retry</button>
       </div>
       <div id="home-approvals-tile-wrap" style="display:none;margin-bottom:20px;">
@@ -529,14 +529,16 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <button onclick="switchToBoth()">USE BOTH</button>
       </div>
 
-      <div class="note-box" id="note-box">
-        <label>✏️ WHAT DID YOU BUY?</label>
-        <textarea id="exp-note" placeholder="Type here — e.g. cement, pipe fitting, taxi..." rows="2" oninput="onNoteInput()"></textarea>
-        <div class="quick-notes" id="quick-notes"></div>
-      </div>
-
-      <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">Type</label>
+      <!-- TYPE now comes first and is the one tap that matters — picking a
+           picture also fills in the note below automatically (see
+           selectCategory()), so typing is only ever needed for "Other". -->
+      <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">What did you buy? Tap a picture</label>
       <div class="cat-grid" id="cat-grid"></div>
+
+      <div class="note-box" id="note-box">
+        <label id="note-label">✏️ Add detail (optional)</label>
+        <textarea id="exp-note" placeholder="Type here — e.g. cement, pipe fitting, taxi..." rows="2" oninput="onNoteInput()"></textarea>
+      </div>
 
       <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">How Paid?</label>
       <div class="pay-grid">
@@ -648,7 +650,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <select id="hist-driver-select" onchange="onHistDriverSelectChange(this.value)">
           <option value="">All Drivers</option>
         </select>
-        <input type="text" id="hist-search" placeholder="Search note / supplier / site" oninput="renderTodayList()">
+        <input type="text" id="hist-search" placeholder="Search note / supplier / site" oninput="renderTodayListBody()">
       </div>
     </div>
     <div id="hist-driver-stats" class="balance-cards" style="display:none;margin:14px 16px 0;">
@@ -663,8 +665,8 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="hist-chip" data-hf="period" onclick="setHistFilter('period')">PERIOD</button>
     </div>
     <div class="filter-row" id="hist-period-range" style="display:none;padding:0 16px;margin-top:10px;">
-      <input type="date" id="hist-from" onchange="renderTodayList()">
-      <input type="date" id="hist-to" onchange="renderTodayList()">
+      <input type="date" id="hist-from" onchange="renderTodayListBody()">
+      <input type="date" id="hist-to" onchange="renderTodayListBody()">
     </div>
     <div class="hist-list" id="today-list"></div>
     <div class="bottom-bar">
@@ -886,15 +888,11 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <p style="font-size:12.5px;color:var(--muted);">Downloads everything currently on the server as a JSON file, so you have a copy on this phone. A full copy of your whole Google Sheet also saves itself automatically every night in Drive (folder "Garden Grow Petty Cash Backups") once that's set up — see the note in apps-script-sync.gs (one-time step in the Apps Script editor).</p>
       <button class="btn block" onclick="backupData()">⬇ Download Backup Now (JSON)</button>
 
-      <div class="section-title">Customize (Categories & Quick Notes)</div>
-      <p style="font-size:12.5px;color:var(--muted);">One per line, as "icon Label" (e.g. "🌱 Plants"). Leave blank to keep the built-in defaults. Renaming or removing a category never changes past entries — they keep showing the category they were saved with.</p>
+      <div class="section-title">Customize (Categories)</div>
+      <p style="font-size:12.5px;color:var(--muted);">One per line, as "icon Label" (e.g. "🌱 Plants"). Leave blank to keep the built-in defaults. Renaming or removing a category never changes past entries — they keep showing the category they were saved with. Tapping a picture on Buy/Pay now fills in the note by itself, so there's no separate Quick Notes list to manage anymore.</p>
       <div class="field">
         <label>Categories</label>
         <textarea id="cfg-categories" rows="6" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;" placeholder="🌱 Plants"></textarea>
-      </div>
-      <div class="field">
-        <label>Quick Notes (one per line)</label>
-        <textarea id="cfg-quicknotes" rows="4" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;" placeholder="Site Material"></textarea>
       </div>
       <button class="btn primary block" onclick="saveCustomization()">💾 Save Customization</button>
 
@@ -1150,7 +1148,14 @@ const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxRL0Q-eVgmoQrphSsS1l1
 // Must always match SHARED_SECRET in apps-script-sync.gs — nobody ever has
 // to type this, it's baked in once, same idea as SYNC_URL itself.
 const SYNC_SECRET = 'Nizar@123#';
-const SYNC_TIMEOUT_MS = 15000;
+// Google Apps Script "wakes up" slowly after sitting idle for a while — its
+// very first response after being unused can take much longer than a normal
+// one, regardless of how good the phone's signal is. 15s was cutting that
+// off too early and mislabeling a slow-waking server as "no internet." 25s
+// gives it real room; withRetry() below also now tries up to twice more
+// (not just once) before actually giving up, since the SECOND call to an
+// already-woken-up script is almost always fast even when the first was slow.
+const SYNC_TIMEOUT_MS = 25000;
 // Receipt photos are now saved as real files in Google Drive by the server
 // (see apps-script-sync.gs), so they survive long after this phone closes
 // the app. SESSION_PHOTOS is kept only as a same-session fallback for the
@@ -1158,10 +1163,20 @@ const SYNC_TIMEOUT_MS = 15000;
 // the next refresh — never a source of truth, never used for balances.
 const SESSION_PHOTOS = new Map();
 
+// The one place every failure reason turns into words a non-technical person
+// can actually act on. Deliberately does NOT default every unknown code to
+// "no internet" — that was the bug: a setup mismatch (wrong secret, an old
+// Apps Script deployment) looked identical to a dead WiFi connection, so
+// nobody could tell the two apart. Now each real cause gets its own message.
 function friendlySyncError(err){
-  if(err==='offline') return 'No internet connection. Please check your connection and try again.';
-  if(err==='timeout') return 'That took too long. Please check your connection and try again.';
+  if(err==='network' || err==='offline') return 'No internet connection. Please check your connection and try again.';
+  if(err==='timeout') return "The server is taking too long to respond — this usually isn't your connection, it's Google's server waking up. Wait a few seconds and tap Retry.";
   if(err==='not_configured') return 'Sync is not set up yet.';
+  if(err==='unauthorized') return "The app and your Google Sheet don't recognize each other right now — this is a setup problem, not your internet. The Apps Script needs to be redeployed with the matching password. Contact your developer.";
+  if(err==='busy_try_again') return 'The server is busy with another save right now — please tap Retry in a moment.';
+  if(err==='bad_response') return "Got an unexpected reply from the server. Please tap Retry — if this keeps happening, your Apps Script deployment may need updating.";
+  if(typeof err==='string' && err.indexOf('http_')===0) return `Server error (${err.replace('http_','')}). Please tap Retry in a moment.`;
+  if(typeof err==='string' && err && err!=='server_error') return `Server error: ${err}`;
   return 'Could not reach the server. Please check your connection and try again.';
 }
 function updateConnBanner(){
@@ -1190,11 +1205,17 @@ window.addEventListener('offline', updateConnBanner);
 // automatic retry absorbs the kind of one-second blip that isn't a real
 // outage, instead of surfacing a scary "no internet" message for it.
 async function withRetry(attemptFn){
-  const first = await attemptFn();
-  if(first.ok) return first;
-  if(first.error!=='network' && first.error!=='timeout') return first; // a real server/HTTP error — retrying won't help
-  await new Promise(r=>setTimeout(r, 1200));
-  return await attemptFn();
+  let lastResult = await attemptFn();
+  // Up to 2 retries (3 attempts total) — only for genuinely transient
+  // reasons (a dropped packet, or Apps Script still waking up), never for a
+  // real server/HTTP error or an auth mismatch, where trying again changes
+  // nothing and just wastes the person's time and battery.
+  for(let attempt=0; attempt<2; attempt++){
+    if(lastResult.ok || (lastResult.error!=='network' && lastResult.error!=='timeout')) return lastResult;
+    await new Promise(r=>setTimeout(r, 1500 + attempt*2000));
+    lastResult = await attemptFn();
+  }
+  return lastResult;
 }
 
 // Low-level helper: an awaited POST to SYNC_URL with a timeout, used by every
@@ -1241,6 +1262,14 @@ async function loadFromServer(){
     const resp = await fetch(SYNC_URL + '?secret=' + encodeURIComponent(SYNC_SECRET), { method:'GET', cache:'no-store', signal: controller.signal });
     if(!resp.ok) return {ok:false, error:'http_'+resp.status};
     const data = await resp.json().catch(()=>null);
+    // IMPORTANT: check data.ok===false FIRST. The server replies with a normal
+    // 200 response even when it's refusing the request (e.g. secret mismatch),
+    // so without this check that real reason (e.g. 'unauthorized') was being
+    // thrown away and misreported as a generic 'bad_response' — which then
+    // showed drivers/Esa a plain "no internet connection" message even on
+    // perfect WiFi, hiding the real cause from everyone including whoever's
+    // debugging it. Same pattern postToSync already used correctly.
+    if(data && data.ok===false) return {ok:false, error:data.error||'server_error'};
     if(!data || !Array.isArray(data.records)) return {ok:false, error:'bad_response'};
     SCHEMA_OUTDATED = !data.schemaVersion || data.schemaVersion < EXPECTED_SCHEMA_VERSION;
     updateSchemaBanner();
@@ -1295,12 +1324,33 @@ let lastLoadOk = true;
 // which looked exactly like a real, empty ledger and got mistaken for a bug
 // (Google Apps Script's first response after a while can take a few seconds).
 let firstLoadDone = false;
+// The actual reason the last load failed (e.g. 'timeout', 'unauthorized',
+// 'network') — kept so Home can show what really went wrong instead of
+// always guessing "no internet", which was hiding real setup problems.
+let lastLoadError = null;
+let lastSuccessfulLoadAt = 0;
 async function refreshAll(){
   const result = await loadFromServer();
   lastLoadOk = result.ok;
+  lastLoadError = result.ok ? null : result.error;
   firstLoadDone = true;
+  if(result.ok) lastSuccessfulLoadAt = Date.now();
   renderHome();
   return result;
+}
+// Used only for "just glancing at a screen/tab that was showing fresh data
+// moments ago" — e.g. flicking between Admin's Dashboard/Approvals/
+// Transactions/Reimburse/Reports tabs, which used to each fire off their own
+// full live fetch from the Google Sheet even when switched within the same
+// couple of seconds. Skips the network call if the last one succeeded very
+// recently; otherwise behaves exactly like refreshAll(). Anything that just
+// changed data (a save, an approve/reject, a manual Retry/refresh tap)
+// should keep calling refreshAll() directly so it's always guaranteed fresh.
+async function refreshIfStale(minIntervalMs=5000){
+  if(lastLoadOk && (Date.now() - lastSuccessfulLoadAt) < minIntervalMs){
+    return {ok:true, cached:true};
+  }
+  return await refreshAll();
 }
 function refreshNow(){
   toast('Refreshing…');
@@ -1310,7 +1360,15 @@ async function renderSyncStatus(){
   const el = document.getElementById('sync-status');
   if(!el) return;
   if(!SYNC_URL){ el.textContent = 'Not set up'; return; }
-  el.textContent = navigator.onLine ? 'Online — live' : 'Offline — nothing can load or save right now';
+  // Shows the ACTUAL last error (if any) rather than just "online/offline" —
+  // navigator.onLine only reflects whether the phone THINKS it has a signal,
+  // not whether the last real request to the Sheet actually succeeded, so a
+  // real problem (like a setup mismatch) used to be invisible here.
+  if(!lastLoadOk && lastLoadError){
+    el.textContent = `⚠ Last load failed: ${friendlySyncError(lastLoadError)}`;
+  } else {
+    el.textContent = navigator.onLine ? 'Online — live' : 'Offline — nothing can load or save right now';
+  }
 }
 
 function setBusy(btn, busyLabel){
@@ -1332,7 +1390,6 @@ async function init(){
   history.replaceState({screen:'screen-home'}, '', '#screen-home');
   updateConnBanner();
   buildCatGrid();
-  buildQuickNotes();
   setTodayDefaults();
   resetLoginScreen();
   // Every settingsGet here is timeout-guarded: iOS can leave a home-screen
@@ -1654,7 +1711,12 @@ function renderHome(){
   if(driverTiles) driverTiles.style.display = IS_ADMIN_DEVICE ? 'none' : 'grid';
   if(adminTiles) adminTiles.style.display = IS_ADMIN_DEVICE ? 'grid' : 'none';
   const errBox = document.getElementById('home-load-error');
-  if(errBox) errBox.style.display = (firstLoadDone && !lastLoadOk) ? 'block' : 'none';
+  const showErr = firstLoadDone && !lastLoadOk;
+  if(errBox) errBox.style.display = showErr ? 'block' : 'none';
+  if(showErr){
+    const errText = document.getElementById('home-load-error-text');
+    if(errText) errText.textContent = friendlySyncError(lastLoadError);
+  }
   const wrap = document.getElementById('home-balance-wrap');
   if(!firstLoadDone || !lastLoadOk){
     wrap.innerHTML = `<div class="balance-cards">
@@ -1779,11 +1841,22 @@ window.addEventListener('popstate', (e)=>{
   const id = (e.state && e.state.screen) || 'screen-home';
   applyScreenForState(id);
 });
-async function applyScreenForState(id){
-  if(id==='screen-home'){ await refreshAll(); showScreen('screen-home'); }
-  else if(id==='screen-today'){ await renderTodayList(); showScreen('screen-today'); }
-  else if(id==='screen-admin'){ await refreshAdmin(); showScreen('screen-admin'); }
-  else if(id==='screen-approvals'){ await refreshAll(); renderApprovalsScreen(); showScreen('screen-approvals'); }
+// THE FIX for "the back button doesn't work" / "pages take time to load":
+// this used to AWAIT a full live fetch from the Sheet before calling
+// showScreen(), so tapping the phone's back button (or the on-screen ←)
+// did nothing visible for however long that fetch took — up to 25+ seconds
+// on a slow connection or a sleepy Apps Script. It looked exactly like a
+// broken, unresponsive button, even though it was quietly "working" the
+// whole time. Every FORWARD tap in this app (Home → Admin, Home → History,
+// etc.) already shows the screen INSTANTLY with whatever data is already in
+// memory, then refreshes live in the background — this brings the back
+// button in line with that same, already-proven pattern: switch the screen
+// first, refresh after.
+function applyScreenForState(id){
+  if(id==='screen-home'){ showScreen('screen-home'); renderHome(); refreshAll(); }
+  else if(id==='screen-today'){ showScreen('screen-today'); renderTodayList(); }
+  else if(id==='screen-admin'){ showScreen('screen-admin'); refreshAdmin(); }
+  else if(id==='screen-approvals'){ showScreen('screen-approvals'); renderApprovalsScreen(); refreshAll().then(r=>{ if(r.ok) renderApprovalsScreen(); }); }
   else { showScreen(id); }
 }
 function goHome(){ replaceScreen('screen-home'); refreshAll(); }
@@ -1849,14 +1922,6 @@ function buildCatGrid(){
       <div class="ic">${c.ic}</div>${c.lbl}
     </button>`).join('');
 }
-function buildQuickNotes(){
-  const wrap = document.getElementById('quick-notes');
-  wrap.innerHTML = QUICK_NOTES.map(n=>`<button type="button" class="qn" onclick="pickQuickNote('${n.replace(/'/g,"\\'")}')">${n}</button>`).join('');
-}
-function pickQuickNote(n){
-  document.getElementById('exp-note').value = n;
-  document.querySelectorAll('#quick-notes .qn').forEach(b=>b.classList.toggle('sel', b.textContent===n));
-}
 async function openExpenseEntry(){
   pushScreen('screen-expense');
   const r = await refreshAll(); // fresh balance so the auto-split and "not enough cash" warning are never stale
@@ -1864,7 +1929,7 @@ async function openExpenseEntry(){
   if(!r.ok) toast(friendlySyncError(r.error));
 }
 function resetExpenseForm(){
-  expState = { category:null, pay:null, photo:null };
+  expState = { category:null, pay:null, photo:null, noteAutoFilled:false, lastAutoNote:'' };
   document.getElementById('exp-amount').value='';
   document.getElementById('exp-note').value='';
   document.getElementById('exp-supplier').value='';
@@ -1877,13 +1942,16 @@ function resetExpenseForm(){
   document.getElementById('split-box').classList.remove('show');
   document.getElementById('exp-warning').classList.remove('show');
   document.getElementById('note-box').classList.remove('note-required');
+  updateNoteLabelForCategory(null);
   document.getElementById('photo-preview').style.display='none';
   document.getElementById('more-fields').classList.remove('show');
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('sel'));
-  document.querySelectorAll('.pay-btn').forEach(b=>b.classList.remove('sel'));
-  document.querySelectorAll('#quick-notes .qn').forEach(b=>b.classList.remove('sel'));
   setTodayDefaults();
   refreshSiteList();
+  // Company cash pays for the overwhelming majority of purchases, so it
+  // starts pre-selected — the driver only has to tap something when it's
+  // actually "Me" or "Both", instead of on every single entry.
+  selectPay('company');
 }
 function refreshSiteList(){
   const sites = [...new Set(ALL_TXNS.filter(t=>t.site).map(t=>t.site))];
@@ -1892,9 +1960,39 @@ function refreshSiteList(){
 function toggleMore(){ document.getElementById('more-fields').classList.toggle('show'); }
 function toggleMoreCI(){ document.getElementById('more-fields-ci').classList.toggle('show'); }
 
+// Tapping a picture is now the ONE decision for "what did you buy" — it also
+// fills the note below with that category's own name (e.g. tapping Fuel
+// writes "Fuel"), so the note is never left blank and typing is no longer a
+// separate required step. If the driver has already typed their own words in
+// there, tapping a different picture never overwrites it — it only ever
+// updates a note that's still empty or still holds a PREVIOUS auto-fill.
+// "Other" has no word that fits, so it clears the note and asks for one
+// instead (same rule as before: only "Other" ever requires typing).
 function selectCategory(id){
+  const noteEl = document.getElementById('exp-note');
+  const cur = noteEl.value.trim();
+  const safeToOverwrite = !cur || (expState.noteAutoFilled && cur===expState.lastAutoNote);
+  if(safeToOverwrite){
+    const lbl = CAT_MAP[id] ? CAT_MAP[id].lbl : '';
+    const autoVal = (id==='other') ? '' : lbl;
+    noteEl.value = autoVal;
+    expState.noteAutoFilled = true;
+    expState.lastAutoNote = autoVal;
+  } else {
+    expState.noteAutoFilled = false;
+  }
   expState.category = id;
+  document.getElementById('note-box').classList.remove('note-required');
+  updateNoteLabelForCategory(id);
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('sel', b.dataset.cat===id));
+}
+// "Other" is the one picture with no word to prefill, so the note becomes
+// the real, required question in that case — every other category keeps the
+// note clearly optional ("add detail" rather than "what did you buy").
+function updateNoteLabelForCategory(id){
+  const label = document.getElementById('note-label');
+  if(!label) return;
+  label.textContent = (id==='other') ? '✏️ WHAT DID YOU BUY? (required)' : '✏️ Add detail (optional)';
 }
 function selectPay(mode){
   expState.pay = mode;
@@ -1930,6 +2028,9 @@ function onSplitEdit(which){
 }
 function onNoteInput(){
   document.getElementById('note-box').classList.remove('note-required');
+  // The driver is now typing their own words — the next tile tap must not
+  // silently overwrite what they wrote.
+  expState.noteAutoFilled = false;
 }
 function switchToBoth(){
   selectPay('both');
@@ -2216,7 +2317,7 @@ async function sendPeriodSummary(key){
     statusEl.textContent = '';
   }catch(err){
     if(err && err.code==='no_internet'){
-      statusEl.textContent = 'No internet connection. Please check your connection and try again.';
+      statusEl.textContent = friendlySyncError(err.reason);
       return;
     }
     // PDF library or share failed for some other reason — fall back to plain
@@ -2282,7 +2383,7 @@ function buildStatementText(label, fromStr, toStr, txns, opening, closing){
 async function buildAndDeliverStatementPDF(label, fromStr, toStr, opts){
   opts = opts || {};
   const loadResult = await refreshAll();
-  if(!loadResult.ok){ const err = new Error('no_internet'); err.code='no_internet'; throw err; }
+  if(!loadResult.ok){ const err = new Error('no_internet'); err.code='no_internet'; err.reason=loadResult.error; throw err; }
   const driverFilter = opts.driverFilter || null;
   const scoped = driverFilter ? txnsForDriver(driverFilter) : approvedOnly(ALL_TXNS);
   const txns = scoped.filter(t=> t.date>=fromStr && t.date<=toStr);
@@ -2500,7 +2601,7 @@ function onHistDriverSelectChange(name){
     title.textContent = '📋 History';
     statsBox.style.display = 'none';
   }
-  renderTodayList();
+  renderTodayListBody();
 }
 function setHistFilter(key){
   histFilterKey = key;
@@ -2511,7 +2612,7 @@ function setHistFilter(key){
     if(!document.getElementById('hist-from').value) document.getElementById('hist-from').value = t;
     if(!document.getElementById('hist-to').value) document.getElementById('hist-to').value = t;
   }
-  renderTodayList();
+  renderTodayListBody();
 }
 function getHistRange(){
   if(histFilterKey==='period'){
@@ -2521,13 +2622,20 @@ function getHistRange(){
   }
   return periodRange(histFilterKey);
 }
-async function renderTodayList(){
+// Pure, instant, NO-NETWORK render of the History list from whatever's
+// already sitting in ALL_TXNS — filtering by period/driver/search text never
+// needs to ask the Google Sheet anything, since nothing on the server
+// changed, only what the person wants to LOOK AT changed. This used to be
+// fused together with a full live refetch (see renderTodayList() below), so
+// every single keystroke in the search box, every date-range tweak, and
+// every tap of a TODAY/WEEK/MONTH/ALL chip fired off a fresh multi-second
+// round trip to Apps Script — the single biggest cause of "every page feels
+// slow", since typing a 5-letter search word could mean 5 separate live
+// fetches back to back. Splitting it out means those interactions are now
+// instant, and a real refetch only happens when the screen is actually
+// (re)entered, refreshed, or something was actually saved/approved/deleted.
+function renderTodayListBody(){
   const list = document.getElementById('today-list');
-  const result = await refreshAll();
-  if(!result.ok){
-    list.innerHTML = `<div class="empty-note">⚠ No internet connection — can't load data.<br><button class="btn" style="margin-top:10px;" onclick="renderTodayList()">Retry</button></div>`;
-    return result;
-  }
   if(histDriverFilter){
     const b = histDriverFilter==='__other__' ? computeBalances(otherTxns()) : driverBalances(histDriverFilter);
     document.getElementById('hist-driver-cash-val').textContent = fmt(b.companyCash);
@@ -2555,6 +2663,19 @@ async function renderTodayList(){
   } else {
     list.innerHTML = rows.map(renderHistItem).join('');
   }
+}
+// The only version that actually talks to the server: refetches live data,
+// then does the instant render above. Use this for genuinely re-entering or
+// refreshing the screen — never wire this to a filter/search control (use
+// renderTodayListBody() for those instead).
+async function renderTodayList(){
+  const list = document.getElementById('today-list');
+  const result = await refreshAll();
+  if(!result.ok){
+    list.innerHTML = `<div class="empty-note">⚠ ${escapeHtml(friendlySyncError(result.error))}<br><button class="btn" style="margin-top:10px;" onclick="renderTodayList()">Retry</button></div>`;
+    return result;
+  }
+  renderTodayListBody();
   return result;
 }
 async function generateHistoryStatement(){
@@ -2566,7 +2687,7 @@ async function generateHistoryStatement(){
   try{
     await buildAndDeliverStatementPDF(label, from, to, {share:true, driverFilter});
   }catch(e){
-    toast(e && e.code==='no_internet' ? 'No internet connection. Please check your connection and try again.' : 'Could not create PDF. Please try again.');
+    toast(e && e.code==='no_internet' ? friendlySyncError(e.reason) : 'Could not create PDF. Please try again.');
   }
 }
 function renderHistItem(t){
@@ -2679,14 +2800,17 @@ async function requestDeleteFromHistory(id){
     const result = await deleteEntryEverywhere(id);
     if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
     toast('Deleted');
-    await renderTodayList();
+    // deleteEntryEverywhere() already refetched fresh data as part of doing
+    // the delete — re-rendering from what's already in memory instead of
+    // fetching AGAIN avoids a pointless second live round-trip.
+    renderTodayListBody();
   } else {
     if(!(await askConfirm('Request deletion of this entry? Esa will need to approve it before it is actually removed.'))) return;
     toast('Sending request…');
     const result = await requestDeleteEntry(id);
     if(!result.ok){ toast("Couldn't send the request — check your connection and try again."); return; }
     toast('Delete request sent to Esa');
-    await renderTodayList();
+    renderTodayListBody();
   }
 }
 function openPhotoModal(id){
@@ -2704,9 +2828,12 @@ function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':
 async function selectAdminTab(tab){
   document.querySelectorAll('.admin-tab').forEach(b=>b.classList.toggle('sel', b.dataset.tab===tab));
   document.querySelectorAll('.admin-panel').forEach(p=>p.classList.toggle('active', p.dataset.panel===tab));
-  // Every tab that shows money or entries pulls fresh data the moment it's opened.
+  // Every tab that shows money or entries wants fresh data — but only a
+  // genuinely fresh fetch, not a repeat one: flicking between tabs within a
+  // few seconds reuses the data just fetched a moment ago instead of hitting
+  // the Google Sheet again for each tap.
   if(tab==='dash' || tab==='approvals' || tab==='txns' || tab==='reimb' || tab==='reports'){
-    const result = await refreshAll();
+    const result = await refreshIfStale();
     if(!result.ok){ toast(friendlySyncError(result.error)); }
   }
   if(tab==='dash') renderDashboardStats();
@@ -2741,22 +2868,19 @@ function renderAdminSettingsStatus(){
   if(schemaEl){ schemaEl.textContent = SCHEMA_OUTDATED ? '⚠ Update needed' : '✅ Up to date'; }
   if(warnEl){ warnEl.style.display = SCHEMA_OUTDATED ? 'block' : 'none'; }
 }
-// Shows the CURRENT category/quick-note list (custom or default) in the two
-// textareas, so Esa can see and tweak what's actually in use rather than
-// starting from a blank box every time he opens Settings.
+// Shows the CURRENT category list (custom or default) in the textarea, so
+// Esa can see and tweak what's actually in use rather than starting from a
+// blank box every time he opens Settings.
 function renderCustomizeFields(){
   const catEl = document.getElementById('cfg-categories');
-  const noteEl = document.getElementById('cfg-quicknotes');
   if(catEl) catEl.value = CATEGORIES.map(c=>`${c.ic} ${c.lbl}`).join('\n');
-  if(noteEl) noteEl.value = QUICK_NOTES.join('\n');
 }
-// Parses the two textareas and saves them to the server as Esa's own custom
-// category/quick-note list — from then on, every device (his and both
-// drivers') shows this list instead of the built-in defaults, on their next
-// refresh, with nothing to reinstall.
+// Parses the textarea and saves it to the server as Esa's own custom
+// category list — from then on, every device (his and both drivers') shows
+// this list instead of the built-in defaults, on their next refresh, with
+// nothing to reinstall.
 async function saveCustomization(){
   const catLines = (document.getElementById('cfg-categories').value||'').split('\n').map(l=>l.trim()).filter(Boolean);
-  const noteLines = (document.getElementById('cfg-quicknotes').value||'').split('\n').map(l=>l.trim()).filter(Boolean);
   if(!catLines.length){ toast('Enter at least one category'); return; }
   const categories = catLines.map(line=>{
     const m = /^(\S+)\s+(.+)$/.exec(line);
@@ -2765,7 +2889,7 @@ async function saveCustomization(){
     return {id: slugifyCategoryLabel(lbl), ic, lbl};
   });
   toast('Saving…');
-  const result = await postToSync({config:{categories, quickNotes: noteLines}});
+  const result = await postToSync({config:{categories}});
   if(!result.ok){ toast(friendlySyncError(result.error)); return; }
   await refreshAll();
   renderCustomizeFields();
@@ -3130,7 +3254,7 @@ async function generateReportPDF(){
   try{
     await buildAndDeliverStatementPDF(label, from, to, {share:false});
   }catch(e){
-    toast(e && e.code==='no_internet' ? 'No internet connection. Please check your connection and try again.' : 'Could not create PDF. Please try again.');
+    toast(e && e.code==='no_internet' ? friendlySyncError(e.reason) : 'Could not create PDF. Please try again.');
   }
 }
 function exportCSV(){
