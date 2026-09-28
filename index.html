@@ -747,8 +747,6 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="admin-tab" data-tab="reimb" onclick="selectAdminTab('reimb')">Reimbursement</button>
       <button class="admin-tab" data-tab="drivers" onclick="selectAdminTab('drivers')">Drivers</button>
       <button class="admin-tab" data-tab="reports" onclick="selectAdminTab('reports')">Reports</button>
-      <button class="admin-tab" data-tab="sync" onclick="selectAdminTab('sync')">Connection</button>
-      <button class="admin-tab" data-tab="backup" onclick="selectAdminTab('backup')">Backup</button>
       <button class="admin-tab" data-tab="settings" onclick="selectAdminTab('settings')">Settings</button>
     </div>
 
@@ -840,27 +838,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="btn block" onclick="sendReportWhatsApp()">📱 Send Text Summary via WhatsApp</button>
     </div>
 
-    <!-- Connection -->
-    <div class="admin-panel" data-panel="sync">
-      <div class="stat-card" style="margin-bottom:16px;">
-        <div class="lbl">Connection Status</div>
-        <div class="val" id="sync-status" style="font-size:16px;">Checking…</div>
-        <p style="font-size:12px;color:var(--muted);margin:8px 0 0;">This app needs internet for everything — every save, delete and approval goes straight to your Google Sheet. Nothing is stored on the phone.</p>
-      </div>
-      <button class="btn primary block" onclick="refreshNow()">🔄 Refresh Now</button>
-    </div>
-
-    <!-- Backup -->
-    <div class="admin-panel" data-panel="backup">
-      <div class="section-title">Backup</div>
-      <p style="font-size:12.5px;color:var(--muted);">Downloads everything currently on the server as a JSON file, so you have a copy on this phone.</p>
-      <button class="btn primary block" onclick="backupData()">⬇ Download Backup Now (JSON)</button>
-    </div>
-
     <!-- Drivers -->
     <div class="admin-panel" data-panel="drivers">
       <div class="section-title" style="margin-top:0;">Drivers</div>
-      <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Add a new driver, rename one, or remove one. Every driver logs in with the same password (1Pakistan@) and picks their own name — adding them here is all that's needed to give them access.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Add a new driver, rename one, remove one, or change their password. Each driver now has their own separate password — use 🔑 Password to set or change one, then tell that driver directly (WhatsApp, in person). A driver added without a password here still works using the old shared one until you set a real one.</p>
       <div id="driver-manage-list" style="margin-bottom:12px;"></div>
       <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
         <div style="flex:1;">
@@ -892,6 +873,31 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <div id="admin-schema-warning" style="display:none;background:var(--amber-light);color:#6b4e00;border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;margin-bottom:14px;">
         ⚠ Your Google Apps Script is out of date. Some features (like driver delete requests) won't work until you paste the latest <code>apps-script-sync.gs</code> into the Apps Script editor and deploy it as a <b>New version</b> (Deploy → Manage deployments → ✏️ → New version → Deploy).
       </div>
+
+      <div class="section-title">Connection</div>
+      <div class="stat-card" style="margin-bottom:16px;">
+        <div class="lbl">Connection Status</div>
+        <div class="val" id="sync-status" style="font-size:16px;">Checking…</div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 0;">This app needs internet for everything — every save, delete and approval goes straight to your Google Sheet. Nothing is stored on the phone.</p>
+      </div>
+      <button class="btn block" onclick="refreshNow()">🔄 Refresh Now</button>
+
+      <div class="section-title">Backup</div>
+      <p style="font-size:12.5px;color:var(--muted);">Downloads everything currently on the server as a JSON file, so you have a copy on this phone. A full copy of your whole Google Sheet also saves itself automatically every night in Drive (folder "Garden Grow Petty Cash Backups") once that's set up — see the note in apps-script-sync.gs (one-time step in the Apps Script editor).</p>
+      <button class="btn block" onclick="backupData()">⬇ Download Backup Now (JSON)</button>
+
+      <div class="section-title">Customize (Categories & Quick Notes)</div>
+      <p style="font-size:12.5px;color:var(--muted);">One per line, as "icon Label" (e.g. "🌱 Plants"). Leave blank to keep the built-in defaults. Renaming or removing a category never changes past entries — they keep showing the category they were saved with.</p>
+      <div class="field">
+        <label>Categories</label>
+        <textarea id="cfg-categories" rows="6" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;" placeholder="🌱 Plants"></textarea>
+      </div>
+      <div class="field">
+        <label>Quick Notes (one per line)</label>
+        <textarea id="cfg-quicknotes" rows="4" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;" placeholder="Site Material"></textarea>
+      </div>
+      <button class="btn primary block" onclick="saveCustomization()">💾 Save Customization</button>
+
       <div class="section-title">Account</div>
       <div class="settings-row">
         <span>Logged in as</span>
@@ -914,7 +920,12 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 
 <script>
 /* ================= CATEGORY & QUICK NOTE DATA ================= */
-const CATEGORIES = [
+// Esa can override these from Admin → Settings → Customize (see
+// applyServerConfig()) — these are only the built-in starting defaults, used
+// until (and unless) he ever saves his own list. `let`, not `const`, on
+// purpose: applyServerConfig() reassigns them wholesale when a custom list
+// exists on the server.
+let CATEGORIES = [
   {id:'plants', ic:'🌱', lbl:'Plants'},
   {id:'sand', ic:'🏖️', lbl:'Sand'},
   {id:'gravel', ic:'🪨', lbl:'Gravel'},
@@ -926,8 +937,28 @@ const CATEGORIES = [
   {id:'tools', ic:'🧰', lbl:'Tools'},
   {id:'other', ic:'➕', lbl:'Other'},
 ];
-const CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
-const QUICK_NOTES = ['Site Material','Vehicle','Delivery','Nursery','Sand','Repair','Other'];
+let CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
+let QUICK_NOTES = ['Site Material','Vehicle','Delivery','Nursery','Sand','Repair','Other'];
+// Applies Esa's saved category/quick-note customization (if any) on top of
+// the built-in defaults above. Called once after every successful
+// loadFromServer() so a change he just saved shows up everywhere, on every
+// device, on their next refresh — nothing to reinstall. A category's `id`
+// is derived from its label so older transactions saved under an id that no
+// longer has a matching category (renamed or removed) still display fine —
+// see the CAT_MAP fallbacks used everywhere a category is shown.
+function slugifyCategoryLabel(lbl){
+  return String(lbl||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'cat';
+}
+function applyServerConfig(config){
+  if(!config) return;
+  if(Array.isArray(config.categories) && config.categories.length){
+    CATEGORIES = config.categories;
+    CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
+  }
+  if(Array.isArray(config.quickNotes) && config.quickNotes.length){
+    QUICK_NOTES = config.quickNotes;
+  }
+}
 
 /* ================= LOGIN ================= */
 // Edit this array to add or remove drivers who can log in.
@@ -935,8 +966,12 @@ const QUICK_NOTES = ['Site Material','Vehicle','Delivery','Nursery','Sand','Repa
 // by Esa from Admin → Drivers). Kept here as a safe fallback in
 // case the server is briefly unreachable or hasn't been redeployed yet.
 let DRIVER_NAMES = ['Jawad', 'Gul Bad Shah'];
-// Plain constants, same trust model as the old fixed PIN — there is no real
-// backend auth here, just a lightweight gate for a few known people.
+// Admin is just Esa, so this one stays a single fixed password (checked
+// here, same as before). DRIVER_PASSWORD is no longer used to check a
+// driver's login — each driver now has their own password, checked on the
+// server (see submitLogin() / apps-script-sync.gs checkDriverPassword_) —
+// it's kept only as a reference to the old shared fallback password every
+// driver still has until Esa sets each one their own from Admin → Drivers.
 const DRIVER_PASSWORD = '1Pakistan@';
 const ADMIN_PASSWORD = 'Nizar@123#';
 
@@ -1110,11 +1145,17 @@ let CURRENT_DRIVER_NAME = '';
 // file talks to the same Google Sheet automatically — nothing for the
 // driver to type, sign into, or approve.
 const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxRL0Q-eVgmoQrphSsS1l1nfLXrVPgzpG2vHiRTpy8u2rUZo59gTFACqSYZHY9oWHPC/exec'; // <-- set once to your deployed Apps Script Web App URL
+// Sent automatically with every request so the server knows it's really
+// this app talking, not just anyone who happens to have the SYNC_URL above.
+// Must always match SHARED_SECRET in apps-script-sync.gs — nobody ever has
+// to type this, it's baked in once, same idea as SYNC_URL itself.
+const SYNC_SECRET = 'Nizar@123#';
 const SYNC_TIMEOUT_MS = 15000;
-// Photos never round-trip through the server (the Sheet only stores a Y/N
-// flag), so we keep this session's own just-saved photos in memory purely so
-// History/PDF can still show them for entries made on THIS phone during this
-// visit. It is not a source of truth and is never used for balances.
+// Receipt photos are now saved as real files in Google Drive by the server
+// (see apps-script-sync.gs), so they survive long after this phone closes
+// the app. SESSION_PHOTOS is kept only as a same-session fallback for the
+// few seconds between saving a photo and it coming back from the server on
+// the next refresh — never a source of truth, never used for balances.
 const SESSION_PHOTOS = new Map();
 
 function friendlySyncError(err){
@@ -1131,7 +1172,7 @@ function updateConnBanner(){
 // Bump alongside SCHEMA_VERSION in apps-script-sync.gs. If the deployed
 // Apps Script is older than this, some features (like delete requests) will
 // silently do nothing — this makes that failure visible instead of confusing.
-const EXPECTED_SCHEMA_VERSION = 3;
+const EXPECTED_SCHEMA_VERSION = 4;
 let SCHEMA_OUTDATED = false;
 function updateSchemaBanner(){
   const el = document.getElementById('schema-banner');
@@ -1167,7 +1208,11 @@ async function postToSync(payload){
       const resp = await fetch(SYNC_URL, {
         method:'POST',
         headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids a CORS preflight against Apps Script
-        body: JSON.stringify(payload),
+        // "by" rides along on every write automatically (never something each
+        // caller has to remember to add) so the server can log who did what,
+        // for the Activity Log — CURRENT_DRIVER_NAME is 'Esa' on the Admin
+        // device, or the logged-in driver's name on theirs.
+        body: JSON.stringify(Object.assign({secret: SYNC_SECRET, by: CURRENT_DRIVER_NAME||'Unknown'}, payload)),
         cache:'no-store',
         signal: controller.signal,
       });
@@ -1193,7 +1238,7 @@ async function loadFromServer(){
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), SYNC_TIMEOUT_MS);
   try{
-    const resp = await fetch(SYNC_URL, { method:'GET', cache:'no-store', signal: controller.signal });
+    const resp = await fetch(SYNC_URL + '?secret=' + encodeURIComponent(SYNC_SECRET), { method:'GET', cache:'no-store', signal: controller.signal });
     if(!resp.ok) return {ok:false, error:'http_'+resp.status};
     const data = await resp.json().catch(()=>null);
     if(!data || !Array.isArray(data.records)) return {ok:false, error:'bad_response'};
@@ -1206,6 +1251,7 @@ async function loadFromServer(){
     if(Array.isArray(data.drivers)){
       DRIVER_NAMES = data.drivers.map(n=>String(n||'').trim()).filter(Boolean);
     }
+    applyServerConfig(data.config);
     ALL_TXNS = data.records.map(r=>({
       id: r.id,
       driver: (r.driver||'').trim(),
@@ -1226,7 +1272,11 @@ async function loadFromServer(){
       givenBy: r.givenBy||'',
       status: r.status || 'approved', // blank = recorded before approvals existed
       deleteRequested: !!r.deleteRequested,
-      photo: SESSION_PHOTOS.get(r.id) || null,
+      // Prefer the durable Drive link the server now keeps (works forever,
+      // on any device); fall back to this session's own just-saved copy
+      // only for the brief window before that link comes back from a
+      // refresh, or for very old rows saved before photos were stored.
+      photo: r.photoUrl || SESSION_PHOTOS.get(r.id) || null,
     })).sort((a,b)=> (a.date+((a.time)||'00:00')).localeCompare(b.date+((b.time)||'00:00')));
     currentBalances = computeBalances(approvedOnly(ALL_TXNS));
     return {ok:true};
@@ -1448,11 +1498,38 @@ async function submitLogin(){
   const role = LOGIN_STATE.role;
   if(role==='driver' && !LOGIN_STATE.driverName){ toast('Pick your name'); return; }
   const pw = document.getElementById('login-password').value;
-  const expected = (role==='admin') ? ADMIN_PASSWORD : DRIVER_PASSWORD;
-  if(!pw || pw !== expected){
+  if(!pw){
     document.getElementById('login-error').textContent = 'Wrong password, try again';
-    document.getElementById('login-password').value = '';
     return;
+  }
+  const errBox = document.getElementById('login-error');
+  const submitBtn = document.getElementById('login-submit-btn');
+  if(role==='admin'){
+    // Admin is just Esa, so this one stays a simple fixed password — no
+    // separate "account" to manage, same as before.
+    if(pw !== ADMIN_PASSWORD){
+      errBox.textContent = 'Wrong password, try again';
+      document.getElementById('login-password').value = '';
+      return;
+    }
+  } else {
+    // Each driver now has their OWN password, checked on the server — never
+    // compared against one password shared by everyone, so one driver can no
+    // longer log in as another. This needs a live connection; if the phone
+    // is offline, "remember me" from a previous successful login is what
+    // gets someone back in without asking again (see init()/autologin).
+    if(submitBtn) setBusy(submitBtn, 'CHECKING…');
+    const result = await postToSync({driverAuth:{name: LOGIN_STATE.driverName, password: pw}});
+    if(submitBtn) clearBusy(submitBtn);
+    if(!result.ok){
+      errBox.textContent = 'No internet — cannot verify your password right now. Try again once connected.';
+      return;
+    }
+    if(!result.data || !result.data.authorized){
+      errBox.textContent = 'Wrong password, try again';
+      document.getElementById('login-password').value = '';
+      return;
+    }
   }
   const remember = document.getElementById('login-remember').checked;
   const driverName = (role==='admin') ? 'Esa' : LOGIN_STATE.driverName;
@@ -1585,12 +1662,16 @@ function renderHome(){
       <div class="bal-card owed"><div class="lbl">My Money Used</div><div class="val">${firstLoadDone?'—':'…'}</div></div>
     </div>`;
   } else if(IS_ADMIN_DEVICE){
-    // Combined totals across every driver, so Esa gets the big picture at a
-    // glance before drilling into any one driver's row.
-    const totals = DRIVER_NAMES.reduce((acc,name)=>{
-      const b = driverBalances(name);
-      acc.cash += b.companyCash; acc.owed += b.driverOwed; return acc;
-    }, {cash:0, owed:0});
+    // Combined totals across EVERY approved transaction — the exact same
+    // number Admin → Dashboard shows (currentBalances), so the two screens
+    // can never quietly disagree. This used to only add up the CURRENT
+    // driver roster, which meant a removed driver's still-owed money simply
+    // vanished from this screen (while Dashboard still counted it) — see
+    // the "Other / Former Drivers" row below for where that money is now
+    // shown instead of hidden.
+    const totals = {cash: currentBalances.companyCash, owed: currentBalances.driverOwed};
+    const other = otherTxns();
+    const otherBal = other.length ? computeBalances(other) : null;
     const todayStr = localDateStr(new Date());
     const todaySpend = approvedOnly(ALL_TXNS)
       .filter(t=>t.type==='expense' && t.date===todayStr)
@@ -1618,7 +1699,16 @@ function renderHome(){
         </div>
         <div class="drv-arrow">›</div>
       </button>`;
-    }).join('') + `</div>
+    }).join('') + (otherBal ? `
+      <button class="driver-row${otherBal.companyCash<0?' low':''}" onclick="openHistory('__other__')">
+        <div class="drv-avatar">?</div>
+        <div class="drv-name">Other / Former Drivers</div>
+        <div class="drv-amounts">
+          <div class="drv-amt cash"><span class="lbl">Cash Left</span><span class="val">${fmt(otherBal.companyCash)}</span></div>
+          <div class="drv-amt owed"><span class="lbl">Owed</span><span class="val">${fmt(otherBal.driverOwed)}</span></div>
+        </div>
+        <div class="drv-arrow">›</div>
+      </button>` : '') + `</div>
       <div class="section-label" style="margin-top:4px;">Today · ${fmt(todaySpend)} spent</div>
     `;
   } else {
@@ -1882,6 +1972,21 @@ function removePhoto(){
   document.getElementById('exp-photo-input').value='';
 }
 
+// Catches the two most likely ways a duplicate entry happens: (1) a save
+// that timed out but actually went through, then got retried by hand, or
+// (2) an honest double-entry mistake. Compares against what's already loaded
+// (same driver, same day, same amount, and — for an expense — same category)
+// rather than needing exact timestamps, which the Sheet doesn't keep at
+// second precision anyway. Returns the matching entry, or null.
+function findPossibleDuplicate(candidate){
+  return ALL_TXNS.find(t=>
+    t.type===candidate.type &&
+    (t.driver||'').trim()===candidate.driver &&
+    t.date===candidate.date &&
+    Math.abs((Number(t.amount)||0)-candidate.amount) < 0.01 &&
+    (candidate.type!=='expense' || t.category===candidate.category)
+  ) || null;
+}
 async function saveExpense(){
   const amount = parseFloat(document.getElementById('exp-amount').value);
   if(!amount || amount<=0){ toast('ENTER AMOUNT'); return; }
@@ -1901,6 +2006,10 @@ async function saveExpense(){
   else {
     companyAmount = parseFloat(document.getElementById('split-company').value)||0;
     meAmount = parseFloat(document.getElementById('split-me').value)||0;
+    if(companyAmount<0 || meAmount<0){
+      showWarning('AMOUNTS CANNOT BE NEGATIVE');
+      return;
+    }
     if(Math.abs((companyAmount+meAmount) - amount) > 0.01){
       showWarning('AMOUNTS DO NOT MATCH');
       return;
@@ -1928,6 +2037,11 @@ async function saveExpense(){
     status: await entryStatus(),
     createdAt: Date.now(),
   };
+  const dupe = findPossibleDuplicate(record);
+  if(dupe){
+    const ok = await askConfirm(`You already have an entry like this today — ${CAT_MAP[dupe.category]?CAT_MAP[dupe.category].lbl:dupe.category} · ${fmt(dupe.amount)}. Save this as a separate, new entry anyway?`);
+    if(!ok) return;
+  }
   const saveBtn = document.getElementById('exp-save-btn');
   setBusy(saveBtn, 'SAVING…');
   const result = await postToSync({records:[record]});
@@ -1966,6 +2080,11 @@ async function saveCashIn(){
     status: await entryStatus(),
     createdAt: Date.now(),
   };
+  const dupe = findPossibleDuplicate(record);
+  if(dupe){
+    const ok = await askConfirm(`You already logged a Cash In of ${fmt(dupe.amount)} today. Save this as a separate, new entry anyway?`);
+    if(!ok) return;
+  }
   const saveBtn = document.getElementById('ci-save-btn');
   setBusy(saveBtn, 'SAVING…');
   const result = await postToSync({records:[record]});
@@ -2174,7 +2293,7 @@ async function buildAndDeliverStatementPDF(label, fromStr, toStr, opts){
   // at all instead of misleadingly saying "Driver: Esa"; a specific driver
   // Admin picked shows that driver's name.
   const driverName = driverFilter || (IS_ADMIN_DEVICE ? '' : await settingsGet('driverName',''));
-  const doc = buildStatementPDFDoc(label, fromStr, toStr, txns, opening, closing, driverName);
+  const doc = await buildStatementPDFDoc(label, fromStr, toStr, txns, opening, closing, driverName);
   const filename = `petty-cash-statement-${fromStr}_to_${toStr}.pdf`;
   if(opts.share===false){
     doc.save(filename);
@@ -2185,7 +2304,29 @@ async function buildAndDeliverStatementPDF(label, fromStr, toStr, opts){
   await sharePDFOrDownload(doc, filename, fallbackText);
 }
 
-function buildStatementPDFDoc(label, fromStr, toStr, txns, opening, closing, driverName){
+// Receipt photos now usually arrive as a durable Drive link (a URL) rather
+// than the base64 image data jsPDF's addImage() needs directly. This fetches
+// that URL and converts it to base64 first. Never throws — a photo that
+// can't be fetched (offline, or a Drive permission hiccup) is just skipped,
+// exactly like the old "unreadable image" fallback already did.
+async function photoToDataUrl_(photo){
+  if(!photo) return null;
+  if(photo.startsWith('data:')) return photo; // already usable as-is
+  try{
+    const resp = await fetch(photo);
+    if(!resp.ok) return null;
+    const blob = await resp.blob();
+    return await new Promise((resolve)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>resolve(reader.result);
+      reader.onerror = ()=>resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  }catch(e){
+    return null; // fine — the statement still generates, just without this one photo
+  }
+}
+async function buildStatementPDFDoc(label, fromStr, toStr, txns, opening, closing, driverName){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({unit:'pt', format:'a4'});
   const pageW = doc.internal.pageSize.getWidth();
@@ -2270,7 +2411,10 @@ function buildStatementPDFDoc(label, fromStr, toStr, txns, opening, closing, dri
     const imgW=128, imgH=98, gap=16;
     for(const t of withPhotos){
       if(py + imgH + 26 > pageH-30){ doc.addPage(); py=50; px=mx; }
-      try{ doc.addImage(t.photo, 'JPEG', px, py, imgW, imgH); }catch(e){ /* skip unreadable image */ }
+      const dataUrl = await photoToDataUrl_(t.photo);
+      if(dataUrl){
+        try{ doc.addImage(dataUrl, 'JPEG', px, py, imgW, imgH); }catch(e){ /* skip unreadable image */ }
+      }
       doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(70,80,75);
       const c = CAT_MAP[t.category] || {lbl:t.category||''};
       doc.text(`${t.date} · ${c.lbl} · ${fmt(t.amount)}`, px, py+imgH+11, {maxWidth:imgW});
@@ -2338,8 +2482,9 @@ function openHistory(driverName){
 function populateHistDriverSelect(){
   const sel = document.getElementById('hist-driver-select');
   if(!sel) return;
+  const otherOpt = otherTxns().length ? `<option value="__other__">Other / Former Drivers</option>` : '';
   sel.innerHTML = `<option value="">All Drivers</option>` +
-    DRIVER_NAMES.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+    DRIVER_NAMES.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('') + otherOpt;
   sel.value = histDriverFilter || '';
 }
 // Switching the dropdown is the same as tapping a different driver's row on
@@ -2452,18 +2597,19 @@ function renderHistItem(t){
     }
     actionsRow = `<div style="display:flex;gap:8px;margin-top:10px;">${btns.join('')}</div>`;
   }
+  const detail = buildHistDetailHTML(t);
   if(t.type==='cash_in'){
     return `<div class="hist-item"><div class="hi-ic">💰</div><div class="hi-body">
       <div class="hi-top"><span>Cash In</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-cashin">CASH IN</span>${driverTag}${statusTag}${deleteTag}${actionsRow}
+      <span class="hi-tag tag-cashin">CASH IN</span>${driverTag}${statusTag}${deleteTag}${actionsRow}${detail}
     </div>${thumb}${delBtn}</div>`;
   }
   if(t.type==='reimbursement'){
     return `<div class="hist-item"><div class="hi-ic">↩️</div><div class="hi-body">
       <div class="hi-top"><span>Reimbursement</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.note?escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-reimb">REIMBURSED</span>${driverTag}${statusTag}${deleteTag}${actionsRow}
+      <span class="hi-tag tag-reimb">REIMBURSED</span>${driverTag}${statusTag}${deleteTag}${actionsRow}${detail}
     </div>${thumb}${delBtn}</div>`;
   }
   const c = CAT_MAP[t.category] || {ic:'➕', lbl:t.category};
@@ -2471,8 +2617,29 @@ function renderHistItem(t){
   return `<div class="hist-item"><div class="hi-ic">${c.ic}</div><div class="hi-body">
     <div class="hi-top"><span>${c.lbl}</span><span>${fmt(t.amount)}</span></div>
     <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${driverTag}${statusTag}${deleteTag}${actionsRow}
+    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${driverTag}${statusTag}${deleteTag}${actionsRow}${detail}
   </div>${thumb}${delBtn}</div>`;
+}
+// The driver-entered fields (supplier, site, receipt no., vehicle, remarks,
+// given-by) were always saved, but never shown anywhere except a raw CSV
+// export or the Sheet itself — this surfaces them right in History behind a
+// small "Details" link, so the normal card stays just as compact as before
+// and tapping Approve/Reject/Delete never accidentally toggles it.
+function buildHistDetailHTML(t){
+  const rows = [
+    ['Supplier', t.supplier], ['Site', t.site], ['Receipt No.', t.receiptNo],
+    ['Vehicle', t.vehicle], ['Given By', t.givenBy], ['Remarks', t.remarks]
+  ].filter(([,v])=>v);
+  if(!rows.length) return '';
+  const inner = rows.map(([lbl,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;"><span style="color:var(--muted);">${lbl}</span><span style="text-align:right;">${escapeHtml(v)}</span></div>`).join('');
+  return `<div style="margin-top:8px;">
+    <span style="color:var(--green-dark);font-size:12px;font-weight:700;cursor:pointer;" onclick="toggleHistDetail('${t.id}')">▾ Details</span>
+    <div id="det-${t.id}" style="display:none;margin-top:6px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;">${inner}</div>
+  </div>`;
+}
+function toggleHistDetail(id){
+  const el = document.getElementById('det-'+id);
+  if(el) el.style.display = (el.style.display==='none') ? 'block' : 'none';
 }
 // Actually, permanently removes the row from the sheet — used when Esa's own
 // (Admin) device deletes directly, and when Esa approves a driver's delete
@@ -2560,8 +2727,7 @@ async function selectAdminTab(tab){
   if(tab==='reimb') renderReimbTab();
   if(tab==='drivers') renderDriverManageList();
   if(tab==='reports') renderDailySummary();
-  if(tab==='sync') renderSyncStatus();
-  if(tab==='settings'){ renderAdminSettingsStatus(); }
+  if(tab==='settings'){ renderAdminSettingsStatus(); renderSyncStatus(); renderCustomizeFields(); }
 }
 function renderAdminSettingsStatus(){
   const el = document.getElementById('admin-login-status');
@@ -2574,6 +2740,36 @@ function renderAdminSettingsStatus(){
   const warnEl = document.getElementById('admin-schema-warning');
   if(schemaEl){ schemaEl.textContent = SCHEMA_OUTDATED ? '⚠ Update needed' : '✅ Up to date'; }
   if(warnEl){ warnEl.style.display = SCHEMA_OUTDATED ? 'block' : 'none'; }
+}
+// Shows the CURRENT category/quick-note list (custom or default) in the two
+// textareas, so Esa can see and tweak what's actually in use rather than
+// starting from a blank box every time he opens Settings.
+function renderCustomizeFields(){
+  const catEl = document.getElementById('cfg-categories');
+  const noteEl = document.getElementById('cfg-quicknotes');
+  if(catEl) catEl.value = CATEGORIES.map(c=>`${c.ic} ${c.lbl}`).join('\n');
+  if(noteEl) noteEl.value = QUICK_NOTES.join('\n');
+}
+// Parses the two textareas and saves them to the server as Esa's own custom
+// category/quick-note list — from then on, every device (his and both
+// drivers') shows this list instead of the built-in defaults, on their next
+// refresh, with nothing to reinstall.
+async function saveCustomization(){
+  const catLines = (document.getElementById('cfg-categories').value||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  const noteLines = (document.getElementById('cfg-quicknotes').value||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  if(!catLines.length){ toast('Enter at least one category'); return; }
+  const categories = catLines.map(line=>{
+    const m = /^(\S+)\s+(.+)$/.exec(line);
+    const ic = m ? m[1] : '➕';
+    const lbl = m ? m[2] : line;
+    return {id: slugifyCategoryLabel(lbl), ic, lbl};
+  });
+  toast('Saving…');
+  const result = await postToSync({config:{categories, quickNotes: noteLines}});
+  if(!result.ok){ toast(friendlySyncError(result.error)); return; }
+  await refreshAll();
+  renderCustomizeFields();
+  toast('Customization saved — every device picks this up on its next refresh');
 }
 /* ---- Driver roster management (Admin → Drivers) ----
    The list of drivers lives on the server (a "Drivers" tab in the Google
@@ -2592,6 +2788,7 @@ function renderDriverManageList(){
   wrap.innerHTML = DRIVER_NAMES.map(name=>`
     <div class="driver-manage-row">
       <div class="dm-name">🧑 ${escapeHtml(name)}</div>
+      <button onclick="setDriverPasswordPrompt('${name.replace(/'/g,"\\'")}')">🔑 Password</button>
       <button onclick="renameDriverPrompt('${name.replace(/'/g,"\\'")}')">✏️ Rename</button>
       <button class="danger" onclick="removeDriverPrompt('${name.replace(/'/g,"\\'")}')">🗑 Remove</button>
     </div>
@@ -2609,9 +2806,20 @@ async function addDriverPrompt(){
   const name = (input.value||'').trim();
   if(!name){ toast('Enter a driver name'); return; }
   if(DRIVER_NAMES.some(n=>n.toLowerCase()===name.toLowerCase())){ toast('That driver already exists'); return; }
+  const password = prompt(`Set a password for ${name} (leave blank to use the old shared password for now — you can set a real one anytime from 🔑 Password):`, '');
+  if(password===null) return; // cancelled
   toast('Adding…');
-  const ok = await driverOp({op:'add', name});
-  if(ok){ input.value=''; toast(`${name} added — they can log in now`); }
+  const ok = await driverOp({op:'add', name, password: password.trim()});
+  if(ok){ input.value=''; toast(password.trim() ? `${name} added` : `${name} added — using the shared password until you set one`); }
+}
+async function setDriverPasswordPrompt(name){
+  const password = prompt(`New password for ${name}:`, '');
+  if(password===null) return; // cancelled
+  const trimmed = password.trim();
+  if(!trimmed){ toast('Password cannot be blank'); return; }
+  toast('Saving…');
+  const ok = await driverOp({op:'setPassword', name, password:trimmed});
+  if(ok) toast(`Password updated for ${name} — let them know`);
 }
 async function renameDriverPrompt(oldName){
   const newName = prompt(`Rename "${oldName}" to:`, oldName);
@@ -2623,7 +2831,15 @@ async function renameDriverPrompt(oldName){
   if(ok) toast(`Renamed to ${trimmed} — their history moved with them`);
 }
 async function removeDriverPrompt(name){
-  if(!(await askConfirm(`Remove ${name}? They won't be able to log in anymore, but their past entries stay in History.`))) return;
+  // A driver who still has money owed to them, or is still holding company
+  // cash, should never silently disappear from the totals just because
+  // they're removed from the pick-list — warn plainly before that happens.
+  const b = driverBalances(name);
+  const hasBalance = Math.abs(b.companyCash) > 0.01 || Math.abs(b.driverOwed) > 0.01;
+  const balanceNote = hasBalance
+    ? ` They currently show Cash Left ${fmt(b.companyCash)} and Owed ${fmt(b.driverOwed)} — this won't be lost, it will still show under "Other / Former Drivers" on Home and History.`
+    : '';
+  if(!(await askConfirm(`Remove ${name}? They won't be able to log in anymore, but their past entries stay in History.${balanceNote}`))) return;
   toast('Removing…');
   const ok = await driverOp({op:'remove', name});
   if(ok) toast(`${name} removed`);
