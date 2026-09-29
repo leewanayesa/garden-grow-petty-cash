@@ -421,9 +421,6 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </button>
       </div>
       <div id="home-balance-wrap"></div>
-      <div id="home-repeat-last-wrap" style="display:none;margin-bottom:14px;">
-        <button class="btn block" style="text-align:left;padding:14px;" id="home-repeat-last-btn" onclick="repeatLastTransaction()"></button>
-      </div>
       <!-- Driver-only actions — a driver device always sees these; hidden on
            an Admin device, which gets its own quick-actions below instead,
            since Buy/Pay, Cash In etc. aren't things Esa does from his own
@@ -1779,7 +1776,6 @@ function renderHome(){
   const adminTiles = document.getElementById('admin-action-tiles');
   if(driverTiles) driverTiles.style.display = IS_ADMIN_DEVICE ? 'none' : 'grid';
   if(adminTiles) adminTiles.style.display = IS_ADMIN_DEVICE ? 'grid' : 'none';
-  renderRepeatLastTile();
   const errBox = document.getElementById('home-load-error');
   const showErr = firstLoadDone && !lastLoadOk;
   if(errBox) errBox.style.display = showErr ? 'block' : 'none';
@@ -1985,9 +1981,9 @@ function setTodayDefaults(){
   document.getElementById('rep-from').value = dateStr;
   document.getElementById('rep-to').value = dateStr;
 }
-// Most recent expense this driver logged (any status) — used both for the
-// "Last used" hint on the type tiles and for the Home screen's Repeat Last
-// button. ALL_TXNS is oldest-first, so the last match found is the newest.
+// Most recent expense this driver logged (any status) — used for the
+// "Last used" hint on the type tiles. ALL_TXNS is oldest-first, so the last
+// match found is the newest.
 function getLastExpenseForDriver(name){
   let last = null;
   for(const t of ALL_TXNS){
@@ -2002,37 +1998,6 @@ function buildCatGrid(){
     <button class="cat-btn" data-cat="${c.id}" onclick="selectCategory('${c.id}')">
       <div class="ic">${c.ic}</div>${c.lbl}${last && last.category===c.id ? '<div style="font-size:9.5px;font-weight:700;color:var(--green-dark);margin-top:2px;">LAST USED</div>' : ''}
     </button>`).join('');
-}
-// A one-tap way to log the same kind of purchase again (e.g. fuel every
-// morning) — pre-fills Buy/Pay from the driver's most recent expense, same
-// as Fix & Resubmit, but from Home rather than from a rejected entry, and
-// always creates a brand-new entry.
-function renderRepeatLastTile(){
-  const wrap = document.getElementById('home-repeat-last-wrap');
-  if(!wrap) return;
-  if(IS_ADMIN_DEVICE || !lastLoadOk){ wrap.style.display='none'; return; }
-  const last = getLastExpenseForDriver(CURRENT_DRIVER_NAME);
-  if(!last){ wrap.style.display='none'; return; }
-  const c = CAT_MAP[last.category] || {ic:'🛒', lbl:last.category};
-  const btn = document.getElementById('home-repeat-last-btn');
-  btn.innerHTML = `<span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:700;">↻ Repeat Last</span><br>${c.ic} ${escapeHtml(c.lbl)} · ${fmt(last.amount)}`;
-  wrap.style.display='block';
-}
-async function repeatLastTransaction(){
-  const last = getLastExpenseForDriver(CURRENT_DRIVER_NAME);
-  if(!last){ toast('No previous purchase to repeat'); return; }
-  await openExpenseEntry();
-  if(last.category) selectCategory(last.category);
-  document.getElementById('exp-amount').value = last.amount || '';
-  document.getElementById('exp-note').value = last.note || '';
-  document.getElementById('exp-supplier').value = last.supplier || '';
-  document.getElementById('exp-site').value = last.site || '';
-  document.getElementById('exp-vehicle').value = last.vehicle || '';
-  if(last.supplier || last.site || last.vehicle){
-    document.getElementById('more-fields').classList.add('show');
-  }
-  selectPay(last.payMode || 'company');
-  toast('Check the amount, then Save');
 }
 async function openExpenseEntry(){
   pushScreen('screen-expense');
