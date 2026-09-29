@@ -301,6 +301,16 @@ input,select,textarea{font-family:inherit;}
 table.admin-table{width:100%;border-collapse:collapse;font-size:12.5px;}
 table.admin-table th{background:var(--green-light);color:var(--green-dark);padding:9px 8px;text-align:left;white-space:nowrap;position:sticky;top:0;}
 table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-space:nowrap;}
+/* Below ~700px (any phone), Admin's Transactions/Reimbursement tables would
+   force horizontal scrolling to read — show the stacked-card view instead,
+   same one History already uses, and hide the table. Above that width
+   (tablet/desktop) there's room for the table, so it shows and the card
+   list hides. Same underlying data either way — this is CSS only. */
+#txn-cards,#reimb-cards{display:none;}
+@media (max-width:700px){
+  #txn-table-wrap,#reimb-table-wrap{display:none;}
+  #txn-cards,#reimb-cards{display:block;}
+}
 .btn{padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:14px;}
 .btn.primary{background:var(--green);border-color:var(--green);color:#fff;}
 .btn.danger{background:var(--red-light);border-color:var(--red);color:var(--red);}
@@ -411,6 +421,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </button>
       </div>
       <div id="home-balance-wrap"></div>
+      <div id="home-repeat-last-wrap" style="display:none;margin-bottom:14px;">
+        <button class="btn block" style="text-align:left;padding:14px;" id="home-repeat-last-btn" onclick="repeatLastTransaction()"></button>
+      </div>
       <!-- Driver-only actions — a driver device always sees these; hidden on
            an Admin device, which gets its own quick-actions below instead,
            since Buy/Pay, Cash In etc. aren't things Esa does from his own
@@ -559,8 +572,8 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
 
       <div class="photo-box">
-        <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">Photo (optional)</label>
-        <button class="photo-btn" onclick="document.getElementById('exp-photo-input').click()">📷 TAKE / ADD PHOTO</button>
+        <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">Receipt (optional)</label>
+        <button class="photo-btn" id="add-receipt-btn" onclick="document.getElementById('exp-photo-input').click()">🧾 ADD RECEIPT</button>
         <input type="file" accept="image/*" capture="environment" class="hidden-input" id="exp-photo-input" onchange="onPhotoSelected(event)">
         <div class="photo-preview" id="photo-preview" style="display:none;">
           <img id="photo-preview-img">
@@ -758,6 +771,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <div class="lbl">Driver</div>
         <div class="val" id="d-driver" style="font-size:18px;">—</div>
       </div>
+      <div id="needs-attention-wrap" style="display:none;margin-bottom:16px;">
+        <div class="section-title">⚠️ Needs Attention</div>
+        <div id="needs-attention-list"></div>
+      </div>
       <div class="admin-grid">
         <div class="stat-card"><div class="lbl">Company Cash Left</div><div class="val" id="d-cash" style="color:var(--green-dark)">AED 0</div></div>
         <div class="stat-card"><div class="lbl">Owed To Driver</div><div class="val" id="d-owed" style="color:var(--amber)">AED 0</div></div>
@@ -780,24 +797,36 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     <!-- Transactions -->
     <div class="admin-panel" data-panel="txns">
       <div class="filter-row">
-        <input type="text" id="f-search" placeholder="Search note / supplier / site" oninput="renderTxnTable()">
+        <input type="text" id="f-search" placeholder="Search driver / note / supplier / site / vehicle / receipt / amount / ID" oninput="renderTxnTable()">
+      </div>
+      <div class="filter-row">
         <select id="f-type" onchange="renderTxnTable()">
           <option value="">All Types</option>
           <option value="expense">Expense</option>
           <option value="cash_in">Cash In</option>
           <option value="reimbursement">Reimbursement</option>
         </select>
+        <select id="f-driver" onchange="renderTxnTable()">
+          <option value="">All Drivers</option>
+        </select>
+      </div>
+      <div class="hist-filter-bar" style="padding:0 0 4px;">
+        <button class="hist-chip sel" data-fs="" onclick="setTxnStatusFilter('')">ALL</button>
+        <button class="hist-chip" data-fs="pending" onclick="setTxnStatusFilter('pending')">PENDING</button>
+        <button class="hist-chip" data-fs="approved" onclick="setTxnStatusFilter('approved')">APPROVED</button>
+        <button class="hist-chip" data-fs="rejected" onclick="setTxnStatusFilter('rejected')">REJECTED</button>
       </div>
       <div class="filter-row">
         <input type="date" id="f-from" onchange="renderTxnTable()">
         <input type="date" id="f-to" onchange="renderTxnTable()">
       </div>
-      <div class="admin-table-wrap">
+      <div class="admin-table-wrap" id="txn-table-wrap">
         <table class="admin-table" id="txn-table">
           <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Paid</th><th>Note</th><th>Photo</th><th>Status</th><th></th></tr></thead>
           <tbody id="txn-tbody"></tbody>
         </table>
       </div>
+      <div class="hist-list" id="txn-cards"></div>
     </div>
 
     <!-- Reimbursement -->
@@ -810,13 +839,25 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <div class="val" id="r-owed" style="color:var(--amber);font-size:26px;">AED 0</div>
       </div>
       <div class="field"><label>Date</label><input type="date" id="r-date"></div>
-      <div class="amount-box"><div class="cur">AED</div><input type="text" inputmode="decimal" id="r-amount" placeholder="0"></div>
+      <div class="amount-box"><div class="cur">AED</div><input type="text" inputmode="decimal" id="r-amount" placeholder="0" oninput="onReimbAmountEdit()"></div>
+      <div class="filter-row" style="margin-bottom:14px;">
+        <button class="btn" style="flex:1;" onclick="fillReimbFullAmount()">💰 Full Amount Owed</button>
+      </div>
+      <div class="msg-banner" id="reimb-warning"><span id="reimb-warning-text"></span></div>
+      <div class="field"><label>Payment Method</label>
+        <select id="r-method">
+          <option value="Cash">Cash</option>
+          <option value="Bank Transfer">Bank Transfer</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
       <div class="field"><label>Note (optional)</label><input type="text" id="r-note" placeholder="e.g. Paid via bank transfer"></div>
       <button class="btn primary block" id="reimb-save-btn" onclick="saveReimbursement()">✓ Record Reimbursement</button>
       <div class="section-title">Reimbursement History</div>
-      <div class="admin-table-wrap">
+      <div class="admin-table-wrap" id="reimb-table-wrap">
         <table class="admin-table"><thead><tr><th>Date</th><th>Driver</th><th>Amount</th><th>Note</th></tr></thead><tbody id="reimb-tbody"></tbody></table>
       </div>
+      <div class="hist-list" id="reimb-cards"></div>
     </div>
 
     <!-- Reports -->
@@ -896,6 +937,18 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
       <button class="btn primary block" onclick="saveCustomization()">💾 Save Customization</button>
 
+      <div class="section-title">"Needs Attention" Alerts</div>
+      <p style="font-size:12.5px;color:var(--muted);">Controls when the Dashboard flags an entry or a driver for a second look. This never changes balances or blocks anything — it only decides what shows up as a heads-up.</p>
+      <div class="settings-row"><span>Flag expenses without a receipt over</span>
+        <input type="number" id="th-receipt" style="width:100px;padding:8px;border:1px solid var(--line);border-radius:8px;" placeholder="500"></div>
+      <div class="settings-row"><span>Flag expenses as "high value" over</span>
+        <input type="number" id="th-highvalue" style="width:100px;padding:8px;border:1px solid var(--line);border-radius:8px;" placeholder="1000"></div>
+      <div class="settings-row"><span>Warn when a driver's cash left drops below</span>
+        <input type="number" id="th-lowcash" style="width:100px;padding:8px;border:1px solid var(--line);border-radius:8px;" placeholder="300"></div>
+      <div class="settings-row"><span>Warn when amount owed to a driver reaches</span>
+        <input type="number" id="th-owed" style="width:100px;padding:8px;border:1px solid var(--line);border-radius:8px;" placeholder="1000"></div>
+      <button class="btn primary block" onclick="saveThresholds()">💾 Save Alert Settings</button>
+
       <div class="section-title">Account</div>
       <div class="settings-row">
         <span>Logged in as</span>
@@ -937,6 +990,11 @@ let CATEGORIES = [
 ];
 let CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
 let QUICK_NOTES = ['Site Material','Vehicle','Delivery','Nursery','Sand','Repair','Other'];
+// Configurable "needs attention" thresholds (Admin → Settings). Purely a
+// display/flagging aid — never affects balances, approvals, or any saved
+// transaction data. `let`, not `const`: applyServerConfig() below overwrites
+// these with Esa's saved values, same pattern as CATEGORIES.
+let THRESHOLDS = { receiptAbove: 500, highValueAbove: 1000, lowCashBelow: 300, owedAbove: 1000 };
 // Applies Esa's saved category/quick-note customization (if any) on top of
 // the built-in defaults above. Called once after every successful
 // loadFromServer() so a change he just saved shows up everywhere, on every
@@ -955,6 +1013,9 @@ function applyServerConfig(config){
   }
   if(Array.isArray(config.quickNotes) && config.quickNotes.length){
     QUICK_NOTES = config.quickNotes;
+  }
+  if(config.thresholds && typeof config.thresholds==='object'){
+    THRESHOLDS = Object.assign({}, THRESHOLDS, config.thresholds);
   }
 }
 
@@ -1173,6 +1234,7 @@ function friendlySyncError(err){
   if(err==='timeout') return "The server is taking too long to respond — this usually isn't your connection, it's Google's server waking up. Wait a few seconds and tap Retry.";
   if(err==='not_configured') return 'Sync is not set up yet.';
   if(err==='unauthorized') return "The app and your Google Sheet don't recognize each other right now — this is a setup problem, not your internet. The Apps Script needs to be redeployed with the matching password. Contact your developer.";
+  if(err==='admin_required') return "Only the Admin device can do this.";
   if(err==='busy_try_again') return 'The server is busy with another save right now — please tap Retry in a moment.';
   if(err==='bad_response') return "Got an unexpected reply from the server. Please tap Retry — if this keeps happening, your Apps Script deployment may need updating.";
   if(typeof err==='string' && err.indexOf('http_')===0) return `Server error (${err.replace('http_','')}). Please tap Retry in a moment.`;
@@ -1187,7 +1249,7 @@ function updateConnBanner(){
 // Bump alongside SCHEMA_VERSION in apps-script-sync.gs. If the deployed
 // Apps Script is older than this, some features (like delete requests) will
 // silently do nothing — this makes that failure visible instead of confusing.
-const EXPECTED_SCHEMA_VERSION = 4;
+const EXPECTED_SCHEMA_VERSION = 5;
 let SCHEMA_OUTDATED = false;
 function updateSchemaBanner(){
   const el = document.getElementById('schema-banner');
@@ -1233,7 +1295,13 @@ async function postToSync(payload){
         // caller has to remember to add) so the server can log who did what,
         // for the Activity Log — CURRENT_DRIVER_NAME is 'Esa' on the Admin
         // device, or the logged-in driver's name on theirs.
-        body: JSON.stringify(Object.assign({secret: SYNC_SECRET, by: CURRENT_DRIVER_NAME||'Unknown'}, payload)),
+        // adminAuth rides along automatically on every request made from the
+        // Admin device (never from a driver's) — the server now checks this
+        // before performing anything admin-only (approve/reject, delete,
+        // driver roster changes, category/threshold customization), so those
+        // can no longer be triggered by a request that merely has the
+        // app-wide sync secret. See isAdminRequest_() in apps-script-sync.gs.
+        body: JSON.stringify(Object.assign({secret: SYNC_SECRET, by: CURRENT_DRIVER_NAME||'Unknown', adminAuth: IS_ADMIN_DEVICE ? ADMIN_PASSWORD : ''}, payload)),
         cache:'no-store',
         signal: controller.signal,
       });
@@ -1301,6 +1369,7 @@ async function loadFromServer(){
       givenBy: r.givenBy||'',
       status: r.status || 'approved', // blank = recorded before approvals existed
       deleteRequested: !!r.deleteRequested,
+      rejectionReason: r.rejectionReason || '',
       // Prefer the durable Drive link the server now keeps (works forever,
       // on any device); fall back to this session's own just-saved copy
       // only for the brief window before that link comes back from a
@@ -1710,6 +1779,7 @@ function renderHome(){
   const adminTiles = document.getElementById('admin-action-tiles');
   if(driverTiles) driverTiles.style.display = IS_ADMIN_DEVICE ? 'none' : 'grid';
   if(adminTiles) adminTiles.style.display = IS_ADMIN_DEVICE ? 'grid' : 'none';
+  renderRepeatLastTile();
   const errBox = document.getElementById('home-load-error');
   const showErr = firstLoadDone && !lastLoadOk;
   if(errBox) errBox.style.display = showErr ? 'block' : 'none';
@@ -1915,16 +1985,63 @@ function setTodayDefaults(){
   document.getElementById('rep-from').value = dateStr;
   document.getElementById('rep-to').value = dateStr;
 }
+// Most recent expense this driver logged (any status) — used both for the
+// "Last used" hint on the type tiles and for the Home screen's Repeat Last
+// button. ALL_TXNS is oldest-first, so the last match found is the newest.
+function getLastExpenseForDriver(name){
+  let last = null;
+  for(const t of ALL_TXNS){
+    if(t.type==='expense' && (t.driver||'').trim()===name) last = t;
+  }
+  return last;
+}
 function buildCatGrid(){
   const grid = document.getElementById('cat-grid');
+  const last = !IS_ADMIN_DEVICE ? getLastExpenseForDriver(CURRENT_DRIVER_NAME) : null;
   grid.innerHTML = CATEGORIES.map(c=>`
     <button class="cat-btn" data-cat="${c.id}" onclick="selectCategory('${c.id}')">
-      <div class="ic">${c.ic}</div>${c.lbl}
+      <div class="ic">${c.ic}</div>${c.lbl}${last && last.category===c.id ? '<div style="font-size:9.5px;font-weight:700;color:var(--green-dark);margin-top:2px;">LAST USED</div>' : ''}
     </button>`).join('');
+}
+// A one-tap way to log the same kind of purchase again (e.g. fuel every
+// morning) — pre-fills Buy/Pay from the driver's most recent expense, same
+// as Fix & Resubmit, but from Home rather than from a rejected entry, and
+// always creates a brand-new entry.
+function renderRepeatLastTile(){
+  const wrap = document.getElementById('home-repeat-last-wrap');
+  if(!wrap) return;
+  if(IS_ADMIN_DEVICE || !lastLoadOk){ wrap.style.display='none'; return; }
+  const last = getLastExpenseForDriver(CURRENT_DRIVER_NAME);
+  if(!last){ wrap.style.display='none'; return; }
+  const c = CAT_MAP[last.category] || {ic:'🛒', lbl:last.category};
+  const btn = document.getElementById('home-repeat-last-btn');
+  btn.innerHTML = `<span style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:700;">↻ Repeat Last</span><br>${c.ic} ${escapeHtml(c.lbl)} · ${fmt(last.amount)}`;
+  wrap.style.display='block';
+}
+async function repeatLastTransaction(){
+  const last = getLastExpenseForDriver(CURRENT_DRIVER_NAME);
+  if(!last){ toast('No previous purchase to repeat'); return; }
+  await openExpenseEntry();
+  if(last.category) selectCategory(last.category);
+  document.getElementById('exp-amount').value = last.amount || '';
+  document.getElementById('exp-note').value = last.note || '';
+  document.getElementById('exp-supplier').value = last.supplier || '';
+  document.getElementById('exp-site').value = last.site || '';
+  document.getElementById('exp-vehicle').value = last.vehicle || '';
+  if(last.supplier || last.site || last.vehicle){
+    document.getElementById('more-fields').classList.add('show');
+  }
+  selectPay(last.payMode || 'company');
+  toast('Check the amount, then Save');
 }
 async function openExpenseEntry(){
   pushScreen('screen-expense');
   const r = await refreshAll(); // fresh balance so the auto-split and "not enough cash" warning are never stale
+  // Rebuilds the type tiles from whatever's current — Esa's latest saved
+  // category customization (if any) and this driver's own "last used" tag —
+  // instead of the one-time list built when the app first opened, which
+  // could otherwise go stale for the entire session.
+  buildCatGrid();
   resetExpenseForm();
   if(!r.ok) toast(friendlySyncError(r.error));
 }
@@ -1944,6 +2061,8 @@ function resetExpenseForm(){
   document.getElementById('note-box').classList.remove('note-required');
   updateNoteLabelForCategory(null);
   document.getElementById('photo-preview').style.display='none';
+  const receiptBtn = document.getElementById('add-receipt-btn');
+  if(receiptBtn) receiptBtn.innerHTML = '🧾 ADD RECEIPT';
   document.getElementById('more-fields').classList.remove('show');
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('sel'));
   setTodayDefaults();
@@ -1952,6 +2071,36 @@ function resetExpenseForm(){
   // starts pre-selected — the driver only has to tap something when it's
   // actually "Me" or "Both", instead of on every single entry.
   selectPay('company');
+}
+// Opens a fresh Buy/Pay form pre-filled with everything from a rejected
+// entry, so the driver only has to fix whatever Esa flagged rather than
+// retyping the whole thing. Saving it creates a brand-new pending entry with
+// its own ID — the original rejected entry is never touched or resubmitted
+// in place, so the record of the rejection always stays in History.
+async function fixAndResubmit(id){
+  const t = ALL_TXNS.find(x=>x.id===id);
+  if(!t){ toast("Couldn't find that entry"); return; }
+  await openExpenseEntry(); // does its own refresh + resetExpenseForm()
+  if(t.category) selectCategory(t.category);
+  document.getElementById('exp-amount').value = t.amount || '';
+  document.getElementById('exp-note').value = t.note || '';
+  document.getElementById('exp-supplier').value = t.supplier || '';
+  document.getElementById('exp-site').value = t.site || '';
+  document.getElementById('exp-receipt').value = t.receiptNo || '';
+  document.getElementById('exp-vehicle').value = t.vehicle || '';
+  document.getElementById('exp-remarks').value = t.remarks || '';
+  if(t.supplier || t.site || t.receiptNo || t.vehicle || t.remarks){
+    document.getElementById('more-fields').classList.add('show');
+  }
+  selectPay(t.payMode || 'company');
+  if(t.payMode==='both'){
+    document.getElementById('split-company').value = t.companyAmount || '';
+    document.getElementById('split-me').value = t.meAmount || '';
+  }
+  // The photo itself isn't carried over — the original is a saved Drive
+  // link, not the raw image data a new save needs, so re-attaching a photo
+  // here (if one's still needed) means taking it again.
+  toast(t.photo ? 'Fix whatever needs changing (retake the photo if needed), then Save to resend it' : 'Fix whatever needs changing, then Save to resend it for approval');
 }
 function refreshSiteList(){
   const sites = [...new Set(ALL_TXNS.filter(t=>t.site).map(t=>t.site))];
@@ -2049,6 +2198,9 @@ function onPhotoSelected(e){
       expState.photo = dataUrl;
       document.getElementById('photo-preview-img').src = dataUrl;
       document.getElementById('photo-preview').style.display='block';
+      const btn = document.getElementById('add-receipt-btn');
+      if(btn) btn.innerHTML = '✅ RECEIPT ADDED — TAP TO REPLACE';
+      toast('✅ Receipt added');
     });
   };
   reader.readAsDataURL(file);
@@ -2071,6 +2223,8 @@ function removePhoto(){
   expState.photo = null;
   document.getElementById('photo-preview').style.display='none';
   document.getElementById('exp-photo-input').value='';
+  const btn = document.getElementById('add-receipt-btn');
+  if(btn) btn.innerHTML = '🧾 ADD RECEIPT';
 }
 
 // Catches the two most likely ways a duplicate entry happens: (1) a save
@@ -2202,6 +2356,11 @@ async function saveCashIn(){
 // immediately (this device is an approved Admin device) or is waiting on
 // Esa to approve it first, instead of always just saying "saved" either way.
 function showSavedScreen(what, status){
+  // Instant feedback the moment the save actually succeeds — the full
+  // confirmation screen below still follows (with its NEXT/WHATSAPP/HOME
+  // choices), but the driver doesn't have to wait for that screen to render
+  // to know it worked.
+  toast(status==='pending' ? '⏳ Sent for approval' : '✅ Saved');
   const titleEl = document.getElementById('saved-title');
   const subEl = document.getElementById('saved-sub');
   if(status==='pending'){
@@ -2700,6 +2859,10 @@ function renderHistItem(t){
   const delBtn = `<button class="hist-del" onclick="requestDeleteFromHistory('${t.id}')" title="${delTitle}">🗑</button>`;
   const statusTag = t.status==='pending' ? `<span class="hi-tag" style="background:#fff3cd;color:#8a6d00;">⏳ PENDING APPROVAL</span>`
     : t.status==='rejected' ? `<span class="hi-tag" style="background:#fde3e3;color:#a11;">❌ REJECTED</span>` : '';
+  // The reason Esa gave (if any) so a driver understands what to fix — never
+  // blocks anything, just shown as plain text under the tag.
+  const reasonNote = (t.status==='rejected' && t.rejectionReason)
+    ? `<div style="font-size:12.5px;color:#a11;margin-top:4px;">Reason: ${escapeHtml(t.rejectionReason)}</div>` : '';
   const deleteTag = t.deleteRequested ? `<span class="hi-tag" style="background:#e6e6ff;color:#3a3ac1;">🗑 DELETE REQUESTED</span>` : '';
   // Esa needs to see WHOSE entry this is when looking at an unfiltered or
   // "Other" list (a driver viewing their own filtered History already knows).
@@ -2717,20 +2880,25 @@ function renderHistItem(t){
       btns.push(`<button class="btn danger" style="flex:1;padding:9px;font-size:12.5px;" onclick="rejectEntry('${t.id}')">✗ Reject</button>`);
     }
     actionsRow = `<div style="display:flex;gap:8px;margin-top:10px;">${btns.join('')}</div>`;
+  } else if(!IS_ADMIN_DEVICE && t.status==='rejected' && t.type==='expense'){
+    // Lets the driver fix whatever caused the rejection (amount, category,
+    // note, pay mode, photo) and send it in again as a brand-new pending
+    // entry — the rejected one stays exactly as-is in History for the record.
+    actionsRow = `<div style="margin-top:10px;"><button class="btn" style="width:100%;padding:9px;font-size:12.5px;background:var(--amber);color:#3a2a00;" onclick="fixAndResubmit('${t.id}')">✏️ Fix &amp; Resubmit</button></div>`;
   }
   const detail = buildHistDetailHTML(t);
   if(t.type==='cash_in'){
     return `<div class="hist-item"><div class="hi-ic">💰</div><div class="hi-body">
       <div class="hi-top"><span>Cash In</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-cashin">CASH IN</span>${driverTag}${statusTag}${deleteTag}${actionsRow}${detail}
+      <span class="hi-tag tag-cashin">CASH IN</span>${driverTag}${statusTag}${deleteTag}${reasonNote}${actionsRow}${detail}
     </div>${thumb}${delBtn}</div>`;
   }
   if(t.type==='reimbursement'){
     return `<div class="hist-item"><div class="hi-ic">↩️</div><div class="hi-body">
       <div class="hi-top"><span>Reimbursement</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.note?escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-reimb">REIMBURSED</span>${driverTag}${statusTag}${deleteTag}${actionsRow}${detail}
+      <span class="hi-tag tag-reimb">REIMBURSED</span>${driverTag}${statusTag}${deleteTag}${reasonNote}${actionsRow}${detail}
     </div>${thumb}${delBtn}</div>`;
   }
   const c = CAT_MAP[t.category] || {ic:'➕', lbl:t.category};
@@ -2738,7 +2906,7 @@ function renderHistItem(t){
   return `<div class="hist-item"><div class="hi-ic">${c.ic}</div><div class="hi-body">
     <div class="hi-top"><span>${c.lbl}</span><span>${fmt(t.amount)}</span></div>
     <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${driverTag}${statusTag}${deleteTag}${actionsRow}${detail}
+    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${driverTag}${statusTag}${deleteTag}${reasonNote}${actionsRow}${detail}
   </div>${thumb}${delBtn}</div>`;
 }
 // The driver-entered fields (supplier, site, receipt no., vehicle, remarks,
@@ -2874,6 +3042,27 @@ function renderAdminSettingsStatus(){
 function renderCustomizeFields(){
   const catEl = document.getElementById('cfg-categories');
   if(catEl) catEl.value = CATEGORIES.map(c=>`${c.ic} ${c.lbl}`).join('\n');
+  const rEl = document.getElementById('th-receipt'); if(rEl) rEl.value = THRESHOLDS.receiptAbove;
+  const hEl = document.getElementById('th-highvalue'); if(hEl) hEl.value = THRESHOLDS.highValueAbove;
+  const lEl = document.getElementById('th-lowcash'); if(lEl) lEl.value = THRESHOLDS.lowCashBelow;
+  const oEl = document.getElementById('th-owed'); if(oEl) oEl.value = THRESHOLDS.owedAbove;
+}
+// Saves Esa's own alert thresholds to the server, same pattern as
+// saveCustomization() above — every device picks it up on its next refresh.
+async function saveThresholds(){
+  const num = (id, fallback)=>{ const v = parseFloat(document.getElementById(id).value); return (isFinite(v) && v>=0) ? v : fallback; };
+  const thresholds = {
+    receiptAbove: num('th-receipt', THRESHOLDS.receiptAbove),
+    highValueAbove: num('th-highvalue', THRESHOLDS.highValueAbove),
+    lowCashBelow: num('th-lowcash', THRESHOLDS.lowCashBelow),
+    owedAbove: num('th-owed', THRESHOLDS.owedAbove),
+  };
+  toast('Saving…');
+  const result = await postToSync({config:{thresholds}});
+  if(!result.ok){ toast(friendlySyncError(result.error)); return; }
+  await refreshAll();
+  renderCustomizeFields();
+  toast('Alert settings saved');
 }
 // Parses the textarea and saves it to the server as Esa's own custom
 // category list — from then on, every device (his and both drivers') shows
@@ -2976,6 +3165,36 @@ function renderDashboardStats(){
   document.getElementById('d-exp').textContent = lastLoadOk ? fmt(b.totalExpense) : '—';
   document.getElementById('d-reimb').textContent = lastLoadOk ? fmt(b.totalReimb) : '—';
   document.getElementById('d-count').textContent = lastLoadOk ? ALL_TXNS.length : '—';
+  renderNeedsAttention();
+}
+// A one-glance summary of what Esa should look at first, so he isn't hunting
+// through every tab to notice a pending approval or a driver running low.
+// Purely a read-only display built from data already loaded — never writes
+// anything, never affects balances or approvals.
+function renderNeedsAttention(){
+  const wrap = document.getElementById('needs-attention-wrap');
+  const list = document.getElementById('needs-attention-list');
+  if(!wrap || !list) return;
+  if(!lastLoadOk){ wrap.style.display='none'; return; }
+  const items = [];
+  const pendingCount = approvalsNeededCount();
+  if(pendingCount>0){
+    items.push({ic:'⏳', text:`${pendingCount} entr${pendingCount===1?'y':'ies'} waiting for approval`, action:`selectAdminTab('approvals')`});
+  }
+  (DRIVER_NAMES||[]).forEach(name=>{
+    const b = driverBalances(name);
+    if(b.companyCash < (THRESHOLDS.lowCashBelow||0)){
+      items.push({ic:'💵', text:`${name} is low on company cash (${fmt(b.companyCash)})`, action:`openHistory('${name}')`});
+    }
+    if(b.driverOwed >= (THRESHOLDS.owedAbove||Infinity)){
+      items.push({ic:'🧾', text:`${name} is owed ${fmt(b.driverOwed)} — consider reimbursing`, action:`selectAdminTab('reimb')`});
+    }
+  });
+  if(!items.length){ wrap.style.display='none'; list.innerHTML=''; return; }
+  wrap.style.display='block';
+  list.innerHTML = items.map(it=>`<div class="stat-card" style="margin-bottom:8px;text-align:left;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="${it.action}">
+    <span style="font-size:20px;">${it.ic}</span><span style="font-size:13.5px;">${escapeHtml(it.text)}</span>
+  </div>`).join('');
 }
 async function refreshAdmin(){
   const result = await refreshAll();
@@ -3029,10 +3248,26 @@ function buildApprovalsHTML(){
     }).join('');
   }
   if(rows.length){
+    // Stale exclusions (an entry that's no longer pending) never linger and
+    // silently confuse a later bulk-approve count.
+    const pendingIds = new Set(rows.map(t=>t.id));
+    Array.from(bulkExcludedApprovalIds).forEach(id=>{ if(!pendingIds.has(id)) bulkExcludedApprovalIds.delete(id); });
     html += `<div class="section-title">New Entries</div>`;
+    if(rows.length>1){
+      const includedCount = rows.length - bulkExcludedApprovalIds.size;
+      html += `<div class="stat-card" style="margin-bottom:10px;text-align:left;background:var(--green-light);">
+        <div style="font-size:13px;margin-bottom:8px;">Uncheck any entry below you want to leave pending, then approve the rest in one tap.</div>
+        <button class="btn block" style="background:var(--green-dark);color:#fff;" onclick="bulkApproveEntries()">✓ Approve ${includedCount} Selected</button>
+      </div>`;
+    }
     html += rows.map(t=>{
       const typeLbl = t.type==='cash_in'?'Cash In':(t.type==='expense'?('Expense — '+(CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category)):'Reimbursement');
+      const checked = bulkExcludedApprovalIds.has(t.id) ? '' : 'checked';
+      const bulkCheckbox = rows.length>1
+        ? `<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:var(--muted);"><input type="checkbox" ${checked} onchange="toggleBulkExclude('${t.id}', !this.checked)"> Include in bulk approve</label>`
+        : '';
       return `<div class="stat-card" style="margin-bottom:10px;text-align:left;">
+        ${bulkCheckbox}
         <div style="display:flex;justify-content:space-between;font-weight:800;font-size:15px;">
           <span>${escapeHtml(typeLbl)}</span><span>${fmt(t.amount)}</span>
         </div>
@@ -3047,6 +3282,31 @@ function buildApprovalsHTML(){
     }).join('');
   }
   return html || `<div class="empty-note">Nothing waiting on you right now.</div>`;
+}
+// Which pending entries are unchecked (excluded) from the next bulk-approve
+// tap — kept across re-renders of the Approvals list so ticking a box while
+// Esa scrolls through a long list isn't lost. Cleared after a bulk approve.
+let bulkExcludedApprovalIds = new Set();
+function toggleBulkExclude(id, exclude){
+  if(exclude) bulkExcludedApprovalIds.add(id); else bulkExcludedApprovalIds.delete(id);
+  // Just refresh the count on the bulk button's own text — cheap, and avoids
+  // re-rendering (and collapsing the scroll position of) the whole list just
+  // because one checkbox changed.
+  const count = pendingEntries().filter(t=>!bulkExcludedApprovalIds.has(t.id)).length;
+  document.querySelectorAll('button[onclick="bulkApproveEntries()"]').forEach(b=>{
+    b.textContent = `✓ Approve ${count} Selected`;
+  });
+}
+async function bulkApproveEntries(){
+  const rows = pendingEntries().filter(t=>!bulkExcludedApprovalIds.has(t.id));
+  if(!rows.length){ toast('Nothing selected to approve'); return; }
+  if(!(await askConfirm(`Approve ${rows.length} entr${rows.length===1?'y':'ies'}? Anything unchecked stays pending.`))) return;
+  toast('Approving…');
+  const result = await postToSync({statusUpdates: rows.map(t=>({id:t.id, status:'approved'}))});
+  if(!result.ok){ toast(friendlySyncError(result.error)); return; }
+  bulkExcludedApprovalIds.clear();
+  toast(`${rows.length} entr${rows.length===1?'y':'ies'} approved`);
+  await refreshAfterAdminAction();
 }
 function renderApprovalsTab(){
   updateApprovalsBadges();
@@ -3115,29 +3375,69 @@ async function approveEntry(id){
 }
 async function rejectEntry(id){
   if(!(await askConfirm('Reject this entry? It will never count toward the balance.'))) return;
+  // Optional — a short reason helps the driver understand what to fix and
+  // resubmit correctly, but rejecting must never be blocked on typing one.
+  const reason = (prompt('Reason for rejecting (optional — shown to the driver):', '') || '').trim();
   toast('Rejecting…');
-  const result = await setEntryStatus(id, 'rejected');
+  const result = await postToSync({statusUpdates:[{id, status:'rejected', reason}]});
   if(!result.ok){ toast("Couldn't reject — check your connection and try again."); return; }
   toast('Rejected');
   await refreshAfterAdminAction();
 }
+// Which status chip (ALL/PENDING/APPROVED/REJECTED) is selected on the
+// Transactions tab — kept separate from the type dropdown so both can be
+// used together (e.g. "pending expenses only").
+let txnStatusFilter = '';
+function setTxnStatusFilter(status){
+  txnStatusFilter = status;
+  document.querySelectorAll('#screen-admin [data-panel="txns"] .hist-chip').forEach(b=>b.classList.toggle('sel', b.dataset.fs===status));
+  renderTxnTable();
+}
+// Fills the driver dropdown with the current roster, same pattern used on
+// History's admin driver filter, so a newly-added driver shows up here too.
+function populateTxnDriverSelect(){
+  const sel = document.getElementById('f-driver');
+  if(!sel) return;
+  const current = Array.from(sel.options).map(o=>o.value);
+  const wanted = ['', ...DRIVER_NAMES];
+  if(current.join('|') !== wanted.join('|')){
+    const prev = sel.value;
+    sel.innerHTML = `<option value="">All Drivers</option>` + DRIVER_NAMES.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+    sel.value = wanted.includes(prev) ? prev : '';
+  }
+}
+// Search now covers driver name, transaction ID and amount too — not just
+// note/supplier/site/receipt/vehicle/remarks — so "Jawad", "180" or an ID
+// pasted from a report all find the right entry.
 function getFilteredTxns(){
   const q = (document.getElementById('f-search').value||'').toLowerCase();
   const type = document.getElementById('f-type').value;
+  const driverSel = document.getElementById('f-driver');
+  const driver = driverSel ? driverSel.value : '';
   const from = document.getElementById('f-from').value;
   const to = document.getElementById('f-to').value;
   return ALL_TXNS.filter(t=>{
     if(type && t.type!==type) return false;
+    if(driver && (t.driver||'').trim()!==driver) return false;
+    if(txnStatusFilter){
+      const st = t.status || 'approved';
+      if(st!==txnStatusFilter) return false;
+    }
     if(from && t.date < from) return false;
     if(to && t.date > to) return false;
     if(q){
-      const hay = [t.note,t.supplier,t.site,t.receiptNo,t.vehicle,t.remarks].filter(Boolean).join(' ').toLowerCase();
+      const hay = [t.note,t.supplier,t.site,t.receiptNo,t.vehicle,t.remarks,t.driver,t.id,String(t.amount||'')].filter(Boolean).join(' ').toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
   }).slice().reverse();
 }
+// Renders BOTH the wide-screen table and the phone-width card list from the
+// same filtered rows — CSS (not JS) decides which one is actually visible at
+// the current screen width, so there is only ever one data path to keep
+// correct, never two renderers that could drift out of sync.
 function renderTxnTable(){
+  populateTxnDriverSelect();
   const rows = getFilteredTxns();
   document.getElementById('txn-tbody').innerHTML = rows.map(t=>{
     const cat = t.type==='expense' ? (CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category) : (t.type==='cash_in'?'—':'—');
@@ -3149,10 +3449,59 @@ function renderTxnTable(){
       <td>${t.date}</td><td>${typeLbl}</td><td>${escapeHtml(cat)}</td><td>${fmt(t.amount)}</td>
       <td>${paid}</td><td>${escapeHtml(t.note||'')}</td>
       <td>${t.photo?'📷':''}</td>
-      <td>${statusLbl}</td>
+      <td>${statusLbl}${riskFlagsHTML(t)}</td>
       <td><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="deleteTxn('${t.id}')">Delete</button></td>
     </tr>`;
   }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No transactions found.</td></tr>`;
+  const cardsEl = document.getElementById('txn-cards');
+  if(cardsEl) cardsEl.innerHTML = rows.map(renderTxnCard).join('') || `<div class="empty-note">No transactions found.</div>`;
+}
+// Purely visual "risk" tags shown to Admin on a transaction — never changes
+// status, never affects balances/approvals, just calls out entries worth a
+// second look. Thresholds are Esa's own (Admin → Settings), so this stays
+// meaningful as his business grows instead of using fixed guesses forever.
+function riskFlagsHTML(t){
+  if(t.type!=='expense') return '';
+  let html = '';
+  const amt = Number(t.amount)||0;
+  if(amt >= (THRESHOLDS.highValueAbove||Infinity)){
+    html += `<span class="hi-tag" style="background:#ffe8d1;color:#a15c00;">💰 HIGH VALUE</span>`;
+  }
+  if(amt >= (THRESHOLDS.receiptAbove||Infinity) && !t.photo){
+    html += `<span class="hi-tag" style="background:#fde3e3;color:#a11;">🧾 NO RECEIPT</span>`;
+  }
+  if(t.payMode==='driver'){
+    html += `<span class="hi-tag" style="background:#e6e6ff;color:#3a3ac1;">🙋 PAID BY DRIVER</span>`;
+  }
+  const dupe = ALL_TXNS.find(o=>
+    o.id!==t.id && o.type===t.type &&
+    (o.driver||'').trim()===(t.driver||'').trim() &&
+    o.date===t.date &&
+    Math.abs((Number(o.amount)||0)-amt) < 0.01 &&
+    o.category===t.category
+  );
+  if(dupe){
+    html += `<span class="hi-tag" style="background:#fff3cd;color:#8a6d00;">⚠️ POSSIBLE DUPLICATE</span>`;
+  }
+  return html ? `<div style="margin-top:6px;">${html}</div>` : '';
+}
+// Phone-width version of the same row — a stacked card instead of a table
+// row that would otherwise need horizontal scrolling to read on a phone.
+function renderTxnCard(t){
+  const cat = t.type==='expense' ? (CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category) : (t.type==='cash_in'?'Cash In':'Reimbursement');
+  const icon = t.type==='cash_in' ? '💰' : (t.type==='reimbursement' ? '↩️' : (CAT_MAP[t.category]?CAT_MAP[t.category].ic:'🛒'));
+  const paid = t.type==='expense' ? ` · ${t.payMode.toUpperCase()}` : '';
+  let statusTag = t.status==='pending' ? `<span class="hi-tag" style="background:#fff3cd;color:#8a6d00;">⏳ PENDING</span>`
+    : t.status==='rejected' ? `<span class="hi-tag" style="background:#fde3e3;color:#a11;">❌ REJECTED</span>`
+    : `<span class="hi-tag" style="background:#e3f5e8;color:#177a3a;">✅ APPROVED</span>`;
+  if(t.deleteRequested) statusTag += ` <span class="hi-tag" style="background:#e6e6ff;color:#3a3ac1;">🗑 DELETE REQUESTED</span>`;
+  const flags = riskFlagsHTML(t);
+  return `<div class="hist-item"><div class="hi-ic">${icon}</div><div class="hi-body">
+    <div class="hi-top"><span>${escapeHtml(cat)}</span><span>${fmt(t.amount)}</span></div>
+    <div class="hi-sub">${escapeHtml(t.driver||'—')} · ${t.date}${paid}${t.note?' · '+escapeHtml(t.note):''}</div>
+    ${statusTag}${flags}
+    <div style="margin-top:8px;"><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="deleteTxn('${t.id}')">Delete</button></div>
+  </div>${t.photo?`<img class="hist-thumb" src="${t.photo}" onclick="openPhotoModal('${t.id}')">`:''}</div>`;
 }
 async function deleteTxn(id){
   if(!(await askConfirm('Delete this entry? This cannot be undone.'))) return;
@@ -3186,22 +3535,68 @@ function renderReimbTab(){
   const name = reimbSelectedDriver();
   document.getElementById('r-owed-name').textContent = name;
   document.getElementById('r-owed').textContent = fmt(driverBalances(name).driverOwed);
+  document.getElementById('reimb-warning').classList.remove('show');
   const rows = ALL_TXNS.filter(t=>t.type==='reimbursement').slice().reverse();
   document.getElementById('reimb-tbody').innerHTML = rows.map(t=>{
     const statusLbl = t.status==='pending' ? ' ⏳' : (t.status==='rejected' ? ' ❌' : '');
-    return `<tr><td>${t.date}</td><td>${escapeHtml(t.driver||'')}</td><td>${fmt(t.amount)}${statusLbl}</td><td>${escapeHtml(t.note||'')}</td></tr>`;
+    const method = t.remarks ? ` (${escapeHtml(t.remarks)})` : '';
+    return `<tr><td>${t.date}</td><td>${escapeHtml(t.driver||'')}</td><td>${fmt(t.amount)}${statusLbl}</td><td>${escapeHtml(t.note||'')}${method}</td></tr>`;
   }).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">No reimbursements yet.</td></tr>`;
+  const cardsEl = document.getElementById('reimb-cards');
+  if(cardsEl){
+    cardsEl.innerHTML = rows.map(t=>{
+      const statusLbl = t.status==='pending' ? '⏳ Pending' : (t.status==='rejected' ? '❌ Rejected' : '✅ Approved');
+      const method = t.remarks ? ` · ${escapeHtml(t.remarks)}` : '';
+      return `<div class="hist-item"><div class="hi-ic">↩️</div><div class="hi-body">
+        <div class="hi-top"><span>${escapeHtml(t.driver||'')}</span><span>${fmt(t.amount)}</span></div>
+        <div class="hi-sub">${t.date}${method}${t.note?' · '+escapeHtml(t.note):''}</div>
+        <span class="hi-tag" style="background:#e3f5e8;color:#177a3a;">${statusLbl}</span>
+      </div></div>`;
+    }).join('') || `<div class="empty-note">No reimbursements yet.</div>`;
+  }
+}
+// One tap fills in exactly what's currently owed — no more copying the
+// number by hand from the stat card above into the amount field.
+function fillReimbFullAmount(){
+  const owed = driverBalances(reimbSelectedDriver()).driverOwed;
+  document.getElementById('r-amount').value = owed>0 ? round2(owed) : '';
+  onReimbAmountEdit();
+}
+// Warns (never silently blocks — some businesses do legitimately overpay or
+// advance) the moment the typed amount exceeds what's actually owed right
+// now, instead of only finding out after it's already saved.
+function onReimbAmountEdit(){
+  const amount = parseFloat(document.getElementById('r-amount').value)||0;
+  const owed = driverBalances(reimbSelectedDriver()).driverOwed;
+  const warnBox = document.getElementById('reimb-warning');
+  if(amount>0 && amount > owed + 0.01){
+    document.getElementById('reimb-warning-text').textContent = `This is more than the ${fmt(owed)} currently owed.`;
+    warnBox.classList.add('show');
+  } else {
+    warnBox.classList.remove('show');
+  }
 }
 async function saveReimbursement(){
   const amount = parseFloat(document.getElementById('r-amount').value);
   if(!amount || amount<=0){ toast('Enter an amount'); return; }
+  const driver = reimbSelectedDriver();
+  // Re-check against the balance one more time right before saving (not just
+  // at typing time) — the driver's balance could have moved since this tab
+  // was opened if a new expense synced in the meantime.
+  const owed = driverBalances(driver).driverOwed;
+  if(amount > owed + 0.01){
+    const ok = await askConfirm(`This is AED ${round2(amount-owed)} more than the ${fmt(owed)} currently owed to ${driver}. Save it anyway?`);
+    if(!ok) return;
+  }
+  const method = document.getElementById('r-method').value;
   const record = {
     id: 'r_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
     type:'reimbursement',
     date: document.getElementById('r-date').value,
     amount: round2(amount),
     note: document.getElementById('r-note').value.trim(),
-    driver: reimbSelectedDriver(),
+    remarks: method, // payment method — reuses the existing generic column, no schema change
+    driver: driver,
     status: await entryStatus(),
     createdAt: Date.now(),
   };
@@ -3215,6 +3610,7 @@ async function saveReimbursement(){
   }
   document.getElementById('r-amount').value='';
   document.getElementById('r-note').value='';
+  document.getElementById('reimb-warning').classList.remove('show');
   await refreshAdmin();
   toast('Reimbursement recorded');
 }

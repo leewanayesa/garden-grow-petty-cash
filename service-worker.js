@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gg-pettycash-v37';
+const CACHE_NAME = 'gg-pettycash-v38';
 // Only truly static, rarely-changing assets go through cache-first below.
 // index.html itself is deliberately network-first (see fetch handler) so a
 // new deploy is picked up the moment the app opens with internet, instead of
