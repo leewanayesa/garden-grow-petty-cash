@@ -2381,7 +2381,15 @@ async function saveExpense(){
     vehicle: document.getElementById('exp-vehicle').value.trim(),
     remarks: document.getElementById('exp-remarks').value.trim(),
     photo: expState.photo,
-    driver: await settingsGet('driverName',''),
+    // Audit fix 2026-10-02: was `await settingsGet('driverName','')` — a
+    // needless IndexedDB round trip on every single save, AND a real
+    // financial-correctness risk: if that call ever timed out (see the
+    // settingsGet/settingsSet timeout fix above), it would silently fall
+    // back to '' and save the expense with NO driver attributed, breaking
+    // that driver's balance. CURRENT_DRIVER_NAME is the exact same value,
+    // already held in memory and set reliably at login — no DB call, no
+    // failure mode, and it matches what postToSync() already uses for `by`.
+    driver: CURRENT_DRIVER_NAME,
     status: await entryStatus(),
     createdAt: Date.now(),
   };
@@ -2424,7 +2432,10 @@ async function saveCashIn(){
     amount: round2(amount),
     note: document.getElementById('ci-note').value.trim(),
     givenBy: document.getElementById('ci-givenby').value.trim(),
-    driver: await settingsGet('driverName',''),
+    // Same fix as saveExpense() above — use the in-memory source of truth,
+    // never a fresh IndexedDB read, on the hot path that actually attributes
+    // money to a driver.
+    driver: CURRENT_DRIVER_NAME,
     status: await entryStatus(),
     createdAt: Date.now(),
   };
@@ -2645,7 +2656,7 @@ async function buildAndDeliverStatementPDF(label, fromStr, toStr, opts){
   // as before. Admin's combined (all-drivers) statement shows no driver line
   // at all instead of misleadingly saying "Driver: Esa"; a specific driver
   // Admin picked shows that driver's name.
-  const driverName = driverFilter || (IS_ADMIN_DEVICE ? '' : await settingsGet('driverName',''));
+  const driverName = driverFilter || (IS_ADMIN_DEVICE ? '' : CURRENT_DRIVER_NAME);
   const doc = await buildStatementPDFDoc(label, fromStr, toStr, txns, opening, closing, driverName);
   const filename = `petty-cash-statement-${fromStr}_to_${toStr}.pdf`;
   if(opts.share===false){
@@ -3120,9 +3131,7 @@ async function selectAdminTab(tab){
 function renderAdminSettingsStatus(){
   const el = document.getElementById('admin-login-status');
   if(el){
-    settingsGet('driverName','').then(dn=>{
-      el.textContent = `${IS_ADMIN_DEVICE ? 'Admin' : 'Driver'} (${dn || '—'})`;
-    });
+    el.textContent = `${IS_ADMIN_DEVICE ? 'Admin' : 'Driver'} (${CURRENT_DRIVER_NAME || '—'})`;
   }
   const schemaEl = document.getElementById('admin-schema-status');
   const warnEl = document.getElementById('admin-schema-warning');
