@@ -8,6 +8,22 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192-v2.png">
 <link rel="apple-touch-icon" href="icon-192-v2.png">
+<!-- Audit fix 2026-10-02: iOS does NOT reliably read manifest.json's
+     "display":"standalone" the way Android/Chrome does — without these
+     Apple-specific tags, opening the home-screen icon on an iPhone/iPad can
+     show Safari's address bar and browser chrome around the app instead of
+     the clean full-screen app Android already got from the manifest alone.
+     These three lines are what actually make "Add to Home Screen" behave
+     like a real app on iOS. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<!-- "black" (not "black-translucent") deliberately: translucent makes the
+     page draw its own content underneath the iPhone's status bar/notch,
+     which this app's CSS doesn't account for (only the bottom safe area is
+     handled, not the top) — that would hide part of the green header under
+     the clock/battery icons. "black" keeps the status bar opaque and reserves
+     its own space, so nothing is covered. -->
+<meta name="apple-mobile-web-app-title" content="Petty Cash">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -1726,6 +1742,18 @@ async function submitLogin(){
   }
   const errBox = document.getElementById('login-error');
   const submitBtn = document.getElementById('login-submit-btn');
+  // Audit fix 2026-10-02: setBusy now wraps the WHOLE submit, not just the
+  // driver's network check, in a try/finally. Before this, Admin's path had
+  // NO busy indicator at all — so the settingsSet() calls inside
+  // completeLogin() (now timeout-protected, see openDB section, but still
+  // genuinely able to take a couple of seconds on a slow/stale connection)
+  // ran with the button just sitting there looking idle, no different from
+  // the frozen-forever bug this was meant to fix, just shorter. Now every
+  // path shows "CHECKING…" for its *entire* duration, and clearBusy always
+  // runs via finally — including if something throws — so the button can
+  // never get stuck disabled either.
+  if(submitBtn) setBusy(submitBtn, 'CHECKING…');
+  try{
   if(role==='admin'){
     // Admin is just Esa, so this one stays a simple fixed password — no
     // separate "account" to manage, same as before.
@@ -1740,9 +1768,7 @@ async function submitLogin(){
     // longer log in as another. This needs a live connection; if the phone
     // is offline, "remember me" from a previous successful login is what
     // gets someone back in without asking again (see init()/autologin).
-    if(submitBtn) setBusy(submitBtn, 'CHECKING…');
     const result = await postToSync({driverAuth:{name: LOGIN_STATE.driverName, password: pw}});
-    if(submitBtn) clearBusy(submitBtn);
     if(!result.ok){
       errBox.textContent = 'No internet — cannot verify your password right now. Try again once connected.';
       return;
@@ -1756,6 +1782,9 @@ async function submitLogin(){
   const remember = document.getElementById('login-remember').checked;
   const driverName = (role==='admin') ? 'Esa' : LOGIN_STATE.driverName;
   await completeLogin(role, driverName, remember, true);
+  } finally {
+    if(submitBtn) clearBusy(submitBtn);
+  }
 }
 // Finishes a login (from password OR face unlock): stores the role/driver
 // this device is now logged in as, sets IS_ADMIN_DEVICE (the single source
@@ -3832,6 +3861,20 @@ function registerSW(){
   let reloadedOnce = false;
   navigator.serviceWorker.addEventListener('controllerchange', ()=>{
     if(reloadedOnce) return;
+    // Audit fix 2026-10-02: a new version finishing its install can land at
+    // ANY moment, including the few seconds right after someone opens the
+    // app and is mid-typing their password on the login screen — this
+    // listener used to reload unconditionally, which would wipe that
+    // half-typed password out from under them for no visible reason (looks
+    // exactly like "I typed it and the app just reset"). Harmless to simply
+    // skip the reload in that one moment: the new service worker is already
+    // active and controlling, so the very next time the app is closed and
+    // reopened it loads the new version anyway — nothing is lost by waiting.
+    const loginVisible = document.getElementById('screen-login').classList.contains('active');
+    const pwField = document.getElementById('login-password');
+    if(loginVisible && pwField && pwField.value){
+      return;
+    }
     reloadedOnce = true;
     location.reload();
   });
@@ -3854,7 +3897,21 @@ function registerSW(){
 // nothing to do with any one platform. Calling init() here instead, at the
 // very end of the script after every function and variable is already
 // declared, removes the crash entirely.
-init();
+// Audit fix 2026-10-02: last-resort safety net. init() crashing used to mean
+// the green boot splash just stays up forever (see the LOGIN_STATE incident
+// above) — that bug class is fixed now, but there was nothing stopping a
+// DIFFERENT future bug inside init() from causing the exact same permanently-
+// stuck-splash symptom again. This catches ANY error anywhere in init(),
+// forces the splash to hide, and drops back to the Login screen no matter
+// what went wrong — so a bug here can, at worst, make someone log in again,
+// never make the app look dead with no way in.
+init().catch((e)=>{
+  console.error('init() failed, forcing Login screen so the app is never stuck:', e);
+  const splash = document.getElementById('boot-splash');
+  if(splash) splash.classList.add('hide');
+  IS_ADMIN_DEVICE = false;
+  try{ replaceScreen('screen-login'); }catch(e2){ /* DOM itself is broken — nothing more we can do */ }
+});
 </script>
 </body>
 </html>
