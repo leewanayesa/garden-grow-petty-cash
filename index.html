@@ -602,8 +602,16 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 
       <div class="photo-box">
         <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">Receipt (optional)</label>
-        <button class="photo-btn" id="add-receipt-btn" onclick="document.getElementById('exp-photo-input').click()">🧾 ADD RECEIPT</button>
+        <!-- Two ways to attach a receipt: take a new photo with the camera, or
+             pick one already on the phone. Both feed the exact same
+             onPhotoSelected() so compression/preview/upload are identical. -->
+        <div style="display:flex;gap:10px;">
+          <button class="photo-btn" id="add-receipt-btn" style="flex:1;padding:16px 8px;" onclick="document.getElementById('exp-photo-input').click()">📷 TAKE PHOTO</button>
+          <button class="photo-btn" id="add-gallery-btn" style="flex:1;padding:16px 8px;" onclick="document.getElementById('exp-gallery-input').click()">🖼 GALLERY</button>
+        </div>
         <input type="file" accept="image/*" capture="environment" class="hidden-input" id="exp-photo-input" onchange="onPhotoSelected(event)">
+        <input type="file" accept="image/*" class="hidden-input" id="exp-gallery-input" onchange="onPhotoSelected(event)">
+        <div id="receipt-added-note" style="display:none;margin-top:10px;font-weight:800;font-size:14px;color:var(--green);text-align:center;">✅ RECEIPT ADDED</div>
         <div class="photo-preview" id="photo-preview" style="display:none;">
           <img id="photo-preview-img">
           <button class="photo-remove" onclick="removePhoto()">✕</button>
@@ -1971,7 +1979,8 @@ function renderHome(){
           <div class="drv-amt owed"><span class="lbl">Owed</span><span class="val">${fmt(otherBal.driverOwed)}</span></div>
         </div>
         <div class="drv-arrow">›</div>
-      </button>` : '') + `</div>
+      </button>` : '') + (formerDriverRecords().length ? `
+      <button class="btn danger block" style="margin-top:8px;" onclick="deleteFormerDriverRecords()">🗑 Delete former drivers' records (${formerDriverRecords().length})</button>` : '') + `</div>
       <div class="section-label" style="margin-top:4px;">Today · ${fmt(todaySpend)} spent</div>
     `;
   } else {
@@ -2161,8 +2170,9 @@ function resetExpenseForm(){
   document.getElementById('note-box').classList.remove('note-required');
   updateNoteLabelForCategory(null);
   document.getElementById('photo-preview').style.display='none';
-  const receiptBtn = document.getElementById('add-receipt-btn');
-  if(receiptBtn) receiptBtn.innerHTML = '🧾 ADD RECEIPT';
+  setReceiptButtons(false);
+  const gi2 = document.getElementById('exp-gallery-input'); if(gi2) gi2.value='';
+  const ci2 = document.getElementById('exp-photo-input'); if(ci2) ci2.value='';
   document.getElementById('more-fields').classList.remove('show');
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('sel'));
   setTodayDefaults();
@@ -2298,12 +2308,22 @@ function onPhotoSelected(e){
       expState.photo = dataUrl;
       document.getElementById('photo-preview-img').src = dataUrl;
       document.getElementById('photo-preview').style.display='block';
-      const btn = document.getElementById('add-receipt-btn');
-      if(btn) btn.innerHTML = '✅ RECEIPT ADDED — TAP TO REPLACE';
+      setReceiptButtons(true);
       toast('✅ Receipt added');
     });
   };
   reader.readAsDataURL(file);
+}
+// One place for how the two receipt buttons look: before a receipt they say
+// TAKE PHOTO / GALLERY; once one is attached a green "RECEIPT ADDED" line
+// shows and the buttons offer to swap it (retake, or choose another).
+function setReceiptButtons(hasReceipt){
+  const cam = document.getElementById('add-receipt-btn');
+  const gal = document.getElementById('add-gallery-btn');
+  const note = document.getElementById('receipt-added-note');
+  if(cam) cam.innerHTML = hasReceipt ? '📷 RETAKE' : '📷 TAKE PHOTO';
+  if(gal) gal.innerHTML = hasReceipt ? '🖼 CHOOSE ANOTHER' : '🖼 GALLERY';
+  if(note) note.style.display = hasReceipt ? 'block' : 'none';
 }
 function compressImage(dataUrl, maxW, quality){
   return new Promise((resolve)=>{
@@ -2323,8 +2343,8 @@ function removePhoto(){
   expState.photo = null;
   document.getElementById('photo-preview').style.display='none';
   document.getElementById('exp-photo-input').value='';
-  const btn = document.getElementById('add-receipt-btn');
-  if(btn) btn.innerHTML = '🧾 ADD RECEIPT';
+  const gi = document.getElementById('exp-gallery-input'); if(gi) gi.value='';
+  setReceiptButtons(false);
 }
 
 // Catches the two most likely ways a duplicate entry happens: (1) a save
