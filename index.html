@@ -1980,8 +1980,7 @@ function renderHome(){
         </div>
         <div class="drv-arrow">›</div>
       </button>` : '') + (formerDriverRecords().length ? `
-      <button class="btn danger block" style="margin-top:8px;" onclick="deleteFormerDriverRecords()">🗑 Remove this row — delete old entries (${formerDriverRecords().length})</button>` : '') + `
-      <button class="btn block" style="margin-top:8px;" onclick="goAdminTab('drivers')">🧹 Remove old drivers</button></div>
+      <button class="btn danger block" style="margin-top:8px;" onclick="deleteFormerDriverRecords()">🗑 Remove this row — delete old entries (${formerDriverRecords().length})</button>` : '') + `</div>
       <div class="section-label" style="margin-top:4px;">Today · ${fmt(todaySpend)} spent</div>
     `;
   } else {
