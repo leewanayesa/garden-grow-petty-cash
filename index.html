@@ -922,6 +922,13 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </div>
         <button class="btn primary" style="padding:14px 18px;" onclick="addDriverPrompt()">+ Add</button>
       </div>
+      <!-- Only appears when records exist for people who are no longer on the
+           driver list above. See deleteFormerDriverRecords(). -->
+      <div id="former-drivers-box" class="stat-card" style="display:none;margin-top:18px;">
+        <div style="font-weight:800;margin-bottom:6px;">🧹 Former drivers' records</div>
+        <p id="former-drivers-text" style="color:var(--muted);font-size:13px;margin:0 0 12px;"></p>
+        <button class="btn danger block" onclick="deleteFormerDriverRecords()">🗑 Delete these records permanently</button>
+      </div>
     </div>
 
     <!-- Settings -->
@@ -3193,7 +3200,67 @@ async function saveCustomization(){
    and use the same shared driver password. Renaming keeps a driver's whole
    history attached to their new name (the server relabels their past
    entries too), so nothing gets orphaned into an "Other" bucket. */
+// Records that belong to someone who is NOT on the current driver list.
+// Esa's own entries (driver 'Esa', logged from the Admin phone) and entries
+// with no driver name at all are deliberately never included — those aren't
+// "former drivers" and must never be swept up by the clean-up below.
+function formerDriverRecords(){
+  if(!DRIVER_NAMES.length) return []; // safety: an empty list must never make everyone look "former"
+  return ALL_TXNS.filter(t=>{
+    const d = (t.driver||'').trim();
+    return d && d!=='Esa' && !DRIVER_NAMES.includes(d);
+  });
+}
+function renderFormerDriversBox(){
+  const box = document.getElementById('former-drivers-box');
+  const txt = document.getElementById('former-drivers-text');
+  if(!box || !txt) return;
+  const rows = lastLoadOk && IS_ADMIN_DEVICE ? formerDriverRecords() : [];
+  if(!rows.length){ box.style.display='none'; return; }
+  const by = {};
+  rows.forEach(t=>{ const d=(t.driver||'').trim(); by[d]=(by[d]||0)+1; });
+  txt.textContent = `${rows.length} old record${rows.length===1?'':'s'} from people no longer on your driver list: ` +
+    Object.keys(by).map(d=>`${d} (${by[d]})`).join(', ') + `. Jawad/Gul and your own entries are never touched.`;
+  box.style.display = 'block';
+}
+// One-time clean-up: permanently deletes every record that belongs to a
+// former driver. Irreversible, so: re-loads fresh data first, shows exactly
+// who and how many, downloads a backup file BEFORE deleting anything, then
+// deletes in small batches (each is confirmed by the server) so a bad
+// connection can only ever stop it part-way, never half-apply a batch.
+async function deleteFormerDriverRecords(){
+  if(!IS_ADMIN_DEVICE){ toast('Admin only'); return; }
+  const fresh = await refreshAll();
+  if(!fresh.ok){ toast(friendlySyncError(fresh.error)); return; }
+  const rows = formerDriverRecords();
+  if(!rows.length){ toast('Nothing to clear'); renderFormerDriversBox(); return; }
+  const by = {};
+  rows.forEach(t=>{ const d=(t.driver||'').trim(); by[d]=(by[d]||0)+1; });
+  const who = Object.keys(by).map(d=>`${d} (${by[d]})`).join(', ');
+  if(!(await askConfirm(`Permanently delete ${rows.length} record${rows.length===1?'':'s'} from: ${who}? Jawad, Gul and your own entries are NOT touched. This cannot be undone — a backup file downloads first.`))) return;
+  toast('Saving a backup first…');
+  const backedUp = await backupData();
+  if(backedUp===undefined){ toast('Backup failed — nothing was deleted'); return; }
+  const ids = rows.map(t=>t.id);
+  let done = 0;
+  for(let i=0; i<ids.length; i+=40){
+    const chunk = ids.slice(i, i+40);
+    toast(`Deleting… ${done} of ${ids.length}`);
+    const res = await postToSync({deletes: chunk});
+    if(!res.ok){
+      toast(`Stopped after ${done} of ${ids.length}: ${friendlySyncError(res.error)}`);
+      await refreshAll(); renderDriverManageList();
+      return;
+    }
+    done += chunk.length;
+  }
+  await refreshAll();
+  renderDriverManageList();
+  renderHome();
+  toast(`${done} old record${done===1?'':'s'} deleted`);
+}
 function renderDriverManageList(){
+  renderFormerDriversBox();
   const wrap = document.getElementById('driver-manage-list');
   if(!wrap) return;
   if(!DRIVER_NAMES.length){
