@@ -1980,7 +1980,7 @@ function renderHome(){
         </div>
         <div class="drv-arrow">›</div>
       </button>` : '') + (formerDriverRecords().length ? `
-      <button class="btn danger block" style="margin-top:8px;" onclick="deleteFormerDriverRecords()">🗑 Delete former drivers' records (${formerDriverRecords().length})</button>` : '') + `
+      <button class="btn danger block" style="margin-top:8px;" onclick="deleteFormerDriverRecords()">🗑 Remove this row — delete old entries (${formerDriverRecords().length})</button>` : '') + `
       <button class="btn block" style="margin-top:8px;" onclick="goAdminTab('drivers')">🧹 Remove old drivers</button></div>
       <div class="section-label" style="margin-top:4px;">Today · ${fmt(todaySpend)} spent</div>
     `;
@@ -3221,16 +3221,15 @@ async function saveCustomization(){
    and use the same shared driver password. Renaming keeps a driver's whole
    history attached to their new name (the server relabels their past
    entries too), so nothing gets orphaned into an "Other" bucket. */
-// Records that belong to someone who is NOT on the current driver list.
-// Esa's own entries (driver 'Esa', logged from the Admin phone) and entries
-// with no driver name at all are deliberately never included — those aren't
-// "former drivers" and must never be swept up by the clean-up below.
+// Every record that does NOT belong to someone on the current driver list —
+// former drivers, plus anything logged under "Esa" (the Admin phone) or with
+// no driver name. These are exactly what the "Other / Former Drivers" row on
+// Home adds up, so clearing them makes that row disappear. Deleting is only
+// ever done through deleteFormerDriverRecords(), which lists every entry (or a
+// per-name count) in its confirm box first.
 function formerDriverRecords(){
   if(!DRIVER_NAMES.length) return []; // safety: an empty list must never make everyone look "former"
-  return ALL_TXNS.filter(t=>{
-    const d = (t.driver||'').trim();
-    return d && d!=='Esa' && !DRIVER_NAMES.includes(d);
-  });
+  return ALL_TXNS.filter(t=>!DRIVER_NAMES.includes((t.driver||'').trim()));
 }
 let _cleanupNames = [];
 function renderFormerDriversBox(){
@@ -3289,21 +3288,21 @@ async function deleteDriverAndRecords(idx){
   renderHome();
   toast(`${name} deleted`);
 }
-// One-time clean-up: permanently deletes every record that belongs to a
-// former driver. Irreversible, so: re-loads fresh data first, shows exactly
-// who and how many, downloads a backup file BEFORE deleting anything, then
-// deletes in small batches (each is confirmed by the server) so a bad
-// connection can only ever stop it part-way, never half-apply a batch.
+// Clears the "Other / Former Drivers" row: permanently deletes every record
+// that isn't under a current driver. Irreversible, so: re-loads fresh data
+// first, shows exactly what will go, downloads a backup file BEFORE deleting
+// anything, then deletes in small server-confirmed batches.
 async function deleteFormerDriverRecords(){
   if(!IS_ADMIN_DEVICE){ toast('Admin only'); return; }
   const fresh = await refreshAll();
   if(!fresh.ok){ toast(friendlySyncError(fresh.error)); return; }
   const rows = formerDriverRecords();
-  if(!rows.length){ toast('Nothing to clear'); renderFormerDriversBox(); return; }
-  const by = {};
-  rows.forEach(t=>{ const d=(t.driver||'').trim(); by[d]=(by[d]||0)+1; });
-  const who = Object.keys(by).map(d=>`${d} (${by[d]})`).join(', ');
-  if(!(await askConfirm(`Permanently delete ${rows.length} record${rows.length===1?'':'s'} from: ${who}? Jawad, Gul and your own entries are NOT touched. This cannot be undone — a backup file downloads first.`))) return;
+  if(!rows.length){ toast('Nothing to clear'); renderHome(); return; }
+  const label = t=>`AED ${Number(t.amount)||0} ${(t.note||t.category||t.type||'').toString().slice(0,24)} (${(t.driver||'').trim()||'no name'})`;
+  const detail = rows.length<=5
+    ? rows.map(label).join('; ')
+    : (()=>{ const by={}; rows.forEach(t=>{const d=(t.driver||'').trim()||'no name'; by[d]=(by[d]||0)+1;}); return Object.keys(by).map(d=>`${d} (${by[d]})`).join(', '); })();
+  if(!(await askConfirm(`Permanently delete ${rows.length} old entr${rows.length===1?'y':'ies'}: ${detail}? Current drivers' entries are NOT touched. This cannot be undone — a backup file downloads first.`))) return;
   toast('Saving a backup first…');
   const backedUp = await backupData();
   if(backedUp===undefined){ toast('Backup failed — nothing was deleted'); return; }
@@ -3315,7 +3314,7 @@ async function deleteFormerDriverRecords(){
     const res = await postToSync({deletes: chunk});
     if(!res.ok){
       toast(`Stopped after ${done} of ${ids.length}: ${friendlySyncError(res.error)}`);
-      await refreshAll(); renderDriverManageList();
+      await refreshAll(); renderDriverManageList(); renderHome();
       return;
     }
     done += chunk.length;
@@ -3323,7 +3322,7 @@ async function deleteFormerDriverRecords(){
   await refreshAll();
   renderDriverManageList();
   renderHome();
-  toast(`${done} old record${done===1?'':'s'} deleted`);
+  toast(`${done} old entr${done===1?'y':'ies'} deleted`);
 }
 function renderDriverManageList(){
   renderFormerDriversBox();
