@@ -930,12 +930,12 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </div>
         <button class="btn primary" style="padding:14px 18px;" onclick="addDriverPrompt()">+ Add</button>
       </div>
-      <!-- Only appears when records exist for people who are no longer on the
-           driver list above. See deleteFormerDriverRecords(). -->
+      <!-- Clean-up list: everyone on the driver list OR with records in the
+           Sheet, each with a Delete button. See deleteDriverAndRecords(). -->
       <div id="former-drivers-box" class="stat-card" style="display:none;margin-top:18px;">
-        <div style="font-weight:800;margin-bottom:6px;">🧹 Former drivers' records</div>
-        <p id="former-drivers-text" style="color:var(--muted);font-size:13px;margin:0 0 12px;"></p>
-        <button class="btn danger block" onclick="deleteFormerDriverRecords()">🗑 Delete these records permanently</button>
+        <div style="font-weight:800;margin-bottom:6px;">🧹 Delete old drivers &amp; their records</div>
+        <p id="former-drivers-text" style="color:var(--muted);font-size:13px;margin:0 0 12px;">Tap 🗑 next to anyone you no longer need. This permanently deletes that person's records (and removes them from the driver list). A backup file downloads first. Your own entries are never touched.</p>
+        <div id="former-drivers-list"></div>
       </div>
     </div>
 
@@ -1980,7 +1980,8 @@ function renderHome(){
         </div>
         <div class="drv-arrow">›</div>
       </button>` : '') + (formerDriverRecords().length ? `
-      <button class="btn danger block" style="margin-top:8px;" onclick="deleteFormerDriverRecords()">🗑 Delete former drivers' records (${formerDriverRecords().length})</button>` : '') + `</div>
+      <button class="btn danger block" style="margin-top:8px;" onclick="deleteFormerDriverRecords()">🗑 Delete former drivers' records (${formerDriverRecords().length})</button>` : '') + `
+      <button class="btn block" style="margin-top:8px;" onclick="goAdminTab('drivers')">🧹 Remove old drivers</button></div>
       <div class="section-label" style="margin-top:4px;">Today · ${fmt(todaySpend)} spent</div>
     `;
   } else {
@@ -3231,17 +3232,62 @@ function formerDriverRecords(){
     return d && d!=='Esa' && !DRIVER_NAMES.includes(d);
   });
 }
+let _cleanupNames = [];
 function renderFormerDriversBox(){
   const box = document.getElementById('former-drivers-box');
-  const txt = document.getElementById('former-drivers-text');
-  if(!box || !txt) return;
-  const rows = lastLoadOk && IS_ADMIN_DEVICE ? formerDriverRecords() : [];
-  if(!rows.length){ box.style.display='none'; return; }
-  const by = {};
-  rows.forEach(t=>{ const d=(t.driver||'').trim(); by[d]=(by[d]||0)+1; });
-  txt.textContent = `${rows.length} old record${rows.length===1?'':'s'} from people no longer on your driver list: ` +
-    Object.keys(by).map(d=>`${d} (${by[d]})`).join(', ') + `. Jawad/Gul and your own entries are never touched.`;
+  const list = document.getElementById('former-drivers-list');
+  if(!box || !list) return;
+  if(!lastLoadOk || !IS_ADMIN_DEVICE){ box.style.display='none'; return; }
+  const counts = {};
+  DRIVER_NAMES.forEach(n=>{ counts[n]=0; });
+  ALL_TXNS.forEach(t=>{ const d=(t.driver||'').trim(); if(d && d!=='Esa') counts[d]=(counts[d]||0)+1; });
+  _cleanupNames = Object.keys(counts);
+  if(!_cleanupNames.length){ box.style.display='none'; return; }
+  list.innerHTML = _cleanupNames.map((n,i)=>`
+    <div class="driver-manage-row">
+      <div class="dm-name">🧑 ${escapeHtml(n)} <span style="color:var(--muted);font-weight:600;font-size:12px;">· ${counts[n]} record${counts[n]===1?'':'s'}${DRIVER_NAMES.includes(n)?'':' · not on list'}</span></div>
+      <button class="danger" onclick="deleteDriverAndRecords(${i})">🗑 Delete</button>
+    </div>`).join('');
   box.style.display = 'block';
+}
+// Deletes ONE person: all of their records, and (if they're still on the
+// driver list) removes them from it too. Same safety as the bulk version:
+// fresh data first, plain-language confirm, backup file BEFORE deleting,
+// small server-confirmed batches. Esa's own entries can never be chosen.
+async function deleteDriverAndRecords(idx){
+  if(!IS_ADMIN_DEVICE){ toast('Admin only'); return; }
+  const name = _cleanupNames[idx];
+  if(!name || name==='Esa') return;
+  const fresh = await refreshAll();
+  if(!fresh.ok){ toast(friendlySyncError(fresh.error)); return; }
+  const rows = ALL_TXNS.filter(t=>(t.driver||'').trim()===name);
+  const onList = DRIVER_NAMES.includes(name);
+  if(!(await askConfirm(`Permanently delete ${name}${rows.length?` and their ${rows.length} record${rows.length===1?'':'s'}`:''}?${onList?' They are also removed from the driver list and can no longer log in.':''} This cannot be undone — a backup file downloads first.`))) return;
+  toast('Saving a backup first…');
+  const backedUp = await backupData();
+  if(backedUp===undefined){ toast('Backup failed — nothing was deleted'); return; }
+  const ids = rows.map(t=>t.id);
+  let done = 0;
+  for(let i=0; i<ids.length; i+=40){
+    const chunk = ids.slice(i, i+40);
+    toast(`Deleting… ${done} of ${ids.length}`);
+    const res = await postToSync({deletes: chunk});
+    if(!res.ok){
+      toast(`Stopped after ${done} of ${ids.length}: ${friendlySyncError(res.error)}`);
+      await refreshAll(); renderDriverManageList();
+      return;
+    }
+    done += chunk.length;
+  }
+  if(onList){
+    const ok = await driverOp({op:'remove', name});
+    if(!ok) return; // driverOp already showed the error
+  } else {
+    await refreshAll();
+  }
+  renderDriverManageList();
+  renderHome();
+  toast(`${name} deleted`);
 }
 // One-time clean-up: permanently deletes every record that belongs to a
 // former driver. Irreversible, so: re-loads fresh data first, shows exactly
