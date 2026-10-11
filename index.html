@@ -581,6 +581,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <div class="field">
           <label>Password</label>
           <div style="position:relative;">
+            <!-- Tells the phone's password manager WHO this password is for (Admin or the
+                 driver's name), so it offers only that person's saved password. -->
+            <input type="text" id="login-username" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:0;top:0;width:1px;height:1px;opacity:0.01;border:0;padding:0;pointer-events:none;">
             <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" enterkeyhint="go" style="padding-right:56px;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitLogin();}">
             <button type="button" id="login-eye" onclick="togglePasswordVisible()" aria-label="Show password" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:none;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center;">
               <svg id="login-eye-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -2062,6 +2065,7 @@ async function showLoginPasswordForm(){
   document.getElementById('login-password-form').style.display = 'block';
   document.getElementById('login-password').value = '';
   document.getElementById('login-password').type = 'password';
+  { const u=document.getElementById('login-username'); if(u) u.value = (LOGIN_STATE.role==='admin') ? 'Admin (Esa)' : ('Driver - '+(LOGIN_STATE.driverName||'')); }
   { const fr=document.getElementById('login-face-reset'); if(fr) fr.style.display='none'; }
   { const b=document.getElementById('login-eye'); if(b){ b.style.color='var(--muted)'; b.setAttribute('aria-label','Show password'); } }
   // Defaults ON: Esa and the drivers want the app to just stay logged in
