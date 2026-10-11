@@ -265,6 +265,27 @@ input,select,textarea{font-family:inherit;}
 .pw-mask{-webkit-text-security:disc;text-security:disc;}
 .pw-mask.pw-show{-webkit-text-security:none;text-security:none;}
 .login-who{text-align:center;font-size:17px;color:var(--green-dark);background:var(--green-light);border-radius:12px;padding:11px 12px;margin-bottom:14px;}
+.dchip{height:44px;padding:0 18px;border-radius:22px;border:1.5px solid #cfdcd2;background:#fff;color:#35503f;font-size:15px;font-weight:700;white-space:nowrap;flex-shrink:0;}
+.dchip.sel{border-color:#0b7a3b;background:#0b7a3b;color:#fff;font-weight:800;}
+.hx-card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin:0 16px 14px;}
+.hx{display:flex;gap:12px;align-items:flex-start;padding:14px;border-bottom:1px solid #e6eee8;cursor:pointer;}
+.hx:last-child{border-bottom:0;}
+.hx-ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.hx-body{flex:1;min-width:0;}
+.hx-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
+.hx-title{font-size:16px;font-weight:800;line-height:1.25;overflow-wrap:anywhere;}
+.hx-amt{font-size:18px;font-weight:800;white-space:nowrap;}
+.hx-sub{font-size:13px;color:#4b6355;margin-top:2px;overflow-wrap:anywhere;}
+.hx-who{font-size:13px;font-weight:700;margin-top:3px;}
+.hx-bal{font-size:12.5px;color:#4b6355;text-align:right;margin-top:2px;white-space:nowrap;}
+.hx-chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 10px;border-radius:14px;font-size:13px;font-weight:800;}
+.hx-day{display:flex;justify-content:space-between;align-items:baseline;padding:4px 18px 8px;font-size:14px;font-weight:800;color:#35503f;text-transform:uppercase;letter-spacing:.4px;}
+.hx-day span:last-child{font-size:12.5px;font-weight:600;text-transform:none;letter-spacing:0;color:#4b6355;}
+.hx-pend{margin:14px 16px;background:#fff8de;border:1.5px solid #e6c84f;border-radius:16px;padding:14px 14px 4px;}
+.hx-pend .hx{padding:12px 0;border-bottom:1px solid #efe2a6;cursor:pointer;}
+.hx-pend .hx:last-child{border-bottom:0;}
+.hx-act{display:flex;gap:10px;margin-top:12px;}
+.hx-act button{flex:1;height:48px;border-radius:12px;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;}
 .or-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px;font-weight:700;margin:14px 0 4px;}
 .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--line);}
 .confirm-box button.yes.green{background:var(--green);border-color:var(--green);}
@@ -525,6 +546,10 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
           <div class="ic">👥</div> DRIVERS
         </button>
       </div>
+      <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
+        App version <b id="home-app-version">66</b> ·
+        <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
+      </div>
     </div>
   </div>
 
@@ -541,7 +566,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 63</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 66</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -755,17 +780,20 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
          together) and search by text — a driver device never sees this, it
          always shows just its own entries same as before. -->
     <div id="hist-admin-controls" style="display:none;padding:12px 16px 0;">
+      <div id="hist-driver-chips" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;"></div>
+      <select id="hist-driver-select" style="display:none;" onchange="onHistDriverSelectChange(this.value)">
+        <option value="">All Drivers</option>
+      </select>
       <div class="filter-row" style="margin-bottom:0;">
-        <select id="hist-driver-select" onchange="onHistDriverSelectChange(this.value)">
-          <option value="">All Drivers</option>
-        </select>
         <input type="text" id="hist-search" placeholder="Search note / supplier / site" oninput="renderTodayListBody()">
       </div>
     </div>
     <div id="hist-driver-stats" class="balance-cards" style="display:none;margin:14px 16px 0;grid-template-columns:1fr;">
       <div class="bal-card" id="hist-driver-cash-card"><div class="lbl" id="hist-driver-lbl">Balance</div><div class="val" id="hist-driver-cash-val">…</div>
-        <div id="hist-driver-sub" style="font-size:12px;color:var(--muted);margin-top:6px;"></div></div>
+        <div id="hist-driver-sub" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
+        <div id="hist-driver-pending" style="display:none;margin-top:10px;padding:8px 10px;background:#fff3cd;border-radius:10px;color:#6b5200;font-size:13px;font-weight:700;"></div></div>
     </div>
+    <div id="hist-all-balances" style="display:none;margin:14px 16px 0;"></div>
     <div class="hist-filter-bar">
       <button class="hist-chip sel" data-hf="today" onclick="setHistFilter('today')">TODAY</button>
       <button class="hist-chip" data-hf="week" onclick="setHistFilter('week')">WEEK</button>
@@ -1097,6 +1125,19 @@ let CATEGORIES = [
   {id:'other', ic:'➕', lbl:'Other'},
 ];
 let CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
+// Clearer category names. Only a category still carrying its ORIGINAL default
+// name is renamed (ids never change, so every old entry keeps its category);
+// anything Esa renamed himself is left exactly as he wrote it.
+const CAT_LABEL_UPGRADE = {
+  plants:['Plants','Plants & Flowers'], sand:['Sand','Sand & Soil'], gravel:['Gravel','Gravel & Stones'],
+  irrigation:['Irrigation','Irrigation & Pipes'], repair:['Car Repair','Vehicle Repair'], parking:['Parking','Parking & Tolls'],
+  delivery:['Delivery','Delivery & Transport'], tools:['Tools','Tools & Equipment'], other:['Other','Other (write what)']
+};
+function upgradeCategoryLabels(){
+  CATEGORIES = CATEGORIES.map(c=>{ const u = CAT_LABEL_UPGRADE[c.id]; return (u && c.lbl===u[0]) ? Object.assign({}, c, {lbl:u[1]}) : c; });
+  CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
+}
+upgradeCategoryLabels();
 let QUICK_NOTES = ['Site Material','Vehicle','Delivery','Nursery','Sand','Repair','Other'];
 // Configurable "needs attention" thresholds (Admin → Settings). Purely a
 // display/flagging aid — never affects balances, approvals, or any saved
@@ -1118,6 +1159,7 @@ function applyServerConfig(config){
   if(Array.isArray(config.categories) && config.categories.length){
     CATEGORIES = config.categories;
     CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
+    upgradeCategoryLabels();
   }
   if(Array.isArray(config.quickNotes) && config.quickNotes.length){
     QUICK_NOTES = config.quickNotes;
@@ -3359,6 +3401,14 @@ function populateHistDriverSelect(){
   sel.innerHTML = `<option value="">All Drivers</option>` +
     DRIVER_NAMES.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('') + otherOpt;
   sel.value = histDriverFilter || '';
+  renderHistDriverChips();
+}
+function renderHistDriverChips(){
+  const box = document.getElementById('hist-driver-chips');
+  if(!box) return;
+  const items = [['', 'All']].concat(DRIVER_NAMES.map(n=>[n,n]));
+  if(otherTxns().length) items.push(['__other__','Other']);
+  box.innerHTML = items.map(([v,l])=>`<button type="button" class="dchip${(histDriverFilter||'')===v?' sel':''}" data-v="${escapeHtml(v)}" onclick="onHistDriverSelectChange(this.dataset.v)">${escapeHtml(l)}</button>`).join('');
 }
 // Switching the dropdown is the same as tapping a different driver's row on
 // Home, or "All Drivers" is the same as opening History unfiltered.
@@ -3367,12 +3417,14 @@ function onHistDriverSelectChange(name){
   const title = document.getElementById('hist-title');
   const statsBox = document.getElementById('hist-driver-stats');
   if(histDriverFilter){
-    title.textContent = '📋 ' + histDriverFilter;
+    title.textContent = '📋 ' + (histDriverFilter==='__other__' ? 'Other' : histDriverFilter);
     statsBox.style.display = 'grid';
   } else {
     title.textContent = '📋 History';
     statsBox.style.display = 'none';
   }
+  const sel = document.getElementById('hist-driver-select'); if(sel) sel.value = histDriverFilter || '';
+  renderHistDriverChips();
   renderTodayListBody();
 }
 function setHistFilter(key){
@@ -3406,22 +3458,166 @@ function getHistRange(){
 // fetches back to back. Splitting it out means those interactions are now
 // instant, and a real refetch only happens when the screen is actually
 // (re)entered, refreshed, or something was actually saved/approved/deleted.
+// ---- History: signs, pictures and plain words (see the mockups) ----
+const HX_ICONS = {
+  in:'<path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M5 19h14"/>',
+  out:'<path d="M7 17L17 7"/><path d="M8 7h9v9"/>',
+  own:'<path d="M4 8h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z"/><path d="M4 8l11-3.5V8"/><circle cx="16" cy="14" r="1.3"/>',
+  back:'<path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/>',
+  clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7"/>',
+  cross:'<path d="M6 6l12 12"/><path d="M18 6L6 18"/>'
+};
+const HX_STYLE = {
+  in:{bg:'#e3f4e8', fg:'#0b5a2c', sign:'+'},
+  out:{bg:'#fde8e6', fg:'#a8231b', sign:'−'},
+  own:{bg:'#fff1d6', fg:'#8a4b00', sign:'−'},
+  back:{bg:'#e4eefb', fg:'#164f9c', sign:'+'}
+};
+function hxSvg(k, size, sw){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||2.3}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${HX_ICONS[k]}</svg>`;
+}
+function hxKind(t){
+  if(t.type==='cash_in') return 'in';
+  if(t.type==='reimbursement') return 'back';
+  return (t.payMode==='company') ? 'out' : 'own';
+}
+// Money effect on the driver's single Balance (cash in hand minus own money
+// used). Identical to netBalance(computeBalances(...)) entry by entry.
+function hxDelta(t){
+  if(t.type==='cash_in' || t.type==='reimbursement') return Number(t.amount)||0;
+  if(t.type==='expense') return -((Number(t.companyAmount)||0) + (Number(t.meAmount)||0));
+  return 0;
+}
+function hxNum(n){ return fmt(n).replace('AED ',''); }
+function hxSigned(n){ return (n<0 ? '− ' : '') + hxNum(Math.abs(n)); }
+function hxTitle(t, who){
+  if(t.type==='cash_in') return 'Cash given to ' + who;
+  if(t.type==='reimbursement') return 'Paid back to ' + who;
+  const c = CAT_MAP[t.category] || {lbl: t.category || 'Expense'};
+  const lbl = String(c.lbl).replace(/\s*\(write what\)\s*$/i,'');
+  const place = String(t.site||'').trim() || String(t.note||'').trim();
+  return lbl + (place ? ' · ' + place : '');
+}
+function hxChip(bg, fg, icon, text){
+  return `<div class="hx-chip" style="background:${bg};color:${fg};">${hxSvg(icon,14,2.8)}${escapeHtml(text)}</div>`;
+}
+function hxRow(t, o){
+  o = o || {};
+  const admin = IS_ADMIN_DEVICE;
+  const drv = String(t.driver||'').trim() || '—';
+  const who = admin ? drv : 'you';
+  const kind = hxKind(t), st = HX_STYLE[kind];
+  const title = hxTitle(t, who);
+  const placeUsed = t.type==='expense' && (String(t.site||'').trim() || String(t.note||'').trim());
+  const noteLine = (t.type==='expense')
+    ? (String(t.site||'').trim() && String(t.note||'').trim() ? String(t.note).trim() : '')
+    : String(t.note||'').trim();
+  const bits = [];
+  if(admin && !histDriverFilter) bits.push(drv);
+  if(t.time) bits.push(t.time);
+  if(noteLine) bits.push(noteLine);
+  let sentence = '';
+  if(t.type==='expense'){
+    if(t.payMode==='company') sentence = 'Paid from company cash';
+    else if(t.payMode==='me') sentence = admin ? (drv + ' paid with own money') : 'You paid with your own money';
+    else sentence = 'Split — company ' + hxNum(t.companyAmount||0) + ' · own money ' + hxNum(t.meAmount||0);
+  }
+  const rejected = t.status==='rejected', pending = t.status==='pending';
+  const amtColor = rejected ? '#7a8a80' : st.fg;
+  const amtStyle = rejected ? 'text-decoration:line-through;' : '';
+  let chips = '';
+  if(pending) chips += hxChip('#fff3cd','#6b5200','clock','Waiting for approval');
+  else if(rejected) chips += hxChip('#fde8e6','#a8231b','cross','Rejected');
+  else if(!admin) chips += hxChip('#e3f4e8','#0b5a2c','check','Approved');
+  if(t.deleteRequested) chips += hxChip('#ece9fb','#3a3ac1','clock','Delete requested');
+  const reason = (rejected && t.rejectionReason) ? `<div style="font-size:13px;color:#a8231b;margin-top:4px;">Reason: ${escapeHtml(t.rejectionReason)}</div>` : '';
+  let actions = '';
+  if(admin && o.box){
+    if(t.deleteRequested){
+      actions = `<div class="hx-act"><button type="button" style="border:0;background:#a8231b;color:#fff;" onclick="approveDeleteRequest('${t.id}')">Approve delete</button><button type="button" style="border:1.5px solid #35503f;background:#fff;color:#35503f;" onclick="rejectDeleteRequest('${t.id}')">Keep</button></div>`;
+    } else {
+      actions = `<div class="hx-act"><button type="button" style="border:0;background:#0f4d2e;color:#fff;" onclick="approveEntry('${t.id}')">${hxSvg('check',20,2.7)}Approve</button><button type="button" style="border:1.5px solid #a8231b;background:#fff;color:#a8231b;" onclick="rejectEntry('${t.id}')">${hxSvg('cross',20,2.7)}Reject</button></div>`;
+    }
+  } else if(!admin && rejected && t.type==='expense'){
+    actions = `<div style="margin-top:10px;"><button type="button" class="btn" style="width:100%;padding:11px;font-size:14px;background:var(--amber);color:#3a2a00;" onclick="fixAndResubmit('${t.id}')">Fix &amp; Resubmit</button></div>`;
+  }
+  // Receipt photo right on the card (big in the approval box, so Esa can check
+  // it before tapping Approve); tap it to enlarge. No photo on a purchase:
+  // a clear note (amber when the amount is above the receipt limit).
+  let photoHtml = '';
+  if(t.photo){
+    const big = !!o.box;
+    const src = photoThumb(t.photo, big ? 700 : 300);
+    photoHtml = `<img src="${escapeHtml(src)}" loading="lazy" alt="Receipt photo" onclick="openFullPhoto('${t.id}')" onerror="if(this.dataset.f!=='1'){this.dataset.f='1';this.src='${escapeHtml(t.photo)}';}" style="display:block;margin-top:10px;border-radius:12px;border:1px solid #d9e4dc;background:#eef2ee;object-fit:cover;${big?'width:100%;height:190px;':'width:96px;height:96px;'}">`;
+  } else if(t.type==='expense'){
+    const must = (Number(t.amount)||0) >= (Number(THRESHOLDS.receiptAbove)||500);
+    if(o.box || must) chips += hxChip(must?'#fff1d6':'#eef2ee', must?'#8a4b00':'#4b6355', 'cross', must ? 'No receipt photo (over the limit)' : 'No receipt photo');
+  }
+  let bal = '';
+  if(o.bal && o.bal[t.id]!==undefined && !pending && !rejected){
+    const bv = o.bal[t.id];
+    bal = `<div class="hx-bal">Balance <b style="color:${bv<0?'#a8231b':'#0b6b34'}">${hxSigned(bv)}</b></div>`;
+  }
+  return `<div class="hx" onclick="histCardTap(event,'${t.id}')">
+    <div class="hx-ic" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,22,2.3)}</div>
+    <div class="hx-body">
+      <div class="hx-top"><span class="hx-title">${escapeHtml(title)}</span><span class="hx-amt" style="color:${amtColor};${amtStyle}">${st.sign} ${hxNum(t.amount)}</span></div>
+      ${bits.length?`<div class="hx-sub">${bits.map(escapeHtml).join(' · ')}</div>`:''}
+      ${sentence?`<div class="hx-who" style="color:${st.fg};">${escapeHtml(sentence)}</div>`:''}
+      ${bal}${photoHtml}${chips}${reason}${actions}
+    </div>
+  </div>`;
+}
+function hxDayLabel(d){
+  const today = localDateStr(new Date());
+  const y = new Date(); y.setDate(y.getDate()-1);
+  const dt = new Date(d+'T00:00:00');
+  const nice = isNaN(dt) ? d : dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  if(d===today) return 'Today · ' + nice;
+  if(d===localDateStr(y)) return 'Yesterday · ' + nice;
+  return isNaN(dt) ? d : dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+}
+function renderHistAllBalances(){
+  const box = document.getElementById('hist-all-balances');
+  if(!box) return;
+  if(!IS_ADMIN_DEVICE || histDriverFilter){ box.style.display='none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = '<div style="background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;">' + DRIVER_NAMES.map(n=>{
+    const nb = netBalance(driverBalances(n));
+    return `<button type="button" data-v="${escapeHtml(n)}" onclick="onHistDriverSelectChange(this.dataset.v)" style="display:flex;width:100%;align-items:center;gap:12px;padding:12px 14px;border:0;border-bottom:1px solid #e6eee8;background:#fff;text-align:left;">
+      <span style="width:40px;height:40px;border-radius:50%;background:#0f4d2e;color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${escapeHtml(initials(n))}</span>
+      <span style="flex:1;font-size:16px;font-weight:800;">${escapeHtml(n)}<span style="display:block;font-size:12.5px;font-weight:600;color:#4b6355;">${netLabelAdmin(nb)}</span></span>
+      <span style="font-size:18px;font-weight:800;color:${nb<0?'#a8231b':'#0b6b34'};">AED ${hxNum(Math.abs(nb))}</span></button>`;
+  }).join('') + '</div>';
+}
 function renderTodayListBody(){
   const list = document.getElementById('today-list');
+  const isReal = histDriverFilter && histDriverFilter!=='__other__';
   if(histDriverFilter){
-    const b = histDriverFilter==='__other__' ? computeBalances(otherTxns()) : driverBalances(histDriverFilter);
+    const base = histDriverFilter==='__other__' ? otherTxns() : txnsForDriver(histDriverFilter);
+    const b = computeBalances(base);
     const nb = netBalance(b);
-    document.getElementById('hist-driver-lbl').textContent = netLabelAdmin(nb);
+    document.getElementById('hist-driver-lbl').textContent = IS_ADMIN_DEVICE ? (((histDriverFilter==='__other__')?'Other · ':(histDriverFilter+' · '))+netLabelAdmin(nb)) : netLabel(nb);
     document.getElementById('hist-driver-cash-val').textContent = fmt(Math.abs(nb));
-    document.getElementById('hist-driver-sub').textContent = 'Cash left ' + fmt(b.companyCash) + ' − driver\'s own money used ' + fmt(b.driverOwed);
+    document.getElementById('hist-driver-sub').textContent = 'Cash left ' + fmt(b.companyCash) + ' − ' + (IS_ADMIN_DEVICE ? 'his own money used ' : 'your own money used ') + fmt(b.driverOwed);
     document.getElementById('hist-driver-cash-card').classList.toggle('low', nb<0);
+    const pe = document.getElementById('hist-driver-pending');
+    if(pe){
+      let pend = [];
+      if(IS_ADMIN_DEVICE && isReal) pend = ALL_TXNS.filter(t=>t.status==='pending' && (t.driver||'').trim()===histDriverFilter);
+      if(pend.length){
+        const after = nb + pend.reduce((a,t)=>a+hxDelta(t),0);
+        pe.textContent = 'After you approve the ' + pend.length + ' waiting ' + (pend.length===1?'entry':'entries') + ': ' + (after<0 ? ('company owes AED ' + hxNum(Math.abs(after))) : ('AED ' + hxNum(after)));
+        pe.style.display = 'block';
+      } else pe.style.display = 'none';
+    }
   }
+  renderHistAllBalances();
   const {from, to} = getHistRange();
   let rows = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
   if(histDriverFilter==='__other__') rows = rows.filter(t=>!DRIVER_NAMES.includes((t.driver||'').trim()));
   else if(histDriverFilter) rows = rows.filter(t=>(t.driver||'').trim()===histDriverFilter);
-  // Admin-only text search across note/supplier/site — same idea as the
-  // search box already on the Transactions tab.
   const searchEl = document.getElementById('hist-search');
   const q = (IS_ADMIN_DEVICE && searchEl) ? searchEl.value.trim().toLowerCase() : '';
   if(q){
@@ -3431,12 +3627,36 @@ function renderTodayListBody(){
       (t.site||'').toLowerCase().includes(q)
     );
   }
-  rows = rows.slice().reverse();
-  if(!rows.length){
-    list.innerHTML = `<div class="empty-note">No entries ${q?'match your search':'in this period'}.<br>Tap 🛒 BUY / PAY or 💰 CASH IN to add one.</div>`;
-  } else {
-    list.innerHTML = rows.map(renderHistItem).join('');
+  rows = rows.slice().reverse();   // newest first
+  // Running balance (admin, one driver): the Balance after each approved entry.
+  let bal = null, before = null;
+  if(IS_ADMIN_DEVICE && isReal){
+    bal = {}; let run = 0; before = 0;
+    txnsForDriver(histDriverFilter).forEach(t=>{ run += hxDelta(t); bal[t.id] = run; if(t.date<from) before = run; });
   }
+  const attention = IS_ADMIN_DEVICE ? rows.filter(t=>t.status==='pending' || t.deleteRequested) : [];
+  const attIds = new Set(attention.map(t=>t.id));
+  const main = rows.filter(t=>!attIds.has(t.id));
+  let html = '';
+  if(attention.length){
+    html += `<div class="hx-pend"><div style="display:flex;align-items:center;gap:8px;color:#6b5200;font-weight:800;font-size:15px;margin-bottom:6px;">${hxSvg('clock',20,2.3)}Needs your approval (${attention.length})</div>`
+      + attention.map(t=>hxRow(t,{box:true})).join('') + '</div>';
+  }
+  if(!main.length && !attention.length){
+    html = `<div class="empty-note">No entries ${q?'match your search':'in this period'}.<br>${IS_ADMIN_DEVICE?'':'Tap BUY / PAY or CASH IN to add one.'}</div>`;
+  } else if(main.length){
+    let cur = null, buf = [], n = 0;
+    const flush = ()=>{ if(cur!==null){ html += `<div class="hx-day"><span>${hxDayLabel(cur)}</span><span>${n} ${n===1?'entry':'entries'}${bal&&cur===main[0].date?' · balance after each':''}</span></div><div class="hx-card">${buf.join('')}</div>`; } };
+    for(const t of main){
+      if(t.date!==cur){ flush(); cur = t.date; buf = []; n = 0; }
+      buf.push(hxRow(t,{bal})); n++;
+    }
+    flush();
+    if(bal && histFilterKey!=='all'){
+      html += `<div style="margin:0 16px 14px;padding:12px 14px;background:#f6f9f6;border:1px solid var(--line);border-radius:14px;display:flex;justify-content:space-between;font-size:13.5px;color:#4b6355;"><span>Balance before ${hxDayLabel(from).split(' · ')[0]==='Today'?'today':escapeHtml(from)}</span><b style="color:${before<0?'#a8231b':'#17261c'};">${hxSigned(before)}</b></div>`;
+    }
+  }
+  list.innerHTML = html;
 }
 // The only version that actually talks to the server: refetches live data,
 // then does the instant render above. Use this for genuinely re-entering or
@@ -3463,66 +3683,6 @@ async function generateHistoryStatement(){
   }catch(e){
     toast(e && e.code==='no_internet' ? friendlySyncError(e.reason) : 'Could not create PDF. Please try again.');
   }
-}
-function renderHistItem(t){
-  const thumb = t.photo ? `<img class="hist-thumb" loading="lazy" src="${photoThumb(t.photo,200)}" onclick="openPhotoModal('${t.id}')">` : '';
-  // Everyone sees the delete icon, but it does different things depending on
-  // the device: Esa's Admin device deletes for real right away; any other
-  // device only SENDS A REQUEST — nothing is actually removed until Esa
-  // approves it from Admin → Approvals.
-  const delTitle = IS_ADMIN_DEVICE ? 'Delete' : 'Request deletion (needs Esa\'s approval)';
-  const delBtn = `<button class="hist-del" onclick="requestDeleteFromHistory('${t.id}')" title="${delTitle}">🗑</button>`;
-  const statusTag = t.status==='pending' ? `<span class="hi-tag" style="background:#fff3cd;color:#8a6d00;">⏳ PENDING APPROVAL</span>`
-    : t.status==='rejected' ? `<span class="hi-tag" style="background:#fde3e3;color:#a11;">❌ REJECTED</span>` : '';
-  // The reason Esa gave (if any) so a driver understands what to fix — never
-  // blocks anything, just shown as plain text under the tag.
-  const reasonNote = (t.status==='rejected' && t.rejectionReason)
-    ? `<div style="font-size:12.5px;color:#a11;margin-top:4px;">Reason: ${escapeHtml(t.rejectionReason)}</div>` : '';
-  const deleteTag = t.deleteRequested ? `<span class="hi-tag" style="background:#e6e6ff;color:#3a3ac1;">🗑 DELETE REQUESTED</span>` : '';
-  // Esa needs to see WHOSE entry this is when looking at an unfiltered or
-  // "Other" list (a driver viewing their own filtered History already knows).
-  const driverTag = (IS_ADMIN_DEVICE && !histDriverFilter) ? `<span class="hi-tag" style="background:#eef2ff;color:#3a3ac1;">🧑 ${escapeHtml(t.driver||'—')}</span>` : '';
-  // Esa can approve/reject and approve/keep-a-deletion right here in History
-  // — no need to jump into Admin → Approvals just to act on one entry.
-  let actionsRow = '';
-  if(IS_ADMIN_DEVICE && (t.status==='pending' || t.deleteRequested)){
-    const btns = [];
-    if(t.deleteRequested){
-      btns.push(`<button class="btn danger" style="flex:1;padding:9px;font-size:12.5px;" onclick="approveDeleteRequest('${t.id}')">🗑 Approve Delete</button>`);
-      btns.push(`<button class="btn" style="flex:1;padding:9px;font-size:12.5px;" onclick="rejectDeleteRequest('${t.id}')">↩ Keep</button>`);
-    } else if(t.status==='pending'){
-      btns.push(`<button class="btn" style="flex:1;padding:9px;font-size:12.5px;background:var(--green-dark);color:#fff;" onclick="approveEntry('${t.id}')">✓ Approve</button>`);
-      btns.push(`<button class="btn danger" style="flex:1;padding:9px;font-size:12.5px;" onclick="rejectEntry('${t.id}')">✗ Reject</button>`);
-    }
-    actionsRow = `<div style="display:flex;gap:8px;margin-top:10px;">${btns.join('')}</div>`;
-  } else if(!IS_ADMIN_DEVICE && t.status==='rejected' && t.type==='expense'){
-    // Lets the driver fix whatever caused the rejection (amount, category,
-    // note, pay mode, photo) and send it in again as a brand-new pending
-    // entry — the rejected one stays exactly as-is in History for the record.
-    actionsRow = `<div style="margin-top:10px;"><button class="btn" style="width:100%;padding:9px;font-size:12.5px;background:var(--amber);color:#3a2a00;" onclick="fixAndResubmit('${t.id}')">✏️ Fix &amp; Resubmit</button></div>`;
-  }
-  const detail = buildHistDetailHTML(t);
-  if(t.type==='cash_in'){
-    return `<div class="hist-item" style="cursor:pointer;" onclick="histCardTap(event,'${t.id}')"><div class="hi-ic">💰</div><div class="hi-body">
-      <div class="hi-top"><span>Cash In</span><span>${fmt(t.amount)}</span></div>
-      <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-cashin">CASH IN</span>${driverTag}${statusTag}${deleteTag}${reasonNote}${actionsRow}${detail}
-    </div>${thumb}${delBtn}</div>`;
-  }
-  if(t.type==='reimbursement'){
-    return `<div class="hist-item" style="cursor:pointer;" onclick="histCardTap(event,'${t.id}')"><div class="hi-ic">↩️</div><div class="hi-body">
-      <div class="hi-top"><span>Reimbursement</span><span>${fmt(t.amount)}</span></div>
-      <div class="hi-sub">${t.date} ${t.note?escapeHtml(t.note):''}</div>
-      <span class="hi-tag tag-reimb">REIMBURSED</span>${driverTag}${statusTag}${deleteTag}${reasonNote}${actionsRow}${detail}
-    </div>${thumb}${delBtn}</div>`;
-  }
-  const c = CAT_MAP[t.category] || {ic:'➕', lbl:t.category};
-  const tagClass = t.payMode==='company'?'tag-company':(t.payMode==='me'?'tag-me':'tag-both');
-  return `<div class="hist-item" style="cursor:pointer;" onclick="histCardTap(event,'${t.id}')"><div class="hi-ic">${c.ic}</div><div class="hi-body">
-    <div class="hi-top"><span>${c.lbl}</span><span>${fmt(t.amount)}</span></div>
-    <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
-    <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${driverTag}${statusTag}${deleteTag}${reasonNote}${actionsRow}${detail}
-  </div>${thumb}${delBtn}</div>`;
 }
 // The driver-entered fields (supplier, site, receipt no., vehicle, remarks,
 // given-by) were always saved, but never shown anywhere except a raw CSV
@@ -3686,6 +3846,7 @@ function renderDetail(){
     ${flags}
     <div style="margin-top:6px;">${rows.map(([l,v])=>`<div class="detail-row"><span>${l}</span><span>${escapeHtml(String(v))}</span></div>`).join('')}</div>
     ${actions?`<div style="display:flex;gap:8px;margin-top:14px;">${actions}</div>`:''}
+    ${(detailCtx==='' && !t.deleteRequested)?`<button class="btn block" style="margin-top:12px;background:#fff;color:var(--red);border:1.5px solid var(--red);" onclick="closeDetail();requestDeleteFromHistory('${t.id}')">${IS_ADMIN_DEVICE?'Delete this entry':'Request deletion'}</button>`:''}
     <button class="btn block" style="margin-top:12px;" onclick="closeDetail()">Close</button>`;
 }
 // Approve/reject/etc. straight from the details sheet. After an approval or
@@ -3790,7 +3951,7 @@ async function saveCustomization(){
     const m = /^(\S+)\s+(.+)$/.exec(line);
     const ic = m ? m[1] : '➕';
     const lbl = m ? m[2] : line;
-    return {id: slugifyCategoryLabel(lbl), ic, lbl};
+    return {id: ((CATEGORIES.find(c=>c.lbl===lbl)||{}).id) || slugifyCategoryLabel(lbl), ic, lbl};
   });
   toast('Saving…');
   const result = await postToSync({config:{categories}});
@@ -4576,6 +4737,14 @@ function doInstall(){
 }
 function dismissInstall(){
   document.getElementById('install-banner').classList.remove('show');
+}
+// "Update app now": throws away this phone's saved copy of the app (not your
+// login or data) and loads the newest version from the web.
+async function forceUpdateApp(){
+  toast('Updating…');
+  try{ if('serviceWorker' in navigator){ const rs = await navigator.serviceWorker.getRegistrations(); for(const r of rs) await r.unregister(); } }catch(e){}
+  try{ if(window.caches){ const ks = await caches.keys(); for(const k of ks) await caches.delete(k); } }catch(e){}
+  location.replace(location.pathname + '?u=' + Date.now());
 }
 function registerSW(){
   if(!('serviceWorker' in navigator)) return;
