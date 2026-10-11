@@ -541,6 +541,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 61</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -566,7 +567,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
 
       <!-- Step 2: password + remember me -->
-      <div id="login-password-form" style="display:none;">
+      <div id="login-pin-form" style="display:none;">
         <div id="login-who" class="login-who"></div>
         <div id="login-continue-wrap" style="display:none;margin-bottom:16px;">
           <button class="save-btn" onclick="continueSavedLogin()" id="login-continue-btn">▶ Continue</button>
@@ -585,7 +586,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <div class="field">
           <label>Password</label>
           <div style="position:relative;">
-            <input type="text" id="login-password" placeholder="Password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" class="pw-mask" enterkeyhint="go" style="padding-right:56px;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitLogin();}">
+            <input type="text" id="login-pin" name="gg_access_code" placeholder="Type here" readonly onpointerdown="this.removeAttribute('readonly')" ontouchstart="this.removeAttribute('readonly')" onfocus="this.removeAttribute('readonly')" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" class="pw-mask" enterkeyhint="go" style="padding-right:56px;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitLogin();}">
             <button type="button" id="login-eye" onclick="togglePasswordVisible()" aria-label="Show password" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:none;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center;">
               <svg id="login-eye-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -2020,7 +2021,7 @@ function resetLoginScreen(){
   LOGIN_STATE = { role:null, driverName:null };
   const choice = document.getElementById('login-role-choice');
   const picker = document.getElementById('login-driver-picker');
-  const pwForm = document.getElementById('login-password-form');
+  const pwForm = document.getElementById('login-pin-form');
   if(choice) choice.style.display = 'grid';
   if(picker) picker.style.display = 'none';
   if(pwForm) pwForm.style.display = 'none';
@@ -2037,7 +2038,7 @@ async function showLoginRole(role){
   if(role==='driver'){
     buildLoginDriverNames();
     document.getElementById('login-driver-picker').style.display = 'block';
-    document.getElementById('login-password-form').style.display = 'none';
+    document.getElementById('login-pin-form').style.display = 'none';
     // Pull the current driver roster fresh every time — so a driver Esa just
     // added from Admin → Drivers shows up immediately, on any phone, without
     // needing to reinstall or update the app itself. Always attempted (never
@@ -2063,9 +2064,10 @@ function selectLoginDriverName(name){
   showLoginPasswordForm();
 }
 async function showLoginPasswordForm(){
-  document.getElementById('login-password-form').style.display = 'block';
-  document.getElementById('login-password').value = '';
-  document.getElementById('login-password').classList.remove('pw-show');
+  document.getElementById('login-pin-form').style.display = 'block';
+  document.getElementById('login-pin').value = '';
+  document.getElementById('login-pin').classList.remove('pw-show');
+  document.getElementById('login-pin').setAttribute('readonly','');
   { const w=document.getElementById('login-who'); if(w) w.innerHTML = (LOGIN_STATE.role==='admin') ? '🔐 Logging in as <b>Admin (Esa)</b>' : ('🚚 Logging in as <b>'+escapeHtml(LOGIN_STATE.driverName||'')+'</b> (Driver)'); }
   { const fr=document.getElementById('login-face-reset'); if(fr) fr.style.display='none'; }
   { const b=document.getElementById('login-eye'); if(b){ b.style.color='var(--muted)'; b.setAttribute('aria-label','Show password'); } }
@@ -2086,7 +2088,7 @@ async function showLoginPasswordForm(){
   // so the person taps the green Face / Fingerprint button.
 }
 function togglePasswordVisible(){
-  const inp = document.getElementById('login-password');
+  const inp = document.getElementById('login-pin');
   const show = !inp.classList.contains('pw-show');
   inp.classList.toggle('pw-show', show);
   const b = document.getElementById('login-eye');
@@ -2098,7 +2100,7 @@ function togglePasswordVisible(){
   inp.focus();
 }
 function loginGoBack(){
-  document.getElementById('login-password-form').style.display = 'none';
+  document.getElementById('login-pin-form').style.display = 'none';
   document.getElementById('login-driver-picker').style.display = 'none';
   document.getElementById('login-role-choice').style.display = 'grid';
   LOGIN_STATE = { role:null, driverName:null };
@@ -2126,7 +2128,7 @@ async function refreshLoginFaceButton(){
 async function submitLogin(){
   const role = LOGIN_STATE.role;
   if(role==='driver' && !LOGIN_STATE.driverName){ toast('Pick your name'); return; }
-  const pw = document.getElementById('login-password').value;
+  const pw = document.getElementById('login-pin').value;
   if(!pw){
     document.getElementById('login-error').textContent = 'Wrong password, try again';
     return;
@@ -2153,7 +2155,7 @@ async function submitLogin(){
     const e = result.error;
     if(e==='bad_password'){
       errBox.textContent = 'Wrong password, try again';
-      document.getElementById('login-password').value = '';
+      document.getElementById('login-pin').value = '';
     } else if(e==='too_many_attempts'){
       errBox.textContent = friendlySyncError(e);
     } else if(e==='unauthorized'){
@@ -4602,7 +4604,7 @@ function registerSW(){
     // active and controlling, so the very next time the app is closed and
     // reopened it loads the new version anyway — nothing is lost by waiting.
     const loginVisible = document.getElementById('screen-login').classList.contains('active');
-    const pwField = document.getElementById('login-password');
+    const pwField = document.getElementById('login-pin');
     if(loginVisible && pwField && pwField.value){
       return;
     }
