@@ -156,7 +156,7 @@ input,select,textarea{font-family:inherit;}
 .form-wrap{padding:16px 16px 140px;}
 .field{margin-bottom:18px;}
 .field label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px;}
-.field input[type=date],.field input[type=time],.field input[type=text],.field select,.field textarea{
+.field input[type=date],.field input[type=time],.field input[type=text],.field input[type=password],.field select,.field textarea{
   width:100%;padding:14px;border:2px solid var(--line);border-radius:var(--radius-sm);
   font-size:17px;background:#fff;color:var(--ink);
 }
@@ -249,6 +249,14 @@ input,select,textarea{font-family:inherit;}
   font-size:19px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;justify-content:center;gap:8px;
 }
 .save-btn:active{background:var(--green-dark);}
+.face-pill{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 16px;border-radius:14px;
+  border:1.5px solid var(--green);background:var(--green-light);color:var(--green-dark);font-weight:800;font-size:15px;}
+.face-pill:active{background:#d3ecdb;}
+.face-pill[disabled]{opacity:.6;}
+.face-pill svg{width:22px;height:22px;flex-shrink:0;}
+.or-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px;font-weight:700;margin:14px 0 4px;}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--line);}
+.confirm-box button.yes.green{background:var(--green);border-color:var(--green);}
 .save-btn[disabled]{opacity:.5;}
 
 /* ===== Saved screen ===== */
@@ -529,6 +537,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <button class="tile primary" onclick="showLoginRole('driver')"><div class="ic">🚚</div> DRIVER</button>
         <button class="tile" onclick="showLoginRole('admin')"><div class="ic">🔐</div> ADMIN</button>
       </div>
+      <div id="login-forget-wrap" style="display:none;text-align:center;margin-top:18px;">
+        <button class="more-toggle" onclick="forgetAllProfiles()">Forget saved logins on this device</button>
+      </div>
 
       <!-- Step 1 (driver only): pick a name -->
       <div id="login-driver-picker" style="display:none;">
@@ -538,12 +549,20 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 
       <!-- Step 2: password + remember me -->
       <div id="login-password-form" style="display:none;">
-        <div id="login-face-btn-wrap" style="display:none;margin-bottom:16px;">
-          <button class="save-btn" style="background:var(--blue);" onclick="attemptFaceUnlock()">🙂 Unlock with Face/Fingerprint</button>
+        <div id="login-continue-wrap" style="display:none;margin-bottom:16px;">
+          <button class="save-btn" onclick="continueSavedLogin()" id="login-continue-btn">▶ Continue</button>
+          <div style="text-align:center;color:var(--muted);font-size:12.5px;margin-top:6px;">Remembered on this device — no password needed</div>
+        </div>
+        <div id="login-face-btn-wrap" style="display:none;">
+          <button type="button" class="face-pill" id="login-face-btn" onclick="attemptFaceUnlock(false)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11v3.5c0 2-.5 3.7-1.6 5.2"/><path d="M8.5 13.5c0 2.2-.4 4-1.3 5.5"/><path d="M15.5 12.5c0 3-.6 5.3-1.8 7"/><path d="M5.2 10.5C5.8 7.2 8.6 5 12 5s6.2 2.2 6.8 5.5"/><path d="M3 8.5C4.2 5 7.8 2.5 12 2.5s7.8 2.5 9 6"/></svg>
+            <span id="login-face-btn-text">Use Face / Fingerprint</span>
+          </button>
+          <div class="or-divider">or type your password</div>
         </div>
         <div class="field">
           <label>Password</label>
-          <input type="password" id="login-password" placeholder="Password">
+          <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" enterkeyhint="go" onkeydown="if(event.key==='Enter'){event.preventDefault();submitLogin();}">
         </div>
         <div id="login-error" style="color:var(--red);font-size:13px;margin:-8px 0 16px;min-height:16px;"></div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
@@ -1542,6 +1561,7 @@ async function fetchRoster(){
 // The signed pass stopped working (expired, or the server's key changed) —
 // send this phone back to the login screen cleanly.
 async function handleAuthLost(){
+  try{ await forgetProfile(IS_ADMIN_DEVICE ? 'admin' : 'driver', CURRENT_DRIVER_NAME); }catch(e){}
   AUTH_TOKEN = '';
   await settingsSet('authToken', '');
   await settingsSet('rememberLogin', false);
@@ -1687,6 +1707,15 @@ async function init(){
   ]);
   document.getElementById('set-wa-number').value = wn||'';
   if(Array.isArray(roster) && roster.length) DRIVER_NAMES = roster;
+  // The remembered-logins list (also kept in localStorage) is the main source
+  // of "who was logged in"; the older single-login settings are only a
+  // fallback for phones that haven't opened this version yet.
+  try{
+    const pr = await loadProfiles();
+    const act = pr.last && pr.items[pr.last];
+    if(act && act.token){ remember = true; role = act.role; dn = act.name; tok = act.token; }
+  }catch(e){}
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
   // A remembered login now also needs its signed pass. Phones that were
   // logged in before this update have none, so they are asked for their
   // password once (then it's remembered again as before).
@@ -1704,8 +1733,7 @@ async function init(){
       if(d && d.ok && d.token){
         tok = d.token;
         settingsSet('authToken', tok);
-        const fc = await withTimeout(settingsGet('faceCred_driver_'+dn, null), 3000, null);
-        if(fc) settingsSet('faceToken_driver_'+dn, tok);
+        rememberProfile('driver', dn, tok);
       }
     }catch(e){ /* offline or slow — falls through to the normal login screen */ }
   }
@@ -1801,6 +1829,81 @@ window.addEventListener('pageshow', (e)=>{
   }
 });
 
+/* ---- Remembered logins ("profiles") ----
+   A device can now remember SEVERAL people at once (Esa as Admin, plus each
+   driver who has logged in here) — before, one remembered login simply
+   overwrote the previous one, so only the last person was ever remembered.
+   Each entry keeps that person's signed pass. The list is saved in two
+   places (IndexedDB and localStorage) so it survives either one being
+   cleared or stuck, which Safari in particular does. */
+async function refreshForgetLink(){
+  const w = document.getElementById('login-forget-wrap');
+  if(!w) return;
+  const p = await loadProfiles();
+  w.style.display = Object.keys(p.items||{}).length ? 'block' : 'none';
+}
+async function forgetAllProfiles(){
+  if(!(await askConfirm('Forget everyone remembered on this device? Everyone will need to type their password next time.'))) return;
+  await saveProfiles({last:'', items:{}});
+  await settingsSet('authToken',''); await settingsSet('rememberLogin', false);
+  refreshForgetLink();
+  toast('Done — this device no longer remembers anyone');
+}
+function slotFor(role, name){ return role==='admin' ? 'admin' : ('driver_'+name); }
+async function loadProfiles(){
+  // localStorage first: instant and never hangs. IndexedDB is only the
+  // second copy (consulted if localStorage was cleared).
+  let p = null;
+  try{ const raw = localStorage.getItem('gg_profiles'); if(raw) p = JSON.parse(raw); }catch(e){}
+  if(!p || !p.items){
+    try{ p = await withTimeout(settingsGet('profiles', null), 1500, null); }catch(e){ p = null; }
+  }
+  if(!p || typeof p!=='object' || !p.items) p = {last:'', items:{}};
+  return p;
+}
+async function saveProfiles(p){
+  try{ localStorage.setItem('gg_profiles', JSON.stringify(p)); }catch(e){}
+  settingsSet('profiles', p); // second copy, in the background — never waited on
+}
+async function rememberProfile(role, name, token){
+  if(!token) return;
+  const p = await loadProfiles();
+  p.items[slotFor(role,name)] = {role, name, token};
+  p.last = slotFor(role,name);
+  await saveProfiles(p);
+}
+// Forget one person on this device (log out / their pass stopped working);
+// everyone else stays remembered.
+async function forgetProfile(role, name){
+  const p = await loadProfiles();
+  delete p.items[slotFor(role,name)];
+  p.last = '';
+  await saveProfiles(p);
+}
+// Shows the one-tap "Continue as <name>" button on the password screen when
+// this device already remembers that driver. (Admin is never one-tap: Esa
+// uses Face/Fingerprint or the password.)
+async function refreshContinueButton(faceOn){
+  const wrap = document.getElementById('login-continue-wrap');
+  if(!wrap) return;
+  wrap.style.display = 'none';
+  if(faceOn) return; // Face/Fingerprint is the quick way in for this person
+  if(LOGIN_STATE.role!=='driver' || !LOGIN_STATE.driverName) return;
+  const p = await loadProfiles();
+  const it = p.items[slotFor('driver', LOGIN_STATE.driverName)];
+  if(it && it.token){
+    document.getElementById('login-continue-btn').textContent = '▶ Continue as ' + LOGIN_STATE.driverName;
+    wrap.style.display = 'block';
+  }
+}
+async function continueSavedLogin(){
+  const p = await loadProfiles();
+  const it = p.items[slotFor('driver', LOGIN_STATE.driverName)];
+  if(!it || !it.token){ refreshContinueButton(); return; }
+  AUTH_TOKEN = it.token;
+  await completeLogin('driver', it.name, true, false);
+}
+
 /* ---- Login screen flow ---- */
 let LOGIN_STATE = { role:null, driverName:null };
 function resetLoginScreen(){
@@ -1813,8 +1916,10 @@ function resetLoginScreen(){
   if(pwForm) pwForm.style.display = 'none';
   const err = document.getElementById('login-error');
   if(err) err.textContent = '';
+  refreshForgetLink();
 }
 async function showLoginRole(role){
+  const fw = document.getElementById('login-forget-wrap'); if(fw) fw.style.display = 'none';
   LOGIN_STATE.role = role;
   LOGIN_STATE.driverName = (role==='admin') ? 'Esa' : null;
   document.getElementById('login-role-choice').style.display = 'none';
@@ -1856,13 +1961,18 @@ async function showLoginPasswordForm(){
   // sharing a phone who doesn't want that.
   document.getElementById('login-remember').checked = true;
   document.getElementById('login-error').textContent = '';
-  await refreshLoginFaceButton();
+  const faceOn = await refreshLoginFaceButton();
+  await refreshContinueButton(faceOn);
+  // Face/Fingerprint is offered straight away (no extra tap) — if it's
+  // cancelled or not allowed here, the button and password remain.
+  if(faceOn) attemptFaceUnlock(true);
 }
 function loginGoBack(){
   document.getElementById('login-password-form').style.display = 'none';
   document.getElementById('login-driver-picker').style.display = 'none';
   document.getElementById('login-role-choice').style.display = 'grid';
   LOGIN_STATE = { role:null, driverName:null };
+  refreshForgetLink();
 }
 // The credential/settings key for whichever login slot is currently on
 // screen: one shared slot for Admin, one per driver name.
@@ -1872,13 +1982,19 @@ function loginSlot(){
 async function refreshLoginFaceButton(){
   const wrap = document.getElementById('login-face-btn-wrap');
   wrap.style.display = 'none';
-  if(LOGIN_STATE.role==='driver' && !LOGIN_STATE.driverName) return;
+  if(LOGIN_STATE.role==='driver' && !LOGIN_STATE.driverName) return false;
   try{
-    const cred = await settingsGet('faceCred_'+loginSlot(), null);
-    if(cred && await faceUnlockAvailable()){
+    const slot = loginSlot();
+    const cred = await settingsGet('faceCred_'+slot, null);
+    const prof = (await loadProfiles()).items[slot];
+    // Only offered when this device can really do it AND it already holds this
+    // person's remembered pass (otherwise it could not log them in).
+    if(cred && prof && prof.token && await faceUnlockAvailable()){
       wrap.style.display = 'block';
+      return true;
     }
   }catch(e){ /* feature-detect failure — just hide the button */ }
+  return false;
 }
 async function submitLogin(){
   const role = LOGIN_STATE.role;
@@ -1936,6 +2052,7 @@ async function submitLogin(){
 // this device is now logged in as, sets IS_ADMIN_DEVICE (the single source
 // of truth the rest of the app already reads), and goes to Home.
 async function completeLogin(role, driverName, remember, offerFaceSetup){
+  if(remember) await rememberProfile(role, driverName, AUTH_TOKEN);
   await settingsSet('authToken', remember ? AUTH_TOKEN : '');
   await settingsSet('role', role);
   await settingsSet('driverName', driverName);
@@ -1954,6 +2071,10 @@ async function completeLogin(role, driverName, remember, offerFaceSetup){
 // "Switch Driver" / Admin-Mode-toggle system now that login decides the role.
 async function logoutUser(){
   if(!(await askConfirm('Log out of this device?'))) return;
+  // Logging out switches user but keeps people remembered on this device (so
+  // Esa can flip between Admin and a driver without retyping). The login
+  // screen has a "Forget saved logins" link to wipe them.
+  try{ const p = await loadProfiles(); p.last = ''; await saveProfiles(p); }catch(e){}
   await settingsSet('role', '');
   await settingsSet('driverName', '');
   await settingsSet('rememberLogin', false);
@@ -1983,12 +2104,12 @@ async function maybeOfferFaceSetup(slot){
   try{
     if(!(await faceUnlockAvailable())) return;
     const existing = await settingsGet('faceCred_'+slot, null);
-    if(existing){
-      // Older set-ups saved no pass; save today's so Face unlock keeps working.
-      if(AUTH_TOKEN) await settingsSet('faceToken_'+slot, AUTH_TOKEN);
-      return;
-    }
-    if(!(await askConfirm('Set up Face/Fingerprint unlock on this device so you don\'t have to type the password next time?'))) return;
+    if(existing) return;
+    // Don't nag: after two "Not now" answers on this device, stop asking.
+    const declined = Number(await settingsGet('faceDeclined_'+slot, 0)) || 0;
+    if(declined >= 2) return;
+    const yes = await askConfirm('Log in faster next time with your face or fingerprint?', {yes:'Turn on', no:'Not now', green:true});
+    if(!yes){ settingsSet('faceDeclined_'+slot, declined+1); return; }
     const challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
     const userId = new Uint8Array(16); crypto.getRandomValues(userId);
     const cred = await navigator.credentials.create({ publicKey: {
@@ -2002,15 +2123,27 @@ async function maybeOfferFaceSetup(slot){
     }});
     if(cred && cred.rawId){
       await settingsSet('faceCred_'+slot, arrayBufferToBase64(cred.rawId));
-      if(AUTH_TOKEN) await settingsSet('faceToken_'+slot, AUTH_TOKEN);
+      toast('✅ Face / Fingerprint login is on');
     }
   }catch(e){ /* cancelled or unsupported — password login already succeeded, this is just a bonus */ }
 }
-async function attemptFaceUnlock(){
+let _faceBusy = false;
+// auto=true: tried automatically as soon as the person is picked; stays
+// silent if cancelled/blocked so the password screen just stays as it is.
+async function attemptFaceUnlock(auto){
+  if(_faceBusy) return;
+  _faceBusy = true;
+  const btn = document.getElementById('login-face-btn');
   try{
     const slot = loginSlot();
+    const role = LOGIN_STATE.role;
     const credB64 = await settingsGet('faceCred_'+slot, null);
-    if(!credB64) return;
+    const prof = (await loadProfiles()).items[slot];
+    if(!credB64 || !prof || !prof.token){
+      if(!auto) toast('Type your password this one time — Face/Fingerprint will work after that');
+      return;
+    }
+    if(btn){ btn.disabled = true; }
     const challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
     await navigator.credentials.get({ publicKey: {
       challenge,
@@ -2019,16 +2152,17 @@ async function attemptFaceUnlock(){
       timeout: 60000,
     }});
     // Resolved without throwing — the OS/browser already did the biometric
-    // check before returning, so treat this exactly like a correct password.
-    const role = LOGIN_STATE.role;
+    // check, so this counts exactly like a correct password (and the person
+    // stays remembered on this device).
+    AUTH_TOKEN = prof.token;
     const driverName = (role==='admin') ? 'Esa' : LOGIN_STATE.driverName;
-    const remember = document.getElementById('login-remember').checked;
-    const savedPass = await settingsGet('faceToken_'+slot, '');
-    if(!savedPass){ toast('Please type your password this one time — Face/Fingerprint unlock will work after that'); return; }
-    AUTH_TOKEN = savedPass;
-    await completeLogin(role, driverName, remember, false);
+    await completeLogin(role, driverName, true, false);
   }catch(e){
-    toast('Face/Fingerprint unlock failed — use your password instead');
+    const cancelled = e && (e.name==='NotAllowedError' || e.name==='AbortError');
+    if(!auto || !cancelled) toast(cancelled ? 'Cancelled — you can type your password instead' : 'Face/Fingerprint didn\'t work — please type your password');
+  }finally{
+    _faceBusy = false;
+    if(btn) btn.disabled = false;
   }
 }
 function arrayBufferToBase64(buf){
@@ -4239,9 +4373,13 @@ function toast(msg){
 // Out") simply not working. This version is just HTML/CSS we fully control,
 // so it always shows, the same way, on iOS, Android and Windows.
 let _confirmResolve = null;
-function askConfirm(message){
+function askConfirm(message, opts){
   document.getElementById('confirm-msg').textContent = message;
-  document.getElementById('confirm-overlay').classList.add('show');
+  const box = document.getElementById('confirm-overlay');
+  const yesBtn = box.querySelector('button.yes'), noBtn = box.querySelector('.confirm-actions button:not(.yes)');
+  yesBtn.textContent = (opts && opts.yes) || 'Yes'; noBtn.textContent = (opts && opts.no) || 'Cancel';
+  yesBtn.classList.toggle('green', !!(opts && opts.green));
+  box.classList.add('show');
   return new Promise(resolve=>{ _confirmResolve = resolve; });
 }
 function closeConfirmModal(result){
