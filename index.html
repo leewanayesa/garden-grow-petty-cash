@@ -2060,7 +2060,11 @@ async function showLoginPasswordForm(){
   // what "Remember me" controls, so checked-by-default matches what almost
   // everyone actually wants. Still shown and still uncheckable for anyone
   // sharing a phone who doesn't want that.
-  document.getElementById('login-remember').checked = true;
+  // Your own (Admin) phone: a driver logged in here is NOT remembered unless
+  // you tick the box — so only Admin stays saved. Drivers' own phones (no
+  // Admin saved) keep it ticked, so they stay logged in.
+  { let adminHere = false; try{ adminHere = !!(PROF.items && PROF.items.admin && PROF.items.admin.token); }catch(e){}
+    document.getElementById('login-remember').checked = !(LOGIN_STATE.role==='driver' && adminHere); }
   document.getElementById('login-error').textContent = '';
   const faceOn = await refreshLoginFaceButton();
   await refreshContinueButton(faceOn);
