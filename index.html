@@ -541,7 +541,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 61</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 62</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -762,9 +762,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <input type="text" id="hist-search" placeholder="Search note / supplier / site" oninput="renderTodayListBody()">
       </div>
     </div>
-    <div id="hist-driver-stats" class="balance-cards" style="display:none;margin:14px 16px 0;">
-      <div class="bal-card" id="hist-driver-cash-card"><div class="lbl">Cash Left</div><div class="val" id="hist-driver-cash-val">…</div></div>
-      <div class="bal-card owed"><div class="lbl">Owed To Driver</div><div class="val" id="hist-driver-owed-val">…</div></div>
+    <div id="hist-driver-stats" class="balance-cards" style="display:none;margin:14px 16px 0;grid-template-columns:1fr;">
+      <div class="bal-card" id="hist-driver-cash-card"><div class="lbl" id="hist-driver-lbl">Balance</div><div class="val" id="hist-driver-cash-val">…</div>
+        <div id="hist-driver-sub" style="font-size:12px;color:var(--muted);margin-top:6px;"></div></div>
     </div>
     <div class="hist-filter-bar">
       <button class="hist-chip sel" data-hf="today" onclick="setHistFilter('today')">TODAY</button>
@@ -2383,9 +2383,8 @@ function renderHome(){
   }
   const wrap = document.getElementById('home-balance-wrap');
   if(!firstLoadDone || !lastLoadOk){
-    wrap.innerHTML = `<div class="balance-cards">
-      <div class="bal-card"><div class="lbl">Cash Left</div><div class="val">${firstLoadDone?'—':'…'}</div></div>
-      <div class="bal-card owed"><div class="lbl">My Money Used</div><div class="val">${firstLoadDone?'—':'…'}</div></div>
+    wrap.innerHTML = `<div class="balance-cards" style="grid-template-columns:1fr;">
+      <div class="bal-card"><div class="lbl">Balance</div><div class="val">${firstLoadDone?'—':'…'}</div></div>
     </div>`;
   } else if(IS_ADMIN_DEVICE){
     // Combined totals across EVERY approved transaction — the exact same
@@ -2416,22 +2415,20 @@ function renderHome(){
       <div class="section-label">Drivers</div>
       <div class="driver-rows">` + DRIVER_NAMES.map(name=>{
       const b = driverBalances(name);
-      return `<button class="driver-row${b.companyCash<0?' low':''}" onclick="openHistory('${name}')">
+      return `<button class="driver-row${netBalance(b)<0?' low':''}" onclick="openHistory('${name}')">
         <div class="drv-avatar">${initials(name)}</div>
         <div class="drv-name">${escapeHtml(name)}</div>
         <div class="drv-amounts">
-          <div class="drv-amt cash"><span class="lbl">Cash Left</span><span class="val">${fmt(b.companyCash)}</span></div>
-          <div class="drv-amt owed"><span class="lbl">Owed</span><span class="val">${fmt(b.driverOwed)}</span></div>
+          <div class="drv-amt cash"><span class="lbl">${netLabelAdmin(netBalance(b))}</span><span class="val">${fmt(Math.abs(netBalance(b)))}</span></div>
         </div>
         <div class="drv-arrow">›</div>
       </button>`;
     }).join('') + (otherBal ? `
-      <button class="driver-row${otherBal.companyCash<0?' low':''}" onclick="openHistory('__other__')">
+      <button class="driver-row${netBalance(otherBal)<0?' low':''}" onclick="openHistory('__other__')">
         <div class="drv-avatar">?</div>
         <div class="drv-name">Other / Former Drivers</div>
         <div class="drv-amounts">
-          <div class="drv-amt cash"><span class="lbl">Cash Left</span><span class="val">${fmt(otherBal.companyCash)}</span></div>
-          <div class="drv-amt owed"><span class="lbl">Owed</span><span class="val">${fmt(otherBal.driverOwed)}</span></div>
+          <div class="drv-amt cash"><span class="lbl">${netLabelAdmin(netBalance(otherBal))}</span><span class="val">${fmt(Math.abs(netBalance(otherBal)))}</span></div>
         </div>
         <div class="drv-arrow">›</div>
       </button>` : '') + (formerDriverRecords().length ? `
@@ -2440,9 +2437,10 @@ function renderHome(){
     `;
   } else {
     const b = driverBalances(CURRENT_DRIVER_NAME);
-    wrap.innerHTML = `<div class="balance-cards">
-      <div class="bal-card${b.companyCash<0?' low':''}" id="cashLeftCard"><div class="lbl">Cash Left</div><div class="val" id="cashLeftVal">${fmt(b.companyCash)}</div></div>
-      <div class="bal-card owed"><div class="lbl">My Money Used</div><div class="val" id="myMoneyVal">${fmt(b.driverOwed)}</div></div>
+    const net = netBalance(b);
+    wrap.innerHTML = `<div class="balance-cards" style="grid-template-columns:1fr;">
+      <div class="bal-card${net<0?' low':''}" id="cashLeftCard" style="padding:20px 12px;"><div class="lbl" id="balLbl">${netLabel(net)}</div><div class="val" id="cashLeftVal" style="font-size:34px;">${fmt(Math.abs(net))}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;">Cash left ${fmt(b.companyCash)} − your own money used ${fmt(b.driverOwed)}</div></div>
     </div>`;
   }
   const badge = document.getElementById('home-approvals-badge');
@@ -2471,6 +2469,13 @@ function goAdminTab(tab){
   pushScreen('screen-admin');
   selectAdminTab(tab);
 }
+// ONE simple balance per driver (display only — computeBalances is untouched):
+// what the driver holds in company cash, minus what the company owes him for
+// his own money. Minus = the company owes him; Cash In from Nizar/Esa brings
+// it back up by itself.
+function netBalance(b){ return (Number(b.companyCash)||0) - (Number(b.driverOwed)||0); }
+function netLabel(n){ return n<0 ? 'Company owes you' : 'Cash in hand'; }
+function netLabelAdmin(n){ return n<0 ? 'Owed to driver' : 'Cash in hand'; }
 function fmt(n){
   n = Number(n)||0;
   const s = n.toLocaleString('en-AE', {minimumFractionDigits: (n%1!==0)?2:0, maximumFractionDigits:2});
@@ -3408,9 +3413,11 @@ function renderTodayListBody(){
   const list = document.getElementById('today-list');
   if(histDriverFilter){
     const b = histDriverFilter==='__other__' ? computeBalances(otherTxns()) : driverBalances(histDriverFilter);
-    document.getElementById('hist-driver-cash-val').textContent = fmt(b.companyCash);
-    document.getElementById('hist-driver-owed-val').textContent = fmt(b.driverOwed);
-    document.getElementById('hist-driver-cash-card').classList.toggle('low', b.companyCash<0);
+    const nb = netBalance(b);
+    document.getElementById('hist-driver-lbl').textContent = netLabelAdmin(nb);
+    document.getElementById('hist-driver-cash-val').textContent = fmt(Math.abs(nb));
+    document.getElementById('hist-driver-sub').textContent = 'Cash left ' + fmt(b.companyCash) + ' − driver\'s own money used ' + fmt(b.driverOwed);
+    document.getElementById('hist-driver-cash-card').classList.toggle('low', nb<0);
   }
   const {from, to} = getHistRange();
   let rows = ALL_TXNS.filter(t=> t.date>=from && t.date<=to);
