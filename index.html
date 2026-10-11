@@ -283,6 +283,9 @@ input,select,textarea{font-family:inherit;}
 .hx-day span:last-child{font-size:12.5px;font-weight:600;text-transform:none;letter-spacing:0;color:#4b6355;}
 .hx-pend{margin:14px 16px;background:#fff8de;border:1.5px solid #e6c84f;border-radius:16px;padding:14px 14px 4px;}
 .hx-pend .hx{padding:12px 0;border-bottom:1px solid #efe2a6;cursor:pointer;}
+.hx-pend .appr-it .hx{border-bottom:0;}
+.hx-pend .appr-it{border-bottom:1px solid #efe2a6;}
+.hx-pend .appr-it:last-child{border-bottom:0;}
 .hx-pend .hx:last-child{border-bottom:0;}
 .hx-act{display:flex;gap:10px;margin-top:12px;}
 .hx-act button{flex:1;height:48px;border-radius:12px;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;}
@@ -547,7 +550,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">67</b> ·
+        App version <b id="home-app-version">68</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -566,7 +569,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 67</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 68</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -4206,36 +4209,37 @@ function updateApprovalsBadges(){
 // page and the Approvals tab inside Admin/Management, so both always look
 // and behave identically.
 function buildApprovalsHTML(){
+  // Same yellow "Needs your approval" box as History: ONE box, heading inside,
+  // entries separated by thin lines.
   const rows = pendingEntries();
   const delRows = deleteRequestEntries();
+  const head = (txt)=>`<div style="display:flex;align-items:center;gap:8px;color:#6b5200;font-weight:800;font-size:15px;margin-bottom:6px;">${hxSvg('clock',20,2.3)}${txt}</div>`;
   let html = '';
-  const head = (txt)=>`<div style="display:flex;align-items:center;gap:8px;color:#6b5200;font-weight:800;font-size:15px;margin:2px 2px 10px;">${hxSvg('clock',20,2.3)}${txt}</div>`;
   if(delRows.length){
-    html += head('Delete requests (' + delRows.length + ')');
-    html += delRows.map(t=>`<div class="hx-pend" style="margin:0 0 14px;">${hxRow(t,{box:true, showDriver:true, ctx:'appr'})}</div>`).join('');
+    html += `<div class="hx-pend appr-box">${head('Delete requests (' + delRows.length + ')')}`
+      + delRows.map(t=>`<div class="appr-it">${hxRow(t,{box:true, showDriver:true, ctx:'appr'})}</div>`).join('') + '</div>';
   }
   if(rows.length){
-    // Stale exclusions (an entry that's no longer pending) never linger and
-    // silently confuse a later bulk-approve count.
     const pendingIds = new Set(rows.map(t=>t.id));
     Array.from(bulkExcludedApprovalIds).forEach(id=>{ if(!pendingIds.has(id)) bulkExcludedApprovalIds.delete(id); });
-    html += head('Needs your approval (' + rows.length + ')');
+    let inner = head('Needs your approval (' + rows.length + ')');
     if(rows.length>1){
       const includedCount = rows.length - bulkExcludedApprovalIds.size;
-      html += `<div style="margin:0 0 14px;padding:14px;border-radius:16px;background:var(--green-light);border:1px solid #cfe7d6;">
+      inner += `<div style="margin:6px 0 4px;padding:12px;border-radius:14px;background:var(--green-light);border:1px solid #cfe7d6;">
         <div style="font-size:13.5px;margin-bottom:10px;color:#35503f;">Untick any entry you want to leave waiting, then approve the rest in one tap.</div>
         <button class="btn block" style="background:#0f4d2e;color:#fff;height:48px;font-size:16px;font-weight:800;" onclick="bulkApproveEntries()">Approve ${includedCount} selected</button>
       </div>`;
     }
-    html += rows.map(t=>{
+    inner += rows.map(t=>{
       const checked = bulkExcludedApprovalIds.has(t.id) ? '' : 'checked';
       const bulkCheckbox = rows.length>1
-        ? `<label style="display:flex;align-items:center;gap:10px;padding:0 0 8px;font-size:13.5px;color:#4b6355;min-height:32px;"><input type="checkbox" style="width:22px;height:22px;" ${checked} onchange="toggleBulkExclude('${t.id}', !this.checked)"> Include in bulk approve</label>`
+        ? `<label style="display:flex;align-items:center;gap:10px;padding:10px 0 0;font-size:13.5px;color:#4b6355;min-height:32px;"><input type="checkbox" style="width:22px;height:22px;" ${checked} onchange="toggleBulkExclude('${t.id}', !this.checked)"> Include in bulk approve</label>`
         : '';
-      return `<div class="hx-pend" style="margin:0 0 14px;">${bulkCheckbox}${hxRow(t,{box:true, showDriver:true, ctx:'appr', extra:riskFlagsHTML(t)})}</div>`;
+      return `<div class="appr-it">${bulkCheckbox}${hxRow(t,{box:true, showDriver:true, ctx:'appr', extra:riskFlagsHTML(t)})}</div>`;
     }).join('');
+    html += `<div class="hx-pend appr-box">${inner}</div>`;
   }
-  return html ? `<div style="padding:14px 16px 4px;">${html}</div>` : `<div class="empty-note">Nothing waiting on you right now.</div>`;
+  return html || `<div class="empty-note">Nothing waiting on you right now.</div>`;
 }
 // Which pending entries are unchecked (excluded) from the next bulk-approve
 // tap — kept across re-renders of the Approvals list so ticking a box while
