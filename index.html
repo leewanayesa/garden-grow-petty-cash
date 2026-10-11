@@ -268,10 +268,13 @@ input,select,textarea{font-family:inherit;}
 .dchip{height:44px;padding:0 18px;border-radius:22px;border:1.5px solid #cfdcd2;background:#fff;color:#35503f;font-size:15px;font-weight:700;white-space:nowrap;flex-shrink:0;}
 .dchip.sel{border-color:#0b7a3b;background:#0b7a3b;color:#fff;font-weight:800;}
 .hx-card{background:#fff;border-top:1px solid #d9e4dc;border-bottom:1px solid #d9e4dc;margin:0 -16px 14px;}
-.hx{display:flex;gap:11px;align-items:flex-start;padding:12px 16px;border-bottom:1px solid #e6eee8;cursor:pointer;}
+.hx{display:flex;flex-wrap:wrap;column-gap:11px;row-gap:0;align-items:flex-start;padding:12px 16px;border-bottom:1px solid #e6eee8;cursor:pointer;}
 .hx:last-child{border-bottom:0;}
 .hx-ic,.hx-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
-.hx-av{color:#fff;font-size:13.5px;font-weight:800;}
+.hx-av{color:#14532d;font-size:13.5px;font-weight:800;}
+.hx-full{flex:0 0 100%;min-width:0;margin-top:10px;}
+.hx-full .hx-act{margin-top:0;}
+.hx-full img{margin-top:0 !important;margin-bottom:10px;}
 .hx-bd{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;}
 .hx-body{flex:1;min-width:0;}
 .hx-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
@@ -287,11 +290,18 @@ input,select,textarea{font-family:inherit;}
 .hx-band .t{font-size:12px;line-height:1.35;text-align:right;font-weight:600;}
 .hx-band .t b{font-weight:800;}
 .hx-dsub{display:flex;justify-content:space-between;gap:10px;margin:0 -16px;padding:6px 16px;background:#e3ece5;border-bottom:1px solid #d3e0d6;font-size:12px;color:#35503f;}
-.hx-pend{margin:14px -16px;background:#fff;border-top:1.5px solid #e6c84f;border-bottom:1.5px solid #e6c84f;padding:0;}
-.hx-pend-h{display:flex;align-items:center;gap:8px;background:#fff3cd;color:#6b5200;font-weight:800;font-size:15px;padding:11px 16px;}
-.hx-pend .hx{padding:12px 16px;border-bottom:1px solid #efe2a6;cursor:pointer;}
+#screen-today .topbar,#screen-approvals .topbar{background:#e3f1e7;color:#14532d;}
+#screen-today .topbar .back,#screen-today .topbar .icon-btn,#screen-approvals .topbar .back,#screen-approvals .topbar .icon-btn{background:#fff;color:#14532d;}
+.hx-band{background:#e3f1e7;color:#14532d;}
+.hx-band.old{background:#eef5ef;}
+.hx-dsub{background:#f5f9f6;color:#4b6355;border-bottom:1px solid #e5eee7;}
+.hx-card{border-top:0;border-bottom:1px solid #e5eee7;}
+.hx{border-bottom-color:#eef2ee;}
+.hx-pend{margin:14px -16px;background:#fff;border-top:1px solid #f1e2a4;border-bottom:1px solid #f1e2a4;padding:0;}
+.hx-pend-h{display:flex;align-items:center;gap:8px;background:#fff7dc;color:#7a5b00;font-weight:800;font-size:15px;padding:11px 16px;}
+.hx-pend .hx{padding:12px 16px;border-bottom:1px solid #eef2ee;cursor:pointer;}
 .hx-pend .hx:last-child{border-bottom:0;}
-.hx-pend .appr-it{border-bottom:1px solid #efe2a6;}
+.hx-pend .appr-it{border-bottom:1px solid #eef2ee;}
 .hx-pend .appr-it:last-child{border-bottom:0;}
 .hx-pend .appr-it .hx{border-bottom:0;}
 .hx-pend .appr-bulk{margin:12px 16px 2px;padding:12px;border-radius:14px;background:var(--green-light);border:1px solid #cfe7d6;}
@@ -559,7 +569,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">70</b> ·
+        App version <b id="home-app-version">71</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -578,7 +588,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 70</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 71</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -3558,7 +3568,7 @@ function hxRow(t, o){
     if(t.deleteRequested){
       actions = `<div class="hx-act"><button type="button" style="border:0;background:#a8231b;color:#fff;" onclick="approveDeleteRequest('${t.id}')">Approve delete</button><button type="button" style="border:1.5px solid #35503f;background:#fff;color:#35503f;" onclick="rejectDeleteRequest('${t.id}')">Keep</button></div>`;
     } else {
-      actions = `<div class="hx-act"><button type="button" style="border:0;background:#0f4d2e;color:#fff;" onclick="approveEntry('${t.id}')">${hxSvg('check',20,2.7)}Approve</button><button type="button" style="border:1.5px solid #a8231b;background:#fff;color:#a8231b;" onclick="rejectEntry('${t.id}')">${hxSvg('cross',20,2.7)}Reject</button></div>`;
+      actions = `<div class="hx-act"><button type="button" style="border:0;background:#2e8b57;color:#fff;" onclick="approveEntry('${t.id}')">${hxSvg('check',20,2.7)}Approve</button><button type="button" style="border:1.5px solid #e3a09a;background:#fff;color:#b4382f;" onclick="rejectEntry('${t.id}')">${hxSvg('cross',20,2.7)}Reject</button></div>`;
     }
   } else if(!admin && rejected && t.type==='expense'){
     actions = `<div style="margin-top:10px;"><button type="button" class="btn" style="width:100%;padding:11px;font-size:14px;background:var(--amber);color:#3a2a00;" onclick="fixAndResubmit('${t.id}')">Fix &amp; Resubmit</button></div>`;
@@ -3589,11 +3599,12 @@ function hxRow(t, o){
       ${bal}
       ${bits.length?`<div class="hx-sub">${bits.map(escapeHtml).join(' · ')}</div>`:''}
       ${sentence?`<div class="hx-who" style="color:${st.fg};">${escapeHtml(sentence)}</div>`:''}
-      ${o.extra||''}${photoHtml}${chips}${reason}${actions}
+      ${o.extra||''}${o.box?'':photoHtml}${chips}${reason}
     </div>
+    ${(o.box&&photoHtml)||actions?`<div class="hx-full">${o.box?photoHtml:''}${actions}</div>`:''}
   </div>`;
 }
-const HX_DRV_COLORS=['#0f4d2e','#1a5f8a','#7a3b8f','#8a4b00','#a8231b','#35503f'];
+const HX_DRV_COLORS=['#dcefe2','#dbeaf6','#eadff3','#fbe9cf','#fadcd8','#e2e8e4'];
 function hxDrvColor(name){
   const i = Math.max(0, (typeof DRIVER_NAMES!=='undefined' ? DRIVER_NAMES.indexOf(String(name||'').trim()) : -1));
   return HX_DRV_COLORS[i % HX_DRV_COLORS.length];
@@ -4271,7 +4282,7 @@ function buildApprovalsHTML(){
       const includedCount = rows.length - bulkExcludedApprovalIds.size;
       inner += `<div class="appr-bulk">
         <div style="font-size:13.5px;margin-bottom:10px;color:#35503f;">Untick any entry you want to leave waiting, then approve the rest in one tap.</div>
-        <button class="btn block" style="background:#0f4d2e;color:#fff;height:48px;font-size:16px;font-weight:800;" onclick="bulkApproveEntries()">Approve ${includedCount} selected</button>
+        <button class="btn block" style="background:#2e8b57;color:#fff;height:46px;font-size:15px;font-weight:800;" onclick="bulkApproveEntries()">Approve ${includedCount} selected</button>
       </div>`;
     }
     inner += rows.map(t=>{
