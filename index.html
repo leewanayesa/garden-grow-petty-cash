@@ -1086,14 +1086,12 @@ function applyServerConfig(config){
 // by Esa from Admin → Drivers). Kept here as a safe fallback in
 // case the server is briefly unreachable or hasn't been redeployed yet.
 let DRIVER_NAMES = ['Jawad', 'Gul Bad Shah'];
-// Admin is just Esa, so this one stays a single fixed password (checked
-// here, same as before). DRIVER_PASSWORD is no longer used to check a
-// driver's login — each driver now has their own password, checked on the
-// server (see submitLogin() / apps-script-sync.gs checkDriverPassword_) —
-// it's kept only as a reference to the old shared fallback password every
-// driver still has until Esa sets each one their own from Admin → Drivers.
-const DRIVER_PASSWORD = '1Pakistan@';
-const ADMIN_PASSWORD = 'Nizar@123#';
+// Passwords are NO LONGER in this file. Everyone (Esa and each driver) types
+// their password at login; the Google Apps Script checks it and hands this
+// phone a signed "pass" (AUTH_TOKEN) that is sent with every request. That
+// pass is also what limits a driver to their own records and Esa to the
+// admin actions — see apps-script-sync.gs.
+let AUTH_TOKEN = '';
 
 /* ================= INDEXEDDB LAYER (device-local settings only) =================
    Transactions are NOT stored locally anymore — this app requires internet for
@@ -1303,7 +1301,7 @@ const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxRL0Q-eVgmoQrphSsS1l1
 // this app talking, not just anyone who happens to have the SYNC_URL above.
 // Must always match SHARED_SECRET in apps-script-sync.gs — nobody ever has
 // to type this, it's baked in once, same idea as SYNC_URL itself.
-const SYNC_SECRET = 'Nizar@123#';
+// (No shared secret here any more — see AUTH_TOKEN.)
 // Google Apps Script "wakes up" slowly after sitting idle for a while — its
 // very first response after being unused can take much longer than a normal
 // one, regardless of how good the phone's signal is. 15s was cutting that
@@ -1328,7 +1326,9 @@ function friendlySyncError(err){
   if(err==='network' || err==='offline') return 'No internet connection. Please check your connection and try again.';
   if(err==='timeout') return "The server is taking too long to respond — this usually isn't your connection, it's Google's server waking up. Wait a few seconds and tap Retry.";
   if(err==='not_configured') return 'Sync is not set up yet.';
-  if(err==='unauthorized') return "The app and your Google Sheet don't recognize each other right now — this is a setup problem, not your internet. The Apps Script needs to be redeployed with the matching password. Contact your developer.";
+  if(err==='unauthorized') return "Your login has expired (or the Google script wasn't updated). Please log out and log in again.";
+  if(err==='not_logged_in') return 'Please log in first.';
+  if(err==='too_many_attempts') return 'Too many wrong passwords. Please wait 10 minutes and try again.';
   if(err==='admin_required') return "Only the Admin device can do this.";
   if(err==='busy_try_again') return 'The server is busy with another save right now — please tap Retry in a moment.';
   if(err==='bad_response') return "Got an unexpected reply from the server. Please tap Retry — if this keeps happening, your Apps Script deployment may need updating.";
@@ -1415,7 +1415,7 @@ async function postToSync(payload){
           // driver roster changes, category/threshold customization), so those
           // can no longer be triggered by a request that merely has the
           // app-wide sync secret. See isAdminRequest_() in apps-script-sync.gs.
-          body: JSON.stringify(Object.assign({secret: SYNC_SECRET, by: CURRENT_DRIVER_NAME||'Unknown', adminAuth: IS_ADMIN_DEVICE ? ADMIN_PASSWORD : ''}, payload)),
+          body: JSON.stringify(Object.assign({token: AUTH_TOKEN, by: CURRENT_DRIVER_NAME||'Unknown'}, payload)),
           cache:'no-store',
           signal: controller.signal,
         });
@@ -1440,13 +1440,14 @@ async function postToSync(payload){
 async function loadFromServer(){
   updateConnBanner();
   if(!SYNC_URL) return {ok:false, error:'not_configured'};
+  if(!AUTH_TOKEN) return {ok:false, error:'not_logged_in'};
   showLoadBar();
   try{
   return await withRetry(async ()=>{
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), SYNC_TIMEOUT_MS);
   try{
-    const resp = await fetch(SYNC_URL + '?secret=' + encodeURIComponent(SYNC_SECRET), { method:'GET', cache:'no-store', signal: controller.signal });
+    const resp = await fetch(SYNC_URL + '?token=' + encodeURIComponent(AUTH_TOKEN), { method:'GET', cache:'no-store', signal: controller.signal });
     if(!resp.ok) return {ok:false, error:'http_'+resp.status};
     const data = await resp.json().catch(()=>null);
     // IMPORTANT: check data.ok===false FIRST. The server replies with a normal
@@ -1518,6 +1519,39 @@ function applyServerData(data){
     currentBalances = computeBalances(approvedOnly(ALL_TXNS));
   }
 }
+// The login screen needs the driver NAMES before anyone is logged in. This is
+// the one public question the server answers (names only, nothing else). The
+// last answer is remembered on the phone so the picker still works offline.
+async function fetchRoster(){
+  try{
+    if(!SYNC_URL) return false;
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), 15000);
+    try{
+      const resp = await fetch(SYNC_URL + '?action=roster', {method:'GET', cache:'no-store', signal:controller.signal});
+      const data = await resp.json().catch(()=>null);
+      if(data && data.ok && Array.isArray(data.drivers) && data.drivers.length){
+        DRIVER_NAMES = data.drivers.map(n=>String(n||'').trim()).filter(Boolean);
+        settingsSet('roster', DRIVER_NAMES);
+        return true;
+      }
+    } finally { clearTimeout(timer); }
+  }catch(e){}
+  return false;
+}
+// The signed pass stopped working (expired, or the server's key changed) —
+// send this phone back to the login screen cleanly.
+async function handleAuthLost(){
+  AUTH_TOKEN = '';
+  await settingsSet('authToken', '');
+  await settingsSet('rememberLogin', false);
+  await settingsSet('dataCache', null);
+  STALE_AT = 0; STALE_FAILED = false;
+  IS_ADMIN_DEVICE = false; CURRENT_DRIVER_NAME = '';
+  resetLoginScreen();
+  replaceScreen('screen-login');
+  toast('Please log in again.');
+}
 // ---- Saved copy of the last successful load, so the app can open instantly
 // with the last-known numbers (clearly marked) while the fresh load runs. It
 // is only ever shown at app start for a remembered login, is replaced on every
@@ -1564,7 +1598,9 @@ async function refreshAll(){
   if(_inFlightRefresh) return _inFlightRefresh;
   _inFlightRefresh = (async ()=>{
     try{
+      if(!AUTH_TOKEN) return {ok:false, error:'not_logged_in'}; // nothing to load before login
       const result = await loadFromServer();
+      if(!result.ok && result.error==='unauthorized'){ handleAuthLost(); return result; }
       lastLoadOk = result.ok;
       lastLoadError = result.ok ? null : result.error;
       firstLoadDone = true;
@@ -1641,15 +1677,41 @@ async function init(){
   // another) so a slow/cold IndexedDB open only costs one 4s wait total, not
   // up to four — the boot splash below is covering the screen the whole
   // time, but keeping this fast still matters.
-  const [wn, remember, role, dn] = await Promise.all([
+  let [wn, remember, role, dn, tok, roster] = await Promise.all([
     withTimeout(settingsGet('waNumber',''), 4000, ''),
     withTimeout(settingsGet('rememberLogin', false), 4000, false),
     withTimeout(settingsGet('role', ''), 4000, ''),
     withTimeout(settingsGet('driverName', ''), 4000, ''),
+    withTimeout(settingsGet('authToken', ''), 4000, ''),
+    withTimeout(settingsGet('roster', null), 4000, null),
   ]);
   document.getElementById('set-wa-number').value = wn||'';
-  const autoLoggingIn = !!(remember && role && dn);
+  if(Array.isArray(roster) && roster.length) DRIVER_NAMES = roster;
+  // A remembered login now also needs its signed pass. Phones that were
+  // logged in before this update have none, so they are asked for their
+  // password once (then it's remembered again as before).
+  // Drivers already logged in before the security update have no pass yet:
+  // get one quietly (server allows this for drivers during a switch-over
+  // period) so they never see a login screen or have to do anything.
+  if(remember && role==='driver' && dn && !tok){
+    try{
+      const controller = new AbortController();
+      const timer = setTimeout(()=>controller.abort(), 15000);
+      const resp = await fetch(SYNC_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, cache:'no-store', signal:controller.signal,
+        body: JSON.stringify({login:{role:'driver', name:dn, resume:true}})});
+      clearTimeout(timer);
+      const d = await resp.json().catch(()=>null);
+      if(d && d.ok && d.token){
+        tok = d.token;
+        settingsSet('authToken', tok);
+        const fc = await withTimeout(settingsGet('faceCred_driver_'+dn, null), 3000, null);
+        if(fc) settingsSet('faceToken_driver_'+dn, tok);
+      }
+    }catch(e){ /* offline or slow — falls through to the normal login screen */ }
+  }
+  const autoLoggingIn = !!(remember && role && dn && tok);
   if(autoLoggingIn){
+    AUTH_TOKEN = tok;
     IS_ADMIN_DEVICE = (role==='admin');
     CURRENT_DRIVER_NAME = dn;
     updateHomeDriverLabel(dn);
@@ -1682,7 +1744,13 @@ async function init(){
       }catch(e){ usedCache = false; STALE_AT = 0; }
     }
   }
+  if(!autoLoggingIn){
+    // Not logged in: only the public driver-name list is needed for the picker.
+    fetchRoster().then(()=>{ const p=document.getElementById('login-driver-picker'); if(p && p.style.display!=='none') buildLoginDriverNames(); });
+    return;
+  }
   const result = await refreshAll();
+  if(!result.ok && result.error==='unauthorized') return; // handleAuthLost() already showed the login screen
   if(usedCache && !result.ok){
     // Couldn't reach the server — keep the saved numbers on screen, clearly
     // marked, instead of throwing the person back to the login screen.
@@ -1760,7 +1828,7 @@ async function showLoginRole(role){
     // gated on navigator.onLine, which iOS reports unreliably) — if there's
     // truly no connection, loadFromServer just fails quietly here and the
     // picker keeps showing whatever roster it already had.
-    await loadFromServer();
+    await fetchRoster();
     buildLoginDriverNames();
   } else {
     document.getElementById('login-driver-picker').style.display = 'none';
@@ -1834,31 +1902,29 @@ async function submitLogin(){
   // never get stuck disabled either.
   if(submitBtn) setBusy(submitBtn, 'CHECKING…');
   try{
-  if(role==='admin'){
-    // Admin is just Esa, so this one stays a simple fixed password — no
-    // separate "account" to manage, same as before.
-    if(pw !== ADMIN_PASSWORD){
+  // The password is checked by the Google Apps Script (never in this file).
+  // If it's right, it returns a signed pass that this phone then uses.
+  const nameForLogin = (role==='admin') ? 'Esa' : LOGIN_STATE.driverName;
+  const result = await postToSync({login:{role, name:nameForLogin, password:pw}});
+  if(!result.ok){
+    const e = result.error;
+    if(e==='bad_password'){
       errBox.textContent = 'Wrong password, try again';
       document.getElementById('login-password').value = '';
-      return;
-    }
-  } else {
-    // Each driver now has their OWN password, checked on the server — never
-    // compared against one password shared by everyone, so one driver can no
-    // longer log in as another. This needs a live connection; if the phone
-    // is offline, "remember me" from a previous successful login is what
-    // gets someone back in without asking again (see init()/autologin).
-    const result = await postToSync({driverAuth:{name: LOGIN_STATE.driverName, password: pw}});
-    if(!result.ok){
+    } else if(e==='too_many_attempts'){
+      errBox.textContent = friendlySyncError(e);
+    } else if(e==='unauthorized'){
+      errBox.textContent = 'The Google script needs to be updated first (redeploy). Please contact your developer.';
+    } else {
       errBox.textContent = 'No internet — cannot verify your password right now. Try again once connected.';
-      return;
     }
-    if(!result.data || !result.data.authorized){
-      errBox.textContent = 'Wrong password, try again';
-      document.getElementById('login-password').value = '';
-      return;
-    }
+    return;
   }
+  if(!result.data || !result.data.token){
+    errBox.textContent = 'Wrong password, try again';
+    return;
+  }
+  AUTH_TOKEN = result.data.token;
   const remember = document.getElementById('login-remember').checked;
   const driverName = (role==='admin') ? 'Esa' : LOGIN_STATE.driverName;
   await completeLogin(role, driverName, remember, true);
@@ -1870,6 +1936,7 @@ async function submitLogin(){
 // this device is now logged in as, sets IS_ADMIN_DEVICE (the single source
 // of truth the rest of the app already reads), and goes to Home.
 async function completeLogin(role, driverName, remember, offerFaceSetup){
+  await settingsSet('authToken', remember ? AUTH_TOKEN : '');
   await settingsSet('role', role);
   await settingsSet('driverName', driverName);
   await settingsSet('rememberLogin', !!remember);
@@ -1891,6 +1958,8 @@ async function logoutUser(){
   await settingsSet('driverName', '');
   await settingsSet('rememberLogin', false);
   await settingsSet('dataCache', null);
+  await settingsSet('authToken', '');
+  AUTH_TOKEN = '';
   STALE_AT = 0; STALE_FAILED = false;
   IS_ADMIN_DEVICE = false;
   CURRENT_DRIVER_NAME = '';
@@ -1914,7 +1983,11 @@ async function maybeOfferFaceSetup(slot){
   try{
     if(!(await faceUnlockAvailable())) return;
     const existing = await settingsGet('faceCred_'+slot, null);
-    if(existing) return;
+    if(existing){
+      // Older set-ups saved no pass; save today's so Face unlock keeps working.
+      if(AUTH_TOKEN) await settingsSet('faceToken_'+slot, AUTH_TOKEN);
+      return;
+    }
     if(!(await askConfirm('Set up Face/Fingerprint unlock on this device so you don\'t have to type the password next time?'))) return;
     const challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
     const userId = new Uint8Array(16); crypto.getRandomValues(userId);
@@ -1929,6 +2002,7 @@ async function maybeOfferFaceSetup(slot){
     }});
     if(cred && cred.rawId){
       await settingsSet('faceCred_'+slot, arrayBufferToBase64(cred.rawId));
+      if(AUTH_TOKEN) await settingsSet('faceToken_'+slot, AUTH_TOKEN);
     }
   }catch(e){ /* cancelled or unsupported — password login already succeeded, this is just a bonus */ }
 }
@@ -1949,6 +2023,9 @@ async function attemptFaceUnlock(){
     const role = LOGIN_STATE.role;
     const driverName = (role==='admin') ? 'Esa' : LOGIN_STATE.driverName;
     const remember = document.getElementById('login-remember').checked;
+    const savedPass = await settingsGet('faceToken_'+slot, '');
+    if(!savedPass){ toast('Please type your password this one time — Face/Fingerprint unlock will work after that'); return; }
+    AUTH_TOKEN = savedPass;
     await completeLogin(role, driverName, remember, false);
   }catch(e){
     toast('Face/Fingerprint unlock failed — use your password instead');
