@@ -24,8 +24,6 @@
      the clock/battery icons. "black" keeps the status bar opaque and reserves
      its own space, so nothing is covered. -->
 <meta name="apple-mobile-web-app-title" content="Petty Cash">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{
   --green:#0b7a3f;
@@ -301,6 +299,19 @@ input,select,textarea{font-family:inherit;}
 }
 .photo-modal.show{display:flex;}
 .photo-modal img{max-width:100%;max-height:100%;border-radius:8px;}
+.detail-modal{display:none;position:fixed;inset:0;z-index:250;background:rgba(11,61,36,.6);align-items:flex-end;justify-content:center;}
+.detail-modal.show{display:flex;}
+.detail-sheet{background:#fff;width:100%;max-width:560px;max-height:94vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:14px 16px 20px;-webkit-overflow-scrolling:touch;}
+@media(min-width:700px){.detail-modal{align-items:center;}.detail-sheet{border-radius:18px;}}
+.detail-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+.detail-top button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px 14px;font-weight:800;font-size:14px;color:var(--green-dark);}
+.detail-top button:disabled{opacity:.35;}
+.detail-photo{width:100%;max-height:44vh;object-fit:contain;background:#f1f3f2;border-radius:12px;border:1px solid var(--line);display:block;cursor:zoom-in;}
+.detail-nophoto{padding:26px 12px;text-align:center;background:#f6f6f6;border-radius:12px;color:var(--muted);font-weight:700;font-size:14px;}
+.detail-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;}
+.detail-row span:first-child{color:var(--muted);flex-shrink:0;}
+.detail-row span:last-child{text-align:right;font-weight:700;word-break:break-word;}
+.hist-thumb{cursor:pointer;}
 .photo-modal-close{
   position:absolute;top:20px;right:20px;background:rgba(255,255,255,.15);color:#fff;
   border:none;width:40px;height:40px;border-radius:50%;font-size:18px;
@@ -350,7 +361,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 .toast{
   position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
   background:var(--green-dark);color:#fff;padding:12px 20px;border-radius:30px;
-  font-size:14px;font-weight:700;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s, bottom .2s;
+  font-size:14px;font-weight:700;z-index:500;opacity:0;pointer-events:none;transition:opacity .2s, bottom .2s;
   max-width:90%;text-align:center;
 }
 .toast.show{opacity:1;bottom:120px;}
@@ -443,6 +454,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       </div>
     </div>
     <div class="home-wrap">
+      <div id="stale-note" onclick="refreshNow()" style="display:none;background:#fff3cd;color:#8a6d00;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-weight:700;font-size:13px;text-align:center;cursor:pointer;"></div>
       <div id="home-load-error" style="display:none;background:var(--red-light);color:var(--red);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-weight:700;font-size:14px;text-align:center;">
         <span id="home-load-error-text">Could not load data.</span><br>
         <button class="btn" style="margin-top:8px;" onclick="refreshAll()">Retry</button>
@@ -741,6 +753,11 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
   <div class="photo-modal" id="photo-modal" onclick="closePhotoModal()">
     <img id="photo-modal-img" src="">
     <button class="photo-modal-close" onclick="closePhotoModal()">✕</button>
+  </div>
+
+  <!-- Entry details: receipt photo + every saved field, with prev/next and (for Esa) Approve/Reject -->
+  <div class="detail-modal" id="detail-modal" onclick="if(event.target===this)closeDetail()">
+    <div class="detail-sheet" id="detail-sheet"></div>
   </div>
 
   <!-- ============ SEND SUMMARY — PERIOD PICKER ============ -->
@@ -1450,6 +1467,26 @@ async function loadFromServer(){
     if(Array.isArray(data.drivers)){
       DRIVER_NAMES = data.drivers.map(n=>String(n||'').trim()).filter(Boolean);
     }
+    applyServerData(data);
+    saveDataCache_(data);
+    return {ok:true};
+  }catch(e){
+    return {ok:false, error: e.name==='AbortError' ? 'timeout' : 'network'};
+  }finally{
+    clearTimeout(timer);
+  }
+  });
+  } finally {
+    hideLoadBar();
+  }
+}
+// Turns the server's raw data into the app's in-memory state. Used both for a
+// fresh load and for the saved copy shown instantly when the app opens.
+function applyServerData(data){
+  {
+    if(Array.isArray(data.drivers)){
+      DRIVER_NAMES = data.drivers.map(n=>String(n||'').trim()).filter(Boolean);
+    }
     applyServerConfig(data.config);
     ALL_TXNS = data.records.map(r=>({
       id: r.id,
@@ -1479,17 +1516,23 @@ async function loadFromServer(){
       photo: r.photoUrl || SESSION_PHOTOS.get(r.id) || null,
     })).sort((a,b)=> (a.date+((a.time)||'00:00')).localeCompare(b.date+((b.time)||'00:00')));
     currentBalances = computeBalances(approvedOnly(ALL_TXNS));
-    return {ok:true};
-  }catch(e){
-    return {ok:false, error: e.name==='AbortError' ? 'timeout' : 'network'};
-  }finally{
-    clearTimeout(timer);
-  }
-  });
-  } finally {
-    hideLoadBar();
   }
 }
+// ---- Saved copy of the last successful load, so the app can open instantly
+// with the last-known numbers (clearly marked) while the fresh load runs. It
+// is only ever shown at app start for a remembered login, is replaced on every
+// successful load, and is wiped on log out.
+const DATA_CACHE_MAX_AGE_MS = 3*24*3600*1000;
+let STALE_AT = 0, STALE_FAILED = false;
+function saveDataCache_(data){
+  try{ settingsSet('dataCache', {at:Date.now(), records:data.records, drivers:data.drivers, config:data.config}); }catch(e){}
+}
+async function loadDataCache_(){
+  const c = await withTimeout(settingsGet('dataCache', null), 3000, null);
+  if(!c || !Array.isArray(c.records) || !c.at || (Date.now()-c.at) > DATA_CACHE_MAX_AGE_MS) return null;
+  return c;
+}
+function staleTime_(){ const d = new Date(STALE_AT); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
 // Refreshes the Home balances from the server. Used on init, after every
 // save/delete/approval, and whenever navigation returns to Home.
 let lastLoadOk = true;
@@ -1525,7 +1568,7 @@ async function refreshAll(){
       lastLoadOk = result.ok;
       lastLoadError = result.ok ? null : result.error;
       firstLoadDone = true;
-      if(result.ok) lastSuccessfulLoadAt = Date.now();
+      if(result.ok){ lastSuccessfulLoadAt = Date.now(); STALE_AT = 0; STALE_FAILED = false; }
       renderHome();
       return result;
     } finally {
@@ -1625,7 +1668,29 @@ async function init(){
   if(splash) splash.classList.add('hide');
   registerSW();
   setupInstallPrompt();
+  // Instant start: show the last-known numbers right away (marked as saved)
+  // while the live load below runs.
+  let usedCache = false;
+  if(autoLoggingIn){
+    const c = await loadDataCache_();
+    if(c){
+      try{
+        applyServerData(c);
+        usedCache = true; STALE_AT = c.at; STALE_FAILED = false;
+        firstLoadDone = true; lastLoadOk = true;
+        renderHome();
+      }catch(e){ usedCache = false; STALE_AT = 0; }
+    }
+  }
   const result = await refreshAll();
+  if(usedCache && !result.ok){
+    // Couldn't reach the server — keep the saved numbers on screen, clearly
+    // marked, instead of throwing the person back to the login screen.
+    lastLoadOk = true; STALE_FAILED = true;
+    renderHome();
+    toast(friendlySyncError(result.error));
+    return;
+  }
   // "Remember me" skipped the login screen on the assumption the app can
   // actually load your data straight away. If that first load fails (bad
   // connection, Apps Script briefly unreachable, etc.), don't leave a blank
@@ -1825,6 +1890,8 @@ async function logoutUser(){
   await settingsSet('role', '');
   await settingsSet('driverName', '');
   await settingsSet('rememberLogin', false);
+  await settingsSet('dataCache', null);
+  STALE_AT = 0; STALE_FAILED = false;
   IS_ADMIN_DEVICE = false;
   CURRENT_DRIVER_NAME = '';
   document.getElementById('home-driver-name').textContent = '';
@@ -1919,6 +1986,13 @@ function renderHome(){
   const adminTiles = document.getElementById('admin-action-tiles');
   if(driverTiles) driverTiles.style.display = IS_ADMIN_DEVICE ? 'none' : 'grid';
   if(adminTiles) adminTiles.style.display = IS_ADMIN_DEVICE ? 'grid' : 'none';
+  const staleEl = document.getElementById('stale-note');
+  if(staleEl){
+    if(STALE_AT){
+      staleEl.style.display = 'block';
+      staleEl.textContent = STALE_FAILED ? ('⚠ Couldn\'t update — showing numbers saved at '+staleTime_()+'. Tap to retry.') : ('⏳ Showing numbers saved at '+staleTime_()+' — updating…');
+    } else staleEl.style.display = 'none';
+  }
   const errBox = document.getElementById('home-load-error');
   const showErr = firstLoadDone && !lastLoadOk;
   if(errBox) errBox.style.display = showErr ? 'block' : 'none';
@@ -2143,15 +2217,38 @@ function buildCatGrid(){
       <div class="ic">${c.ic}</div>${c.lbl}${last && last.category===c.id ? '<div style="font-size:9.5px;font-weight:700;color:var(--green-dark);margin-top:2px;">LAST USED</div>' : ''}
     </button>`).join('');
 }
+// The two PDF libraries (~400 KB) used to download on every app open even
+// though a PDF is only made occasionally. They now load the first time a PDF
+// is actually requested (the service worker keeps them cached afterwards).
+let _pdfLibsP = null;
+function loadScriptOnce_(src){
+  return new Promise((resolve,reject)=>{
+    const el = document.createElement('script');
+    el.src = src; el.onload = resolve; el.onerror = ()=>reject(new Error('load '+src));
+    document.head.appendChild(el);
+  });
+}
+function ensurePdfLibs(){
+  if(window.jspdf && window.jspdf.jsPDF && (window.jspdf.jsPDF.API||{}).autoTable) return Promise.resolve();
+  if(!_pdfLibsP){
+    _pdfLibsP = loadScriptOnce_('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+      .then(()=>loadScriptOnce_('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'))
+      .catch(e=>{ _pdfLibsP = null; const err = new Error('pdf libs'); err.code='no_internet'; err.reason='network'; throw err; });
+  }
+  return _pdfLibsP;
+}
 async function openExpenseEntry(){
   pushScreen('screen-expense');
-  const r = await refreshAll(); // fresh balance so the auto-split and "not enough cash" warning are never stale
-  // Rebuilds the type tiles from whatever's current — Esa's latest saved
-  // category customization (if any) and this driver's own "last used" tag —
-  // instead of the one-time list built when the app first opened, which
-  // could otherwise go stale for the entire session.
+  // Show the form at once from what's already on the phone, then refresh the
+  // balance quietly in the background (so the auto-split and "not enough
+  // cash" warning are still based on live numbers by the time an amount is
+  // typed). The category tiles are rebuilt after the refresh only if nothing
+  // has been picked/typed yet, so the refresh never wipes what the driver did.
   buildCatGrid();
   resetExpenseForm();
+  const r = await refreshAll();
+  const untouched = !expState.category && !(document.getElementById('exp-amount').value||'').trim();
+  if(r.ok && untouched){ buildCatGrid(); }
   if(!r.ok) toast(friendlySyncError(r.error));
 }
 function resetExpenseForm(){
@@ -2718,6 +2815,7 @@ async function photoToDataUrl_(photo){
   }
 }
 async function buildStatementPDFDoc(label, fromStr, toStr, txns, opening, closing, driverName){
+  await ensurePdfLibs();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({unit:'pt', format:'a4'});
   const pageW = doc.internal.pageSize.getWidth();
@@ -2864,7 +2962,8 @@ function openHistory(driverName){
     statsBox.style.display = 'none';
   }
   pushScreen('screen-today');
-  document.getElementById('today-list').innerHTML = `<div class="empty-note">Loading…</div>`;
+  if(firstLoadDone && lastLoadOk){ renderTodayListBody(); }
+  else document.getElementById('today-list').innerHTML = `<div class="empty-note">Loading…</div>`;
   renderTodayList();
 }
 // Fills the Admin-only driver dropdown on History with the current roster
@@ -2981,7 +3080,7 @@ async function generateHistoryStatement(){
   }
 }
 function renderHistItem(t){
-  const thumb = t.photo ? `<img class="hist-thumb" src="${t.photo}" onclick="openPhotoModal('${t.id}')">` : '';
+  const thumb = t.photo ? `<img class="hist-thumb" loading="lazy" src="${photoThumb(t.photo,200)}" onclick="openPhotoModal('${t.id}')">` : '';
   // Everyone sees the delete icon, but it does different things depending on
   // the device: Esa's Admin device deletes for real right away; any other
   // device only SENDS A REQUEST — nothing is actually removed until Esa
@@ -3019,14 +3118,14 @@ function renderHistItem(t){
   }
   const detail = buildHistDetailHTML(t);
   if(t.type==='cash_in'){
-    return `<div class="hist-item"><div class="hi-ic">💰</div><div class="hi-body">
+    return `<div class="hist-item" style="cursor:pointer;" onclick="histCardTap(event,'${t.id}')"><div class="hi-ic">💰</div><div class="hi-body">
       <div class="hi-top"><span>Cash In</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
       <span class="hi-tag tag-cashin">CASH IN</span>${driverTag}${statusTag}${deleteTag}${reasonNote}${actionsRow}${detail}
     </div>${thumb}${delBtn}</div>`;
   }
   if(t.type==='reimbursement'){
-    return `<div class="hist-item"><div class="hi-ic">↩️</div><div class="hi-body">
+    return `<div class="hist-item" style="cursor:pointer;" onclick="histCardTap(event,'${t.id}')"><div class="hi-ic">↩️</div><div class="hi-body">
       <div class="hi-top"><span>Reimbursement</span><span>${fmt(t.amount)}</span></div>
       <div class="hi-sub">${t.date} ${t.note?escapeHtml(t.note):''}</div>
       <span class="hi-tag tag-reimb">REIMBURSED</span>${driverTag}${statusTag}${deleteTag}${reasonNote}${actionsRow}${detail}
@@ -3034,7 +3133,7 @@ function renderHistItem(t){
   }
   const c = CAT_MAP[t.category] || {ic:'➕', lbl:t.category};
   const tagClass = t.payMode==='company'?'tag-company':(t.payMode==='me'?'tag-me':'tag-both');
-  return `<div class="hist-item"><div class="hi-ic">${c.ic}</div><div class="hi-body">
+  return `<div class="hist-item" style="cursor:pointer;" onclick="histCardTap(event,'${t.id}')"><div class="hi-ic">${c.ic}</div><div class="hi-body">
     <div class="hi-top"><span>${c.lbl}</span><span>${fmt(t.amount)}</span></div>
     <div class="hi-sub">${t.date} ${t.time||''} ${t.note?'· '+escapeHtml(t.note):''}</div>
     <span class="hi-tag ${tagClass}">${t.payMode.toUpperCase()}</span>${driverTag}${statusTag}${deleteTag}${reasonNote}${actionsRow}${detail}
@@ -3112,11 +3211,113 @@ async function requestDeleteFromHistory(id){
     renderTodayListBody();
   }
 }
-function openPhotoModal(id){
+// Tapping any receipt thumbnail now opens the full details sheet (photo +
+// every saved field); tapping the photo inside it shows it full-screen.
+// Drive's small-picture link loads far faster (and more reliably) than the
+// full-size file; used for thumbnails and the details sheet. The enlarged view
+// and PDFs still use the original full link.
+function photoThumb(url, w){
+  const m = /[?&]id=([\w-]+)/.exec(url||'');
+  if(m && /drive\.google\.com/.test(url)) return 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w'+(w||200);
+  return url;
+}
+function openPhotoModal(id){ openDetail(id); }
+function openFullPhoto(id){
   const t = ALL_TXNS.find(x=>x.id===id);
   if(!t || !t.photo) return;
   document.getElementById('photo-modal-img').src = t.photo;
   document.getElementById('photo-modal').classList.add('show');
+}
+let detailIds = [], detailIdx = 0, detailCtx = '';
+function openDetail(id, ctx){
+  detailCtx = ctx || '';
+  let ids = [];
+  if(ctx==='appr') ids = pendingEntries().map(t=>t.id);
+  else if(ctx==='txns') ids = getFilteredTxns().map(t=>t.id);
+  if(!ids.includes(id)) ids = [id];
+  detailIds = ids; detailIdx = ids.indexOf(id);
+  renderDetail();
+  document.getElementById('detail-modal').classList.add('show');
+}
+// Tapping anywhere on a History card (but not on its own buttons/links)
+// opens the full details sheet.
+function histCardTap(e,id){
+  const el = e.target.closest('button,a,img,[onclick]');
+  if(el && el!==e.currentTarget) return;
+  openDetail(id);
+}
+function closeDetail(){ document.getElementById('detail-modal').classList.remove('show'); }
+function detailNav(d){
+  const n = detailIdx + d;
+  if(n<0 || n>=detailIds.length) return;
+  detailIdx = n; renderDetail();
+  const sh = document.getElementById('detail-sheet'); if(sh) sh.scrollTop = 0;
+}
+function renderDetail(){
+  const sh = document.getElementById('detail-sheet');
+  const t = ALL_TXNS.find(x=>x.id===detailIds[detailIdx]);
+  if(!t){ closeDetail(); return; }
+  const typeLbl = t.type==='cash_in' ? '💰 Cash In' : (t.type==='reimbursement' ? '↩️ Reimbursement'
+    : ((CAT_MAP[t.category]?CAT_MAP[t.category].ic:'🛒')+' '+(CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category)));
+  const stLbl = t.status==='pending' ? '⏳ Pending approval' : (t.status==='rejected' ? '❌ Rejected' : '✅ Approved');
+  const payLbl = t.type!=='expense' ? '' :
+    (t.payMode==='company' ? 'Company cash' : t.payMode==='me' ? 'Driver paid (personal)' :
+     t.payMode==='both' ? ('Split — company '+fmt(t.companyAmount||0)+' / driver '+fmt(t.meAmount||0)) : (t.payMode||'').toUpperCase());
+  const rows = [
+    ['Date', (t.date||'')+(t.time?'  '+t.time:'')], ['Driver', t.driver||'—'],
+    ['Paid', payLbl], ['Supplier', t.supplier], ['Site', t.site], ['Receipt No.', t.receiptNo],
+    ['Vehicle', t.vehicle], ['Given by', t.givenBy], ['Note', t.note], ['Remarks', t.remarks],
+    ['Status', stLbl + (t.deleteRequested?'  ·  🗑 Delete requested':'')],
+    ['Rejection reason', t.status==='rejected'?t.rejectionReason:'']
+  ].filter(([,v])=>v);
+  const flags = riskFlagsHTML(t);
+  let photo;
+  if(t.photo){
+    photo = `<img class="detail-photo" src="${escapeHtml(photoThumb(t.photo,1000))}" onerror="if(this.dataset.f!=='1'){this.dataset.f='1';this.src='${escapeHtml(t.photo)}';}" alt="Receipt" onclick="openFullPhoto('${t.id}')">
+      <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--muted);">Tap the photo to enlarge${/^https?:/.test(t.photo)?` · <a href="${escapeHtml(t.photo)}" target="_blank" rel="noopener" style="color:var(--green-dark);font-weight:700;">open original</a>`:''}</div>`;
+  } else {
+    photo = `<div class="detail-nophoto">🧾 No receipt photo</div>`;
+  }
+  let actions = '';
+  if(IS_ADMIN_DEVICE && t.deleteRequested){
+    actions = `<button class="btn danger block" onclick="detailAct('${t.id}','delok')">🗑 Approve Delete</button><button class="btn block" onclick="detailAct('${t.id}','delno')">↩ Keep Entry</button>`;
+  } else if(IS_ADMIN_DEVICE && t.status==='pending'){
+    actions = `<button class="btn block" style="background:var(--green-dark);color:#fff;" onclick="detailAct('${t.id}','approve')">✓ Approve</button><button class="btn danger block" onclick="detailAct('${t.id}','reject')">✗ Reject</button>`;
+  } else if(!IS_ADMIN_DEVICE && t.status==='rejected' && t.type==='expense'){
+    actions = `<button class="btn block" style="background:var(--amber);color:#3a2a00;" onclick="closeDetail();fixAndResubmit('${t.id}')">✏️ Fix &amp; Resubmit</button>`;
+  }
+  const many = detailIds.length>1;
+  sh.innerHTML = `
+    <div class="detail-top">
+      <button onclick="detailNav(-1)" ${detailIdx<=0?'disabled':''} style="${many?'':'visibility:hidden;'}">‹ Prev</button>
+      <span style="font-size:12.5px;color:var(--muted);font-weight:700;">${many?(detailIdx+1)+' of '+detailIds.length:''}</span>
+      <button onclick="detailNav(1)" ${detailIdx>=detailIds.length-1?'disabled':''} style="${many?'':'visibility:hidden;'}">Next ›</button>
+    </div>
+    ${photo}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 4px;">
+      <div style="font-weight:800;font-size:17px;">${escapeHtml(typeLbl)}</div>
+      <div style="font-weight:900;font-size:22px;">${fmt(t.amount)}</div>
+    </div>
+    ${flags}
+    <div style="margin-top:6px;">${rows.map(([l,v])=>`<div class="detail-row"><span>${l}</span><span>${escapeHtml(String(v))}</span></div>`).join('')}</div>
+    ${actions?`<div style="display:flex;gap:8px;margin-top:14px;">${actions}</div>`:''}
+    <button class="btn block" style="margin-top:12px;" onclick="closeDetail()">Close</button>`;
+}
+// Approve/reject/etc. straight from the details sheet. After an approval or
+// rejection from the Approvals list it moves on to the next waiting entry.
+async function detailAct(id, act){
+  if(act==='approve') await approveEntry(id);
+  else if(act==='reject') await rejectEntry(id);
+  else if(act==='delok') await approveDeleteRequest(id);
+  else if(act==='delno') await rejectDeleteRequest(id);
+  const t = ALL_TXNS.find(x=>x.id===id);
+  const done = !t || (act==='approve' && t.status!=='pending') || (act==='reject' && t.status!=='pending') || (act==='delno' && !t.deleteRequested);
+  if(done && detailCtx==='appr'){
+    detailIds = detailIds.filter(x=>x!==id);
+    if(!detailIds.length){ closeDetail(); return; }
+    if(detailIdx>=detailIds.length) detailIdx = detailIds.length-1;
+  } else if(!t){ detailIds = detailIds.filter(x=>x!==id); if(!detailIds.length){ closeDetail(); return; } if(detailIdx>=detailIds.length) detailIdx=detailIds.length-1; }
+  renderDetail();
 }
 function closePhotoModal(){
   document.getElementById('photo-modal').classList.remove('show');
@@ -3501,11 +3702,18 @@ function buildApprovalsHTML(){
         : '';
       return `<div class="stat-card" style="margin-bottom:10px;text-align:left;">
         ${bulkCheckbox}
-        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:15px;">
-          <span>${escapeHtml(typeLbl)}</span><span>${fmt(t.amount)}</span>
-        </div>
-        <div style="color:var(--muted);font-size:13px;margin:4px 0 10px;">
-          ${t.date} ${t.time||''} · By ${escapeHtml(t.driver||'Unknown')}${t.note?' · '+escapeHtml(t.note):''}
+        <div style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;" onclick="openDetail('${t.id}','appr')">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;justify-content:space-between;font-weight:800;font-size:15px;">
+              <span>${escapeHtml(typeLbl)}</span><span>${fmt(t.amount)}</span>
+            </div>
+            <div style="color:var(--muted);font-size:13px;margin:4px 0 6px;">
+              ${t.date} ${t.time||''} · By ${escapeHtml(t.driver||'Unknown')}${t.note?' · '+escapeHtml(t.note):''}${t.supplier?' · '+escapeHtml(t.supplier):''}${t.type==='expense'&&t.payMode?' · '+escapeHtml(t.payMode.toUpperCase()):''}
+            </div>
+            ${riskFlagsHTML(t)}
+            <div style="font-size:12px;font-weight:700;color:var(--green-dark);margin:2px 0 10px;">▸ Tap to see receipt &amp; full details</div>
+          </div>
+          ${t.photo?`<img class="hist-thumb" loading="lazy" style="width:76px;height:76px;" src="${escapeHtml(photoThumb(t.photo,200))}" alt="Receipt">`:(t.type==='expense'?`<div style="width:76px;height:76px;border-radius:8px;background:#f6f6f6;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10.5px;font-weight:700;color:var(--muted);flex-shrink:0;">No<br>receipt</div>`:'')}
         </div>
         <div style="display:flex;gap:8px;">
           <button class="btn block" style="background:var(--green-dark);color:#fff;" onclick="approveEntry('${t.id}')">✓ Approve</button>
@@ -3678,12 +3886,12 @@ function renderTxnTable(){
     const typeLbl = t.type==='cash_in'?'Cash In':(t.type==='expense'?'Expense':'Reimburse');
     let statusLbl = t.status==='pending' ? '⏳ Pending' : (t.status==='rejected' ? '❌ Rejected' : '✅ Approved');
     if(t.deleteRequested) statusLbl += ' · 🗑 Delete Requested';
-    return `<tr>
+    return `<tr style="cursor:pointer;" onclick="openDetail('${t.id}','txns')">
       <td>${t.date}</td><td>${typeLbl}</td><td>${escapeHtml(cat)}</td><td>${fmt(t.amount)}</td>
       <td>${paid}</td><td>${escapeHtml(t.note||'')}</td>
       <td>${t.photo?'📷':''}</td>
       <td>${statusLbl}${riskFlagsHTML(t)}</td>
-      <td><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="deleteTxn('${t.id}')">Delete</button></td>
+      <td><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="event.stopPropagation();deleteTxn('${t.id}')">Delete</button></td>
     </tr>`;
   }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No transactions found.</td></tr>`;
   const cardsEl = document.getElementById('txn-cards');
@@ -3729,12 +3937,12 @@ function renderTxnCard(t){
     : `<span class="hi-tag" style="background:#e3f5e8;color:#177a3a;">✅ APPROVED</span>`;
   if(t.deleteRequested) statusTag += ` <span class="hi-tag" style="background:#e6e6ff;color:#3a3ac1;">🗑 DELETE REQUESTED</span>`;
   const flags = riskFlagsHTML(t);
-  return `<div class="hist-item"><div class="hi-ic">${icon}</div><div class="hi-body">
+  return `<div class="hist-item" style="cursor:pointer;" onclick="histCardTap(event,'${t.id}')"><div class="hi-ic">${icon}</div><div class="hi-body">
     <div class="hi-top"><span>${escapeHtml(cat)}</span><span>${fmt(t.amount)}</span></div>
     <div class="hi-sub">${escapeHtml(t.driver||'—')} · ${t.date}${paid}${t.note?' · '+escapeHtml(t.note):''}</div>
     ${statusTag}${flags}
-    <div style="margin-top:8px;"><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="deleteTxn('${t.id}')">Delete</button></div>
-  </div>${t.photo?`<img class="hist-thumb" src="${t.photo}" onclick="openPhotoModal('${t.id}')">`:''}</div>`;
+    <div style="margin-top:8px;display:flex;gap:8px;"><button class="btn" style="padding:6px 10px;font-size:11px;background:var(--green-dark);color:#fff;" onclick="openDetail('${t.id}','txns')">👁 Details${t.photo?' &amp; receipt':''}</button><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="deleteTxn('${t.id}')">Delete</button></div>
+  </div>${t.photo?`<img class="hist-thumb" loading="lazy" src="${escapeHtml(photoThumb(t.photo,200))}" onclick="openDetail('${t.id}','txns')">`:''}</div>`;
 }
 async function deleteTxn(id){
   if(!(await askConfirm('Delete this entry? This cannot be undone.'))) return;
@@ -3780,7 +3988,7 @@ function renderReimbTab(){
     cardsEl.innerHTML = rows.map(t=>{
       const statusLbl = t.status==='pending' ? '⏳ Pending' : (t.status==='rejected' ? '❌ Rejected' : '✅ Approved');
       const method = t.remarks ? ` · ${escapeHtml(t.remarks)}` : '';
-      return `<div class="hist-item"><div class="hi-ic">↩️</div><div class="hi-body">
+      return `<div class="hist-item" style="cursor:pointer;" onclick="histCardTap(event,'${t.id}')"><div class="hi-ic">↩️</div><div class="hi-body">
         <div class="hi-top"><span>${escapeHtml(t.driver||'')}</span><span>${fmt(t.amount)}</span></div>
         <div class="hi-sub">${t.date}${method}${t.note?' · '+escapeHtml(t.note):''}</div>
         <span class="hi-tag" style="background:#e3f5e8;color:#177a3a;">${statusLbl}</span>
