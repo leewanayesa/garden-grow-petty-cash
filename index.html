@@ -262,6 +262,9 @@ input,select,textarea{font-family:inherit;}
 .saved-x{border:none;background:none;color:var(--muted);font-size:18px;width:40px;height:40px;flex-shrink:0;}
 .saved-row{display:flex;align-items:center;gap:4px;}
 .saved-row .saved-chip{margin-bottom:0;}
+.pw-mask{-webkit-text-security:disc;text-security:disc;}
+.pw-mask.pw-show{-webkit-text-security:none;text-security:none;}
+.login-who{text-align:center;font-size:17px;color:var(--green-dark);background:var(--green-light);border-radius:12px;padding:11px 12px;margin-bottom:14px;}
 .or-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px;font-weight:700;margin:14px 0 4px;}
 .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--line);}
 .confirm-box button.yes.green{background:var(--green);border-color:var(--green);}
@@ -564,6 +567,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 
       <!-- Step 2: password + remember me -->
       <div id="login-password-form" style="display:none;">
+        <div id="login-who" class="login-who"></div>
         <div id="login-continue-wrap" style="display:none;margin-bottom:16px;">
           <button class="save-btn" onclick="continueSavedLogin()" id="login-continue-btn">▶ Continue</button>
           <div style="text-align:center;color:var(--muted);font-size:12.5px;margin-top:6px;">Remembered on this device — no password needed</div>
@@ -581,10 +585,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <div class="field">
           <label>Password</label>
           <div style="position:relative;">
-            <!-- Tells the phone's password manager WHO this password is for (Admin or the
-                 driver's name), so it offers only that person's saved password. -->
-            <input type="text" id="login-username" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:0;top:0;width:1px;height:1px;opacity:0.01;border:0;padding:0;pointer-events:none;">
-            <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" enterkeyhint="go" style="padding-right:56px;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitLogin();}">
+            <input type="text" id="login-password" placeholder="Password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" class="pw-mask" enterkeyhint="go" style="padding-right:56px;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitLogin();}">
             <button type="button" id="login-eye" onclick="togglePasswordVisible()" aria-label="Show password" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:none;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center;">
               <svg id="login-eye-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -2064,8 +2065,8 @@ function selectLoginDriverName(name){
 async function showLoginPasswordForm(){
   document.getElementById('login-password-form').style.display = 'block';
   document.getElementById('login-password').value = '';
-  document.getElementById('login-password').type = 'password';
-  { const u=document.getElementById('login-username'); if(u) u.value = (LOGIN_STATE.role==='admin') ? 'Admin (Esa)' : ('Driver - '+(LOGIN_STATE.driverName||'')); }
+  document.getElementById('login-password').classList.remove('pw-show');
+  { const w=document.getElementById('login-who'); if(w) w.innerHTML = (LOGIN_STATE.role==='admin') ? '🔐 Logging in as <b>Admin (Esa)</b>' : ('🚚 Logging in as <b>'+escapeHtml(LOGIN_STATE.driverName||'')+'</b> (Driver)'); }
   { const fr=document.getElementById('login-face-reset'); if(fr) fr.style.display='none'; }
   { const b=document.getElementById('login-eye'); if(b){ b.style.color='var(--muted)'; b.setAttribute('aria-label','Show password'); } }
   // Defaults ON: Esa and the drivers want the app to just stay logged in
@@ -2086,8 +2087,8 @@ async function showLoginPasswordForm(){
 }
 function togglePasswordVisible(){
   const inp = document.getElementById('login-password');
-  const show = inp.type === 'password';
-  inp.type = show ? 'text' : 'password';
+  const show = !inp.classList.contains('pw-show');
+  inp.classList.toggle('pw-show', show);
   const b = document.getElementById('login-eye');
   b.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
   b.style.color = show ? 'var(--green)' : 'var(--muted)';
