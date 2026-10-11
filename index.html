@@ -267,23 +267,29 @@ input,select,textarea{font-family:inherit;}
 .login-who{text-align:center;font-size:17px;color:var(--green-dark);background:var(--green-light);border-radius:12px;padding:11px 12px;margin-bottom:14px;}
 .dchip{height:44px;padding:0 18px;border-radius:22px;border:1.5px solid #cfdcd2;background:#fff;color:#35503f;font-size:15px;font-weight:700;white-space:nowrap;flex-shrink:0;}
 .dchip.sel{border-color:#0b7a3b;background:#0b7a3b;color:#fff;font-weight:800;}
-.hx-card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin:0 16px 14px;}
-.hx{display:flex;gap:12px;align-items:flex-start;padding:14px;border-bottom:1px solid #e6eee8;cursor:pointer;}
+.hx-card{background:#fff;border-top:1px solid #d9e4dc;border-bottom:1px solid #d9e4dc;margin:0 -16px 14px;}
+.hx{display:flex;gap:11px;align-items:flex-start;padding:12px 16px;border-bottom:1px solid #e6eee8;cursor:pointer;}
 .hx:last-child{border-bottom:0;}
-.hx-ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.hx-ic,.hx-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+.hx-av{color:#fff;font-size:13.5px;font-weight:800;}
+.hx-bd{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;}
 .hx-body{flex:1;min-width:0;}
 .hx-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
-.hx-title{font-size:16px;font-weight:800;line-height:1.25;overflow-wrap:anywhere;}
-.hx-amt{font-size:18px;font-weight:800;white-space:nowrap;}
-.hx-sub{font-size:13px;color:#4b6355;margin-top:2px;overflow-wrap:anywhere;}
-.hx-who{font-size:13px;font-weight:700;margin-top:3px;}
-.hx-bal{font-size:12.5px;color:#4b6355;text-align:right;margin-top:2px;white-space:nowrap;}
-.hx-chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 10px;border-radius:14px;font-size:13px;font-weight:800;}
-.hx-day{display:flex;justify-content:space-between;align-items:baseline;padding:4px 18px 8px;font-size:14px;font-weight:800;color:#35503f;text-transform:uppercase;letter-spacing:.4px;}
-.hx-day span:last-child{font-size:12.5px;font-weight:600;text-transform:none;letter-spacing:0;color:#4b6355;}
+.hx-title{font-size:15px;font-weight:800;line-height:1.25;overflow-wrap:anywhere;}
+.hx-amt{font-size:16.5px;font-weight:800;white-space:nowrap;}
+.hx-sub{font-size:12.5px;color:#4b6355;margin-top:2px;overflow-wrap:anywhere;}
+.hx-who{font-size:12.5px;font-weight:700;margin-top:2px;}
+.hx-bal{font-size:12px;color:#4b6355;text-align:right;white-space:nowrap;}
+.hx-chip{display:inline-flex;align-items:center;gap:5px;margin-top:6px;margin-right:6px;padding:3px 9px;border-radius:13px;font-size:12px;font-weight:800;}
+.hx-band{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:16px -16px 0;padding:10px 16px;background:#0f4d2e;color:#fff;}
+.hx-band.old{background:#35503f;}
+.hx-band .d{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;}
+.hx-band .t{font-size:12px;line-height:1.35;text-align:right;font-weight:600;}
+.hx-band .t b{font-weight:800;}
+.hx-dsub{display:flex;justify-content:space-between;gap:10px;margin:0 -16px;padding:6px 16px;background:#e3ece5;border-bottom:1px solid #d3e0d6;font-size:12px;color:#35503f;}
 .hx-pend{margin:14px -16px;background:#fff;border-top:1.5px solid #e6c84f;border-bottom:1.5px solid #e6c84f;padding:0;}
 .hx-pend-h{display:flex;align-items:center;gap:8px;background:#fff3cd;color:#6b5200;font-weight:800;font-size:15px;padding:11px 16px;}
-.hx-pend .hx{padding:14px 16px;border-bottom:1px solid #efe2a6;cursor:pointer;}
+.hx-pend .hx{padding:12px 16px;border-bottom:1px solid #efe2a6;cursor:pointer;}
 .hx-pend .hx:last-child{border-bottom:0;}
 .hx-pend .appr-it{border-bottom:1px solid #efe2a6;}
 .hx-pend .appr-it:last-child{border-bottom:0;}
@@ -291,7 +297,7 @@ input,select,textarea{font-family:inherit;}
 .hx-pend .appr-bulk{margin:12px 16px 2px;padding:12px;border-radius:14px;background:var(--green-light);border:1px solid #cfe7d6;}
 .hx-pend .appr-chk{display:flex;align-items:center;gap:10px;padding:12px 16px 0;font-size:13.5px;color:#4b6355;min-height:32px;}
 .hx-act{display:flex;gap:10px;margin-top:12px;}
-.hx-act button{flex:1;height:48px;border-radius:12px;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;}
+.hx-act button{flex:1;height:44px;border-radius:11px;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;}
 .or-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px;font-weight:700;margin:14px 0 4px;}
 .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--line);}
 .confirm-box button.yes.green{background:var(--green);border-color:var(--green);}
@@ -553,7 +559,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">69</b> ·
+        App version <b id="home-app-version">70</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -572,7 +578,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 69</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 70</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -3466,6 +3472,7 @@ function getHistRange(){
 // (re)entered, refreshed, or something was actually saved/approved/deleted.
 // ---- History: signs, pictures and plain words (see the mockups) ----
 const HX_ICONS = {
+  calendar:'<rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16"/><path d="M8.5 3.5v4"/><path d="M15.5 3.5v4"/>',
   in:'<path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M5 19h14"/>',
   out:'<path d="M7 17L17 7"/><path d="M8 7h9v9"/>',
   own:'<path d="M4 8h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z"/><path d="M4 8l11-3.5V8"/><circle cx="16" cy="14" r="1.3"/>',
@@ -3514,15 +3521,23 @@ function hxRow(t, o){
   const drv = String(t.driver||'').trim() || '—';
   const who = admin ? drv : 'you';
   const kind = hxKind(t), st = HX_STYLE[kind];
-  const title = hxTitle(t, who);
   const placeUsed = t.type==='expense' && (String(t.site||'').trim() || String(t.note||'').trim());
   const noteLine = (t.type==='expense')
     ? (String(t.site||'').trim() && String(t.note||'').trim() ? String(t.note).trim() : '')
     : String(t.note||'').trim();
-  const bits = [];
-  if(admin && (o.showDriver || !histDriverFilter)) bits.push(drv);
-  if(t.time) bits.push(t.time);
-  if(noteLine) bits.push(noteLine);
+  let title, bits = [];
+  if(admin){
+    const cat = t.type==='cash_in' ? 'cash given' : t.type==='reimbursement' ? 'paid back'
+      : String((CAT_MAP[t.category]||{lbl:t.category||'Expense'}).lbl).replace(/\s*\(write what\)\s*$/i,'');
+    title = drv + ' · ' + cat;
+    if(t.time) bits.push(t.time);
+    if(t.type==='expense'){ const si=String(t.site||'').trim(), nt=String(t.note||'').trim(); if(si) bits.push(si); if(nt) bits.push(nt); }
+    else if(noteLine) bits.push(noteLine);
+  } else {
+    title = hxTitle(t, who);
+    if(t.time) bits.push(t.time);
+    if(noteLine) bits.push(noteLine);
+  }
   let sentence = '';
   if(t.type==='expense'){
     if(t.payMode==='company') sentence = 'Paid from company cash';
@@ -3533,7 +3548,7 @@ function hxRow(t, o){
   const amtColor = rejected ? '#7a8a80' : st.fg;
   const amtStyle = rejected ? 'text-decoration:line-through;' : '';
   let chips = '';
-  if(pending){ if(!o.box) chips += hxChip('#fff3cd','#6b5200','clock','Waiting for approval'); }
+  if(pending){ if(!admin) chips += hxChip('#fff3cd','#6b5200','clock','Admin will check it'); else if(!o.box) chips += hxChip('#fff3cd','#6b5200','clock','Waiting for approval'); }
   else if(rejected) chips += hxChip('#fde8e6','#a8231b','cross','Rejected');
   else if(!admin) chips += hxChip('#e3f4e8','#0b5a2c','check','Approved');
   if(t.deleteRequested) chips += hxChip('#ece9fb','#3a3ac1','clock','Delete requested');
@@ -3566,14 +3581,22 @@ function hxRow(t, o){
     bal = `<div class="hx-bal">Balance <b style="color:${bv<0?'#a8231b':'#0b6b34'}">${hxSigned(bv)}</b></div>`;
   }
  return `<div class="hx" onclick="histCardTap(event,'${t.id}'${o.ctx?",'"+o.ctx+"'":''})">
-    <div class="hx-ic" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,22,2.3)}</div>
+    ${admin
+      ? `<div class="hx-av" style="background:${hxDrvColor(drv)};">${escapeHtml(initials(drv))}<span class="hx-bd" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,11,3)}</span></div>`
+      : `<div class="hx-ic" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,21,2.3)}</div>`}
     <div class="hx-body">
       <div class="hx-top"><span class="hx-title">${escapeHtml(title)}</span><span class="hx-amt" style="color:${amtColor};${amtStyle}">${st.sign} ${hxNum(t.amount)}</span></div>
+      ${bal}
       ${bits.length?`<div class="hx-sub">${bits.map(escapeHtml).join(' · ')}</div>`:''}
       ${sentence?`<div class="hx-who" style="color:${st.fg};">${escapeHtml(sentence)}</div>`:''}
-      ${bal}${o.extra||''}${photoHtml}${chips}${reason}${actions}
+      ${o.extra||''}${photoHtml}${chips}${reason}${actions}
     </div>
   </div>`;
+}
+const HX_DRV_COLORS=['#0f4d2e','#1a5f8a','#7a3b8f','#8a4b00','#a8231b','#35503f'];
+function hxDrvColor(name){
+  const i = Math.max(0, (typeof DRIVER_NAMES!=='undefined' ? DRIVER_NAMES.indexOf(String(name||'').trim()) : -1));
+  return HX_DRV_COLORS[i % HX_DRV_COLORS.length];
 }
 function hxDayLabel(d){
   const today = localDateStr(new Date());
@@ -3636,30 +3659,48 @@ function renderTodayListBody(){
   rows = rows.slice().reverse();   // newest first
   // Running balance (admin, one driver): the Balance after each approved entry.
   let bal = null, before = null;
-  if(IS_ADMIN_DEVICE && isReal){
+  const balDrv = (IS_ADMIN_DEVICE && isReal) ? histDriverFilter : (!IS_ADMIN_DEVICE ? String(CURRENT_DRIVER_NAME||'').trim() : '');
+  if(balDrv){
     bal = {}; let run = 0; before = 0;
-    txnsForDriver(histDriverFilter).forEach(t=>{ run += hxDelta(t); bal[t.id] = run; if(t.date<from) before = run; });
+    txnsForDriver(balDrv).forEach(t=>{ run += hxDelta(t); bal[t.id] = run; if(t.date<from) before = run; });
   }
-  const attention = IS_ADMIN_DEVICE ? rows.filter(t=>t.status==='pending' || t.deleteRequested) : [];
+  const attention = IS_ADMIN_DEVICE ? rows.filter(t=>t.status==='pending' || t.deleteRequested) : rows.filter(t=>t.status==='pending');
   const attIds = new Set(attention.map(t=>t.id));
   const main = rows.filter(t=>!attIds.has(t.id));
   let html = '';
   if(attention.length){
-    html += `<div class="hx-pend"><div class="hx-pend-h">${hxSvg('clock',20,2.3)}${attention.length} waiting for your approval</div>`
+    html += `<div class="hx-pend"><div class="hx-pend-h">${hxSvg('clock',20,2.3)}${attention.length} waiting${IS_ADMIN_DEVICE?' for your':' for'} approval</div>`
       + attention.map(t=>hxRow(t,{box:true})).join('') + '</div>';
   }
   if(!main.length && !attention.length){
     html = `<div class="empty-note">No entries ${q?'match your search':'in this period'}.<br>${IS_ADMIN_DEVICE?'':'Tap BUY / PAY or CASH IN to add one.'}</div>`;
   } else if(main.length){
     let cur = null, buf = [], n = 0;
-    const flush = ()=>{ if(cur!==null){ html += `<div class="hx-day"><span>${hxDayLabel(cur)}</span><span>${n} ${n===1?'entry':'entries'}${bal&&cur===main[0].date?' · balance after each':''}</span></div><div class="hx-card">${buf.join('')}</div>`; } };
+    const today = localDateStr(new Date());
+    const flush = ()=>{
+      if(cur===null) return;
+      let inn=0, out=0, endBal=null;
+      grp.forEach(t=>{
+        if(!isApproved(t)) return;
+        if(t.type==='cash_in' || t.type==='reimbursement') inn += Number(t.amount)||0;
+        else if(t.type==='expense') out += (Number(t.companyAmount)||0) + (Number(t.meAmount)||0);
+        if(endBal===null && bal && bal[t.id]!==undefined) endBal = bal[t.id];
+      });
+      const who = IS_ADMIN_DEVICE ? (balDrv + ' balance end of day ') : 'Balance end of day ';
+      const right = (endBal!==null) ? `<span>${escapeHtml(who)}<b style="color:${endBal<0?'#a8231b':'#0b6b34'};">${hxSigned(endBal)}</b></span>` : '<span></span>';
+      const dtl = new Date(cur+'T00:00:00');
+      const label = (cur===today) ? ('Today · ' + (isNaN(dtl)?cur:dtl.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}).replace(',',''))) : hxDayLabel(cur);
+      html += `<div class="hx-band${cur===today?'':' old'}"><span class="d">${hxSvg('calendar',18,2.2)}${label}</span><span class="t">In <b>${hxNum(inn)}</b><br>Out <b>${hxNum(out)}</b></span></div>`
+        + `<div class="hx-dsub"><span>${n} ${n===1?'entry':'entries'}</span>${right}</div><div class="hx-card" style="margin-bottom:0;border-top:0;">${buf.join('')}</div>`;
+    };
+    let grp = [];
     for(const t of main){
-      if(t.date!==cur){ flush(); cur = t.date; buf = []; n = 0; }
-      buf.push(hxRow(t,{bal})); n++;
+      if(t.date!==cur){ flush(); cur = t.date; buf = []; n = 0; grp = []; }
+      buf.push(hxRow(t,{bal})); n++; grp.push(t);
     }
     flush();
     if(bal && histFilterKey!=='all'){
-      html += `<div style="margin:0 16px 14px;padding:12px 14px;background:#f6f9f6;border:1px solid var(--line);border-radius:14px;display:flex;justify-content:space-between;font-size:13.5px;color:#4b6355;"><span>Balance before ${hxDayLabel(from).split(' · ')[0]==='Today'?'today':escapeHtml(from)}</span><b style="color:${before<0?'#a8231b':'#17261c'};">${hxSigned(before)}</b></div>`;
+      html += `<div style="margin:0 -16px 14px;padding:12px 16px;background:#f6f9f6;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;font-size:13.5px;color:#4b6355;"><span>Balance before ${hxDayLabel(from).split(' · ')[0]==='Today'?'today':escapeHtml(from)}</span><b style="color:${before<0?'#a8231b':'#17261c'};">${hxSigned(before)}</b></div>`;
     }
   }
   list.innerHTML = html;
