@@ -1885,12 +1885,21 @@ async function hydrateProfiles(){
 async function refreshForgetLink(){
   await hydrateProfiles();
   await faceUnlockAvailable();
+  // Esa's own (Admin) phone: no "Saved on this device" list at all, and no
+  // drivers kept here. Admin taps ADMIN and uses the Face / Fingerprint button
+  // (or the password). The list is only for drivers' own phones.
+  const adminPhone = !!(PROF.items.admin && PROF.items.admin.token);
+  if(adminPhone){
+    let dirty = false;
+    Object.keys(PROF.items).forEach(k=>{ if(k!=='admin'){ delete PROF.items[k]; dirty = true; } });
+    if(dirty){ if(PROF.last && PROF.last!=='admin') PROF.last=''; await saveProfiles(PROF); }
+  }
   const n = Object.keys(PROF.items).length;
   const w = document.getElementById('login-forget-wrap');
   const sv = document.getElementById('login-saved');
   const choiceVisible = (document.getElementById('login-role-choice')||{}).style && document.getElementById('login-role-choice').style.display !== 'none';
   if(w) w.style.display = (n && choiceVisible) ? 'block' : 'none';
-  if(sv) sv.style.display = (n && choiceVisible) ? 'block' : 'none';
+  if(sv) sv.style.display = (n && choiceVisible && !adminPhone) ? 'block' : 'none';
   renderSavedList();
 }
 function renderSavedList(){
