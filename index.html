@@ -562,7 +562,12 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </div>
         <div class="field">
           <label>Password</label>
-          <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" enterkeyhint="go" onkeydown="if(event.key==='Enter'){event.preventDefault();submitLogin();}">
+          <div style="position:relative;">
+            <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" enterkeyhint="go" style="padding-right:56px;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitLogin();}">
+            <button type="button" id="login-eye" onclick="togglePasswordVisible()" aria-label="Show password" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:none;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center;">
+              <svg id="login-eye-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
         </div>
         <div id="login-error" style="color:var(--red);font-size:13px;margin:-8px 0 16px;min-height:16px;"></div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
@@ -1954,6 +1959,8 @@ function selectLoginDriverName(name){
 async function showLoginPasswordForm(){
   document.getElementById('login-password-form').style.display = 'block';
   document.getElementById('login-password').value = '';
+  document.getElementById('login-password').type = 'password';
+  { const b=document.getElementById('login-eye'); if(b){ b.style.color='var(--muted)'; b.setAttribute('aria-label','Show password'); } }
   // Defaults ON: Esa and the drivers want the app to just stay logged in
   // after closing/reopening, not ask again every time — this is exactly
   // what "Remember me" controls, so checked-by-default matches what almost
@@ -1966,6 +1973,18 @@ async function showLoginPasswordForm(){
   // Face/Fingerprint is offered straight away (no extra tap) — if it's
   // cancelled or not allowed here, the button and password remain.
   if(faceOn) attemptFaceUnlock(true);
+}
+function togglePasswordVisible(){
+  const inp = document.getElementById('login-password');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  const b = document.getElementById('login-eye');
+  b.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  b.style.color = show ? 'var(--green)' : 'var(--muted)';
+  document.getElementById('login-eye-icon').innerHTML = show
+    ? '<path d="M3 3l18 18"/><path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10.5 7 10.5 7a17 17 0 0 1-3.200 4"/><path d="M6.5 6.600A17 17 0 0 0 1.5 12S5.5 19 12 19c1.700 0 3.200-.5 4.500-1.200"/><path d="M9.900 9.900a3 3 0 0 0 4.200 4.200"/>'
+    : '<path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/>';
+  inp.focus();
 }
 function loginGoBack(){
   document.getElementById('login-password-form').style.display = 'none';
