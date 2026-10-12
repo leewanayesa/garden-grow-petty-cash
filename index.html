@@ -297,6 +297,18 @@ input,select,textarea{font-family:inherit;}
 .hx-dsub{background:#f5f9f6;color:#4b6355;border-bottom:1px solid #e5eee7;}
 .hx-card{border-top:0;border-bottom:1px solid #e5eee7;}
 .hx{border-bottom-color:#eef2ee;}
+#screen-today .hist-filter-bar{display:flex;gap:0;margin:10px 16px 8px;padding:3px;background:#e8efe9;border-radius:12px;overflow:visible;}
+#screen-today .hist-chip{flex:1;padding:9px 0;border:0;border-radius:10px;background:transparent;font-size:13px;font-weight:700;color:#4b6355;text-align:center;}
+#screen-today .hist-chip.sel{background:#fff;color:#14532d;box-shadow:0 0 0 .5px #cfdcd2;}
+#hist-driver-cash-card{padding:10px 12px !important;}
+#hist-driver-cash-val{font-size:26px !important;}
+.hx-sum{display:flex;gap:0;background:#fff;border:1px solid #dfe9e1;border-radius:12px;overflow:hidden;}
+.hx-sum button{flex:1;min-width:0;padding:8px 10px;border:0;border-left:1px solid #e5eee7;background:#fff;text-align:left;font-size:11.5px;color:#4b6355;}
+.hx-sum button:first-child{border-left:0;}
+.hx-sum b{display:block;font-size:16px;font-weight:800;margin-top:1px;}
+.hx-pend.rej{border-color:#f1c4bf;}
+.hx-pend-h.rej{background:#fdecea;color:#a3302a;}
+.hx-pend-h .any{margin-left:auto;font-size:12px;font-weight:600;}
 .hx-pend{margin:14px -16px;background:#fff;border-top:1px solid #f1e2a4;border-bottom:1px solid #f1e2a4;padding:0;}
 .hx-pend-h{display:flex;align-items:center;gap:8px;background:#fff7dc;color:#7a5b00;font-weight:800;font-size:15px;padding:11px 16px;}
 .hx-pend .hx{padding:12px 16px;border-bottom:1px solid #eef2ee;cursor:pointer;}
@@ -569,7 +581,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">71</b> ·
+        App version <b id="home-app-version">72</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -588,7 +600,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 71</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 72</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -794,6 +806,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <button class="back" onclick="goBack()">←</button>
       <h1 id="hist-title">📋 History</h1>
       <div class="topbar-actions">
+        <button class="icon-btn" id="hist-search-btn" style="display:none;" onclick="toggleHistSearch()" title="Search">🔍</button>
         <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
         <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
       </div>
@@ -806,7 +819,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
       <select id="hist-driver-select" style="display:none;" onchange="onHistDriverSelectChange(this.value)">
         <option value="">All Drivers</option>
       </select>
-      <div class="filter-row" style="margin-bottom:0;">
+      <div class="filter-row" id="hist-search-row" style="margin-bottom:0;display:none;">
         <input type="text" id="hist-search" placeholder="Search note / supplier / site" oninput="renderTodayListBody()">
       </div>
     </div>
@@ -815,13 +828,13 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <div id="hist-driver-sub" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
         <div id="hist-driver-pending" style="display:none;margin-top:10px;padding:8px 10px;background:#fff3cd;border-radius:10px;color:#6b5200;font-size:13px;font-weight:700;"></div></div>
     </div>
-    <div id="hist-all-balances" style="display:none;margin:14px 16px 0;"></div>
+    <div id="hist-all-balances" style="display:none;margin:10px 16px 0;"></div>
     <div class="hist-filter-bar">
-      <button class="hist-chip sel" data-hf="today" onclick="setHistFilter('today')">TODAY</button>
-      <button class="hist-chip" data-hf="week" onclick="setHistFilter('week')">WEEK</button>
-      <button class="hist-chip" data-hf="month" onclick="setHistFilter('month')">MONTH</button>
-      <button class="hist-chip" data-hf="all" onclick="setHistFilter('all')">ALL</button>
-      <button class="hist-chip" data-hf="period" onclick="setHistFilter('period')">PERIOD</button>
+      <button class="hist-chip sel" data-hf="all" onclick="setHistFilter('all')">All</button>
+      <button class="hist-chip" data-hf="today" onclick="setHistFilter('today')">Today</button>
+      <button class="hist-chip" data-hf="week" onclick="setHistFilter('week')">Week</button>
+      <button class="hist-chip" data-hf="month" onclick="setHistFilter('month')">Month</button>
+      <button class="hist-chip" data-hf="period" onclick="setHistFilter('period')">Dates</button>
     </div>
     <div class="filter-row" id="hist-period-range" style="display:none;padding:0 16px;margin-top:10px;">
       <input type="date" id="hist-from" onchange="renderTodayListBody()">
@@ -3382,7 +3395,8 @@ async function sharePDFOrDownload(doc, filename, fallbackText){
 }
 
 /* ================= HISTORY LIST (with period filters) ================= */
-let histFilterKey = 'today';
+let histFilterKey = 'all';
+let histLimit = 40;
 // When set (Admin tapping a driver's row on Home), History shows ONLY that
 // driver's entries plus their own separate Cash Left / Owed figures — this
 // is the driver "detail view" Esa asked for, reusing the existing History
@@ -3397,6 +3411,12 @@ function openHistory(driverName){
   const statsBox = document.getElementById('hist-driver-stats');
   const adminControls = document.getElementById('hist-admin-controls');
   if(adminControls) adminControls.style.display = IS_ADMIN_DEVICE ? 'block' : 'none';
+  histFilterKey = 'all'; histLimit = 40;
+  document.querySelectorAll('#screen-today .hist-chip').forEach(b=>b.classList.toggle('sel', b.dataset.hf==='all'));
+  const prng = document.getElementById('hist-period-range'); if(prng) prng.style.display='none';
+  const sb = document.getElementById('hist-search-btn'); if(sb) sb.style.display = IS_ADMIN_DEVICE ? 'flex' : 'none';
+  const sr = document.getElementById('hist-search-row'); if(sr) sr.style.display = 'none';
+  const si = document.getElementById('hist-search'); if(si) si.value = '';
   if(IS_ADMIN_DEVICE) populateHistDriverSelect();
   if(histDriverFilter==='__other__'){
     title.textContent = '📋 Other';
@@ -3435,7 +3455,7 @@ function renderHistDriverChips(){
 // Switching the dropdown is the same as tapping a different driver's row on
 // Home, or "All Drivers" is the same as opening History unfiltered.
 function onHistDriverSelectChange(name){
-  histDriverFilter = name || null;
+  histDriverFilter = name || null; histLimit = 40;
   const title = document.getElementById('hist-title');
   const statsBox = document.getElementById('hist-driver-stats');
   if(histDriverFilter){
@@ -3450,7 +3470,7 @@ function onHistDriverSelectChange(name){
   renderTodayListBody();
 }
 function setHistFilter(key){
-  histFilterKey = key;
+  histFilterKey = key; histLimit = 40;
   document.querySelectorAll('.hist-chip').forEach(b=>b.classList.toggle('sel', b.dataset.hf===key));
   document.getElementById('hist-period-range').style.display = key==='period' ? 'flex':'none';
   if(key==='period'){
@@ -3460,6 +3480,14 @@ function setHistFilter(key){
   }
   renderTodayListBody();
 }
+function toggleHistSearch(){
+  const r = document.getElementById('hist-search-row'); if(!r) return;
+  const show = r.style.display==='none';
+  r.style.display = show ? 'flex' : 'none';
+  if(show){ const i=document.getElementById('hist-search'); if(i) i.focus(); }
+  else { const i=document.getElementById('hist-search'); if(i && i.value){ i.value=''; renderTodayListBody(); } }
+}
+function histShowMore(){ histLimit += 40; renderTodayListBody(); }
 function getHistRange(){
   if(histFilterKey==='period'){
     const from = document.getElementById('hist-from').value || localDateStr();
@@ -3548,6 +3576,7 @@ function hxRow(t, o){
     if(t.time) bits.push(t.time);
     if(noteLine) bits.push(noteLine);
   }
+  if((o.box || o.dated) && t.date && t.date!==localDateStr()) bits.unshift(hxDayLabel(t.date).replace(' · ',' '));
   let sentence = '';
   if(t.type==='expense'){
     if(t.payMode==='company') sentence = 'Paid from company cash';
@@ -3623,13 +3652,11 @@ function renderHistAllBalances(){
   if(!box) return;
   if(!IS_ADMIN_DEVICE || histDriverFilter){ box.style.display='none'; return; }
   box.style.display = 'block';
-  box.innerHTML = '<div style="background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;">' + DRIVER_NAMES.map(n=>{
+  const waiting = approvalsNeededCount();
+  box.innerHTML = '<div class="hx-sum">' + DRIVER_NAMES.map(n=>{
     const nb = netBalance(driverBalances(n));
-    return `<button type="button" data-v="${escapeHtml(n)}" onclick="onHistDriverSelectChange(this.dataset.v)" style="display:flex;width:100%;align-items:center;gap:12px;padding:12px 14px;border:0;border-bottom:1px solid #e6eee8;background:#fff;text-align:left;">
-      <span style="width:40px;height:40px;border-radius:50%;background:#0f4d2e;color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${escapeHtml(initials(n))}</span>
-      <span style="flex:1;font-size:16px;font-weight:800;">${escapeHtml(n)}<span style="display:block;font-size:12.5px;font-weight:600;color:#4b6355;">${netLabelAdmin(nb)}</span></span>
-      <span style="font-size:18px;font-weight:800;color:${nb<0?'#a8231b':'#0b6b34'};">AED ${hxNum(Math.abs(nb))}</span></button>`;
-  }).join('') + '</div>';
+    return `<button type="button" data-v="${escapeHtml(n)}" onclick="onHistDriverSelectChange(this.dataset.v)">${escapeHtml(n)}<b style="color:${nb<0?'#b4382f':'#1f7a45'};">${nb<0?'− ':''}${hxNum(Math.abs(nb))}</b><span style="font-size:11px;">${nb<0?'owed to driver':'cash in hand'}</span></button>`;
+  }).join('') + (waiting ? `<button type="button" onclick="goToApprovals()" style="background:#fff7dc;">Waiting<b style="color:#8a6200;">${waiting}</b><span style="font-size:11px;">tap to open</span></button>` : '') + '</div>';
 }
 function renderTodayListBody(){
   const list = document.getElementById('today-list');
@@ -3668,25 +3695,54 @@ function renderTodayListBody(){
     );
   }
   rows = rows.slice().reverse();   // newest first
-  // Running balance (admin, one driver): the Balance after each approved entry.
+  const matchQ = t=> !q || ((t.note||'').toLowerCase().includes(q) || (t.supplier||'').toLowerCase().includes(q) || (t.site||'').toLowerCase().includes(q));
+  const drvOk = t=>{
+    const d = (t.driver||'').trim();
+    if(histDriverFilter==='__other__') return !DRIVER_NAMES.includes(d);
+    return histDriverFilter ? d===histDriverFilter : true;
+  };
+  // Running balance (one driver on Admin, or the driver's own device).
   let bal = null, before = null;
   const balDrv = (IS_ADMIN_DEVICE && isReal) ? histDriverFilter : (!IS_ADMIN_DEVICE ? String(CURRENT_DRIVER_NAME||'').trim() : '');
   if(balDrv){
     bal = {}; let run = 0; before = 0;
     txnsForDriver(balDrv).forEach(t=>{ run += hxDelta(t); bal[t.id] = run; if(t.date<from) before = run; });
   }
-  const attention = IS_ADMIN_DEVICE ? rows.filter(t=>t.status==='pending' || t.deleteRequested) : rows.filter(t=>t.status==='pending');
-  const attIds = new Set(attention.map(t=>t.id));
+  // Waiting (and, for a driver, rejected) entries are ALWAYS shown at the top,
+  // whatever period is chosen — they need action, so they must never hide.
+  const attention = (IS_ADMIN_DEVICE
+      ? ALL_TXNS.filter(t=>(t.status==='pending' || t.deleteRequested) && drvOk(t))
+      : ALL_TXNS.filter(t=>t.status==='pending')
+    ).filter(matchQ).slice().reverse();
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-14);
+  const cutoffStr = localDateStr(cutoff);
+  const fixList = IS_ADMIN_DEVICE ? [] : ALL_TXNS.filter(t=>t.status==='rejected' && t.type==='expense' && t.date>=cutoffStr).filter(matchQ).slice().reverse();
+  const attIds = new Set(attention.concat(fixList).map(t=>t.id));
   const main = rows.filter(t=>!attIds.has(t.id));
   let html = '';
+  if(fixList.length){
+    html += `<div class="hx-pend rej"><div class="hx-pend-h rej">${hxSvg('cross',20,2.5)}${fixList.length} ${fixList.length===1?'needs':'need'} fixing</div>`
+      + fixList.map(t=>hxRow(t,{dated:true})).join('') + '</div>';
+  }
   if(attention.length){
-    html += `<div class="hx-pend"><div class="hx-pend-h">${hxSvg('clock',20,2.3)}${attention.length} waiting${IS_ADMIN_DEVICE?' for your':' for'} approval</div>`
+    html += `<div class="hx-pend"><div class="hx-pend-h">${hxSvg('clock',20,2.3)}${attention.length} waiting${IS_ADMIN_DEVICE?' for your':' for'} approval${histFilterKey!=='all'?'<span class="any">any day</span>':''}</div>`
       + attention.map(t=>hxRow(t,{box:true})).join('') + '</div>';
   }
-  if(!main.length && !attention.length){
-    html = `<div class="empty-note">No entries ${q?'match your search':'in this period'}.<br>${IS_ADMIN_DEVICE?'':'Tap BUY / PAY or CASH IN to add one.'}</div>`;
+  if(!main.length && !attention.length && !fixList.length){
+    if(q) html = `<div class="empty-note">No entries match your search.</div>`;
+    else if(histFilterKey!=='all' && ALL_TXNS.length){
+      const nm = {today:'today', week:'this week', month:'this month', period:'in these dates'}[histFilterKey] || 'in this period';
+      html = `<div class="empty-note">Nothing ${nm} yet.<br><button class="btn" style="margin-top:12px;" onclick="setHistFilter('all')">See all entries</button></div>`;
+    } else html = `<div class="empty-note">No entries yet.<br>${IS_ADMIN_DEVICE?'':'Tap BUY / PAY or CASH IN to add one.'}</div>`;
   } else if(main.length){
-    let cur = null, buf = [], n = 0;
+    let shown = main;
+    let more = false;
+    if(main.length > histLimit){
+      let i = histLimit;
+      while(i < main.length && main[i].date===main[i-1].date) i++;
+      if(i < main.length){ shown = main.slice(0,i); more = true; }
+    }
+    let cur = null, buf = [], n = 0, grp = [];
     const today = localDateStr(new Date());
     const flush = ()=>{
       if(cur===null) return;
@@ -3704,13 +3760,13 @@ function renderTodayListBody(){
       html += `<div class="hx-band${cur===today?'':' old'}"><span class="d">${hxSvg('calendar',18,2.2)}${label}</span><span class="t">In <b>${hxNum(inn)}</b><br>Out <b>${hxNum(out)}</b></span></div>`
         + `<div class="hx-dsub"><span>${n} ${n===1?'entry':'entries'}</span>${right}</div><div class="hx-card" style="margin-bottom:0;border-top:0;">${buf.join('')}</div>`;
     };
-    let grp = [];
-    for(const t of main){
+    for(const t of shown){
       if(t.date!==cur){ flush(); cur = t.date; buf = []; n = 0; grp = []; }
       buf.push(hxRow(t,{bal})); n++; grp.push(t);
     }
     flush();
-    if(bal && histFilterKey!=='all'){
+    if(more) html += `<div style="padding:14px 0 4px;"><button type="button" class="btn block" style="background:#fff;border:1.5px solid #cfdcd2;color:#35503f;height:44px;font-weight:700;" onclick="histShowMore()">Show older entries</button></div>`;
+    if(!more && bal && histFilterKey!=='all'){
       html += `<div style="margin:0 -16px 14px;padding:12px 16px;background:#f6f9f6;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;font-size:13.5px;color:#4b6355;"><span>Balance before ${hxDayLabel(from).split(' · ')[0]==='Today'?'today':escapeHtml(from)}</span><b style="color:${before<0?'#a8231b':'#17261c'};">${hxSigned(before)}</b></div>`;
     }
   }
@@ -4278,6 +4334,13 @@ function buildApprovalsHTML(){
     const pendingIds = new Set(rows.map(t=>t.id));
     Array.from(bulkExcludedApprovalIds).forEach(id=>{ if(!pendingIds.has(id)) bulkExcludedApprovalIds.delete(id); });
     let inner = head(rows.length + ' waiting for your approval');
+    const afterBits = DRIVER_NAMES.map(n=>{
+      const mine = rows.filter(t=>(t.driver||'').trim()===n);
+      if(!mine.length) return '';
+      const after = netBalance(driverBalances(n)) + mine.reduce((a,t)=>a+hxDelta(t),0);
+      return escapeHtml(n) + ' ' + (after<0 ? ('owed ' + hxNum(Math.abs(after))) : hxNum(after));
+    }).filter(Boolean);
+    if(afterBits.length) inner += `<div style="padding:0 16px 10px;font-size:12.5px;color:#7a5b00;">After you approve all: ${afterBits.join(' · ')}</div>`;
     if(rows.length>1){
       const includedCount = rows.length - bulkExcludedApprovalIds.size;
       inner += `<div class="appr-bulk">
@@ -4294,7 +4357,7 @@ function buildApprovalsHTML(){
     }).join('');
     html += `<div class="hx-pend appr-box">${inner}</div>`;
   }
-  return html || `<div class="empty-note">Nothing waiting on you right now.</div>`;
+  return html || `<div class="empty-note" style="padding:40px 16px;"><div style="font-size:34px;color:#2e8b57;">✓</div><div style="font-size:17px;font-weight:800;color:#14532d;margin-top:6px;">All done</div><div style="margin-top:4px;">Nothing is waiting for you.</div><button class="btn" style="margin-top:16px;" onclick="openHistory()">Open History</button></div>`;
 }
 // Which pending entries are unchecked (excluded) from the next bulk-approve
 // tap — kept across re-renders of the Approvals list so ticking a box while
