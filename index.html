@@ -483,6 +483,41 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 .confirm-box .confirm-actions{display:flex;gap:10px;}
 .confirm-box button{flex:1;padding:13px;border-radius:10px;font-weight:800;font-size:14px;border:2px solid var(--line);background:#fff;color:var(--ink);}
 .confirm-box button.yes{background:var(--red);border-color:var(--red);color:#fff;}
+/* ===== v75: tab bar, home strips, cash meter ===== */
+.tabbar{display:none;position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;background:#fff;border-top:1px solid #cfe3d6;z-index:60;padding:6px 0 calc(8px + env(safe-area-inset-bottom));justify-content:space-around}
+body.has-tabs .tabbar{display:flex}
+body.has-tabs{padding-bottom:66px}
+body.has-tabs .bottom-bar{bottom:calc(58px + env(safe-area-inset-bottom))}
+.tab{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12px;font-weight:700;color:#5d7a6c;padding:2px 0;position:relative}
+.tab .tic{font-size:21px;line-height:1.2}
+.tab.on{color:#1f7a4d}
+.tab .tb-badge{position:absolute;top:-3px;left:calc(50% + 8px);background:#c0392b;color:#fff;border-radius:9px;padding:0 5px;font-size:11px;font-weight:800;min-width:16px;text-align:center}
+.hm-strip{display:flex;justify-content:space-between;align-items:center;width:calc(100% + 32px);margin:0 -16px 14px;padding:12px 16px;border:0;font-weight:800;font-size:14px;text-align:left;cursor:pointer}
+.hm-strip.amber{background:#fdf1d3;color:#7a5200}
+.hm-strip.red{background:#fbe3df;color:#b4382f}
+.hm-bar{height:10px;border-radius:5px;background:#dcefe2;display:flex;overflow:hidden;margin:10px 0 6px}
+.hm-bar div{height:100%}
+.bal-card.low,.stile.low{background:#fbe3df;border:1.5px solid #c0392b}
+.bal-card.low .lbl,.stile.low .stile-lbl{color:#b4382f}
+.driver-row.low{border:1.5px solid #c0392b;background:#fff7f6}
+.hm-recent-h{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:18px 2px 8px}
+#driver-action-tiles .tile.primary{grid-column:1/-1;flex-direction:row;justify-content:center;padding:18px;font-size:18px}
+#driver-action-tiles .tile.primary .ic{font-size:26px}
+.cm{background:#fff;border:1px solid #d9e4dc;border-radius:14px;padding:12px 14px;margin:-6px 0 14px}
+.cm-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;color:#5d7a6c}
+.cm-pill{display:inline-flex;align-items:center;gap:5px;border-radius:9px;padding:4px 10px;font-weight:800;font-size:13px}
+.cm-bar{height:14px;border-radius:7px;background:#dcefe2;display:flex;overflow:hidden;margin:10px 0 6px}
+.cm-bar div{height:100%}
+.cm-l{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#5d7a6c}
+.amount-box.s-warn{border-color:#e2b24a}
+.amount-box.s-over{border-color:#c0392b;background:#fff7f6}
+.amount-box.s-over input{color:#b4382f}
+.own-link{display:block;margin:0 auto 16px;border:0;background:none;color:#5d7a6c;font-size:13px;font-weight:700;text-decoration:underline;padding:8px}
+.own-link.on{color:#b4382f}
+#exp-warning button{display:none}
+.hx-split{height:8px;border-radius:4px;background:#dcefe2;display:flex;overflow:hidden;margin:7px 0 3px}
+.hx-split div{height:100%}
+.hx-splitl{display:flex;justify-content:space-between;font-size:12px;font-weight:700}
 </style>
 </head>
 <body>
@@ -539,11 +574,6 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <span id="home-load-error-text">Could not load data.</span><br>
         <button class="btn" style="margin-top:8px;" onclick="refreshAll()">Retry</button>
       </div>
-      <div id="home-approvals-tile-wrap" style="display:none;margin-bottom:20px;">
-        <button class="btn block" style="background:var(--amber);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;padding:15px;border:none;border-radius:18px;box-shadow:0 3px 14px rgba(184,134,11,.28);margin-bottom:0;" onclick="goToApprovals()">
-          ✅ Approvals Needed <span id="home-approvals-tile-badge" style="background:#fff;color:var(--amber);border-radius:10px;padding:2px 9px;font-weight:800;"></span>
-        </button>
-      </div>
       <div id="home-balance-wrap"></div>
       <!-- Driver-only actions — a driver device always sees these; hidden on
            an Admin device, which gets its own quick-actions below instead,
@@ -556,25 +586,20 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <button class="tile" onclick="openCashIn()">
           <div class="ic">💰</div> CASH IN
         </button>
-        <button class="tile" onclick="openHistory()">
-          <div class="ic">📋</div> HISTORY
-        </button>
         <button class="tile" onclick="openSummaryPeriod()">
           <div class="ic">📱</div> SEND SUMMARY
         </button>
       </div>
+      <div id="home-driver-extra"></div>
       <!-- Admin quick actions — the ones Esa actually uses often, promoted
            straight onto Home instead of being buried inside tabs. Hidden on
            a driver device. -->
       <div class="big-tiles" id="admin-action-tiles" style="display:none;">
-        <button class="tile primary" onclick="openHistory()">
-          <div class="ic">📋</div> HISTORY
+        <button class="tile" onclick="goAdminTab('reimb')">
+          <div class="ic">💵</div> REIMBURSE
         </button>
         <button class="tile" onclick="openSummaryPeriod()">
           <div class="ic">📱</div> SEND SUMMARY
-        </button>
-        <button class="tile" onclick="goAdminTab('reimb')">
-          <div class="ic">💵</div> REIMBURSE
         </button>
         <button class="tile" onclick="goAdminTab('txns')">
           <div class="ic">📒</div> TRANSACTIONS
@@ -582,12 +607,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <button class="tile" onclick="goAdminTab('reports')">
           <div class="ic">📄</div> REPORTS
         </button>
-        <button class="tile" onclick="goAdminTab('drivers')">
-          <div class="ic">👥</div> DRIVERS
-        </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">74</b> ·
+        App version <b id="home-app-version">75</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -606,7 +628,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 74</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 75</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -690,6 +712,9 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <input type="text" inputmode="decimal" id="exp-amount" placeholder="0" oninput="onAmountInput()">
       </div>
 
+      <div class="cm" id="cash-meter"></div>
+      <button type="button" class="own-link" id="own-link" onclick="toggleOwn()">I paid with my own money</button>
+
       <div class="msg-banner" id="exp-warning">
         <span id="exp-warning-text"></span>
         <button onclick="switchToBoth()">USE BOTH</button>
@@ -706,6 +731,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <textarea id="exp-note" placeholder="Type here — e.g. cement, pipe fitting, taxi..." rows="2" oninput="onNoteInput()"></textarea>
       </div>
 
+      <div id="legacy-pay" style="display:none;">
       <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">How Paid?</label>
       <div class="pay-grid">
         <button class="pay-btn" data-pay="company" onclick="selectPay('company')">COMPANY<small>Company Cash</small></button>
@@ -722,6 +748,8 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
           <label>Me</label>
           <input type="text" inputmode="decimal" id="split-me" oninput="onSplitEdit('me')">
         </div>
+      </div>
+
       </div>
 
       <div class="photo-box">
@@ -864,6 +892,8 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
     </div>
     <div class="hist-list" id="approvals-list-standalone"></div>
   </div>
+
+  <nav class="tabbar" id="tabbar" aria-label="Main"></nav>
 
   <!-- Full-screen photo viewer -->
   <div class="photo-modal" id="photo-modal" onclick="closePhotoModal()">
@@ -2485,6 +2515,7 @@ function renderHome(){
     const todaySpend = approvedOnly(ALL_TXNS)
       .filter(t=>t.type==='expense' && t.date===todayStr)
       .reduce((sum,t)=>sum+(Number(t.amount)||0), 0);
+    const nWait = approvalsNeededCount();
     wrap.innerHTML = `
       <div class="admin-summary-row" style="grid-template-columns:1fr;">
         <div class="stile${(totals.cash-totals.owed)<0?' low':''}">
@@ -2493,6 +2524,7 @@ function renderHome(){
           <div style="font-size:12px;color:var(--muted);margin-top:4px;">Cash left ${fmt(totals.cash)} − drivers' own money used ${fmt(totals.owed)}</div>
         </div>
       </div>
+      ${nWait ? `<button type="button" class="hm-strip amber" id="home-approvals-tile-wrap" onclick="goToApprovals()"><span>⏰ <b id="home-approvals-tile-badge">${nWait}</b> waiting for your approval</span><span>›</span></button>` : ''}
       <div class="section-label">Drivers</div>
       <div class="driver-rows">` + DRIVER_NAMES.map(name=>{
       const b = driverBalances(name);
@@ -2519,27 +2551,36 @@ function renderHome(){
   } else {
     const b = driverBalances(CURRENT_DRIVER_NAME);
     const net = netBalance(b);
+    const cc = Math.max(0, Number(b.companyCash)||0), ow = Math.max(0, Number(b.driverOwed)||0);
+    const gp = (cc+ow) ? Math.round(cc/(cc+ow)*100) : 0;
     wrap.innerHTML = `<div class="balance-cards" style="grid-template-columns:1fr;">
-      <div class="bal-card${net<0?' low':''}" id="cashLeftCard" style="padding:20px 12px;"><div class="lbl" id="balLbl">${netLabel(net)}</div><div class="val" id="cashLeftVal" style="font-size:34px;">${fmt(Math.abs(net))}</div>
+      <div class="bal-card${net<0?' low':''}" id="cashLeftCard" style="padding:20px 12px;"><div class="lbl" id="balLbl">${net<0?'👛 ':''}${netLabel(net)}</div><div class="val" id="cashLeftVal" style="font-size:34px;">${fmt(Math.abs(net))}</div>
+        ${net<0?`<div class="hm-bar" style="background:#f3c5bf;"><div style="width:${gp}%;background:#2e8b57;"></div><div style="width:${100-gp}%;background:#c0392b;"></div></div>`:''}
         <div style="font-size:12px;color:var(--muted);margin-top:8px;">Cash left ${fmt(b.companyCash)} − your own money used ${fmt(b.driverOwed)}</div></div>
     </div>`;
   }
-  const badge = document.getElementById('home-approvals-badge');
-  const tileWrap = document.getElementById('home-approvals-tile-wrap');
-  const tileBadge = document.getElementById('home-approvals-tile-badge');
-  if(IS_ADMIN_DEVICE){
-    const n = approvalsNeededCount();
-    if(n){
-      badge.style.display='inline-block'; badge.textContent = n;
-      tileWrap.style.display='block'; tileBadge.textContent = n;
-    } else {
-      badge.style.display='none';
-      tileWrap.style.display='none';
+  const extra = document.getElementById('home-driver-extra');
+  if(extra){
+    if(IS_ADMIN_DEVICE || !firstLoadDone || !lastLoadOk){ extra.innerHTML = ''; }
+    else {
+      const me = String(CURRENT_DRIVER_NAME||'').trim();
+      const mine = ALL_TXNS.filter(t=>String(t.driver||'').trim()===me);
+      const cut = new Date(); cut.setDate(cut.getDate()-14); const cutS = localDateStr(cut);
+      const nFix = mine.filter(t=>t.status==='rejected' && t.type==='expense' && t.date>=cutS).length;
+      const nWaitD = mine.filter(t=>t.status==='pending').length;
+      const recent = mine.filter(t=>t.status!=='rejected').slice().reverse().slice(0,3);
+      extra.innerHTML = (nFix ? `<button type="button" class="hm-strip red" style="margin-top:14px;margin-bottom:0;" onclick="openHistory()"><span>⚠ ${nFix} ${nFix===1?'needs':'need'} fixing</span><span>Fix ›</span></button>` : '')
+        + (nWaitD ? `<button type="button" class="hm-strip amber" style="margin-top:${nFix?0:14}px;margin-bottom:0;" onclick="openHistory()"><span>⏰ ${nWaitD} waiting for approval</span><span>›</span></button>` : '')
+        + (recent.length ? `<div class="hm-recent-h">Recent</div><div class="hx-card">${recent.map(t=>hxRow(t,{dated:true})).join('')}</div>` : '');
     }
-  } else {
-    badge.style.display='none';
-    tileWrap.style.display='none';
   }
+  const badge = document.getElementById('home-approvals-badge');
+  if(badge){
+    const n = IS_ADMIN_DEVICE ? approvalsNeededCount() : 0;
+    if(n){ badge.style.display='inline-block'; badge.textContent = n; }
+    else badge.style.display='none';
+  }
+  updateTabbar();
 }
 // goToApprovals() itself now lives further down, next to renderApprovalsScreen()
 // — it opens the standalone Approvals page instead of Admin/Management.
@@ -2575,6 +2616,25 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
+  updateTabbar();
+}
+// Bottom tab bar: Admin gets Home / Approvals / History / Drivers, a driver
+// only Home / History. Shown on the main screens only.
+function updateTabbar(){
+  const el = document.getElementById('tabbar');
+  if(!el) return;
+  const act = document.querySelector('.screen.active');
+  const id = act ? act.id : '';
+  const logged = IS_ADMIN_DEVICE || !!CURRENT_DRIVER_NAME;
+  const show = logged && ['screen-home','screen-today','screen-approvals','screen-admin'].indexOf(id) >= 0;
+  document.body.classList.toggle('has-tabs', show);
+  if(!show){ el.innerHTML=''; return; }
+  const n = IS_ADMIN_DEVICE ? approvalsNeededCount() : 0;
+  const tabs = [{k:'screen-home',ic:'🏠',l:'Home',f:'goHome()'}];
+  if(IS_ADMIN_DEVICE) tabs.push({k:'screen-approvals',ic:'✅',l:'Approvals',f:'goToApprovals()',b:n});
+  tabs.push({k:'screen-today',ic:'📋',l:'History',f:'openHistory()'});
+  if(IS_ADMIN_DEVICE) tabs.push({k:'screen-admin',ic:'👥',l:'Drivers',f:"goAdminTab('drivers')"});
+  el.innerHTML = tabs.map(t=>`<button type="button" class="tab${t.k===id?' on':''}" onclick="${t.f}"><span class="tic" aria-hidden="true">${t.ic}</span>${t.l}${t.b?`<span class="tb-badge">${t.b}</span>`:''}</button>`).join('');
 }
 // Push a NEW entry onto history (used when moving forward from Home into a screen)
 function pushScreen(id){
@@ -2716,10 +2776,11 @@ async function openExpenseEntry(){
   const r = await refreshAll();
   const untouched = !expState.category && !(document.getElementById('exp-amount').value||'').trim();
   if(r.ok && untouched){ buildCatGrid(); }
+  updateCashMeter();
   if(!r.ok) toast(friendlySyncError(r.error));
 }
 function resetExpenseForm(){
-  expState = { category:null, pay:null, photo:null, noteAutoFilled:false, lastAutoNote:'' };
+  expState = { category:null, pay:null, own:false, photo:null, noteAutoFilled:false, lastAutoNote:'' };
   document.getElementById('exp-amount').value='';
   document.getElementById('exp-note').value='';
   document.getElementById('exp-supplier').value='';
@@ -2741,10 +2802,10 @@ function resetExpenseForm(){
   document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('sel'));
   setTodayDefaults();
   refreshSiteList();
-  // Company cash pays for the overwhelming majority of purchases, so it
-  // starts pre-selected — the driver only has to tap something when it's
-  // actually "Me" or "Both", instead of on every single entry.
-  selectPay('company');
+  // No "how paid" question any more: the app takes the money from his cash
+  // first and counts anything above his cash left as his own money.
+  const ol = document.getElementById('own-link'); if(ol){ ol.classList.remove('on'); ol.textContent = 'I paid with my own money'; }
+  updateCashMeter();
 }
 // Opens a fresh Buy/Pay form pre-filled with everything from a rejected
 // entry, so the driver only has to fix whatever Esa flagged rather than
@@ -2817,34 +2878,69 @@ function updateNoteLabelForCategory(id){
   if(!label) return;
   label.textContent = (id==='other') ? '✏️ WHAT DID YOU BUY? (required)' : '✏️ Add detail (optional)';
 }
+// Compatibility shim — the old Company / Me / Both buttons are gone.
 function selectPay(mode){
-  expState.pay = mode;
-  document.querySelectorAll('.pay-btn').forEach(b=>b.classList.toggle('sel', b.dataset.pay===mode));
-  const amount = parseFloat(document.getElementById('exp-amount').value)||0;
-  document.getElementById('exp-warning').classList.remove('show');
-  if(mode==='both'){
-    const s = autoSplit(amount, driverBalances(CURRENT_DRIVER_NAME).companyCash);
-    document.getElementById('split-company').value = s.company || '';
-    document.getElementById('split-me').value = s.me || '';
-    document.getElementById('split-box').classList.add('show');
+  expState.own = (mode==='me');
+  const ol = document.getElementById('own-link');
+  if(ol){ ol.classList.toggle('on', expState.own); ol.textContent = expState.own ? '✓ Own money — tap to undo' : 'I paid with my own money'; }
+  updateCashMeter();
+}
+function toggleOwn(){ selectPay(expState.own ? 'company' : 'me'); }
+// Company part of an entry, for old rows that may lack companyAmount.
+function txnCompanyPart(t){
+  if(t.companyAmount!==undefined && t.companyAmount!==null && !isNaN(Number(t.companyAmount))) return Number(t.companyAmount)||0;
+  return t.payMode==='me' ? 0 : (Number(t.amount)||0);
+}
+// Cash he can still spend from company money = cash left (approved) minus the
+// company part of his own entries that are still waiting, so two waiting
+// entries can never count the same cash twice.
+function driverFreeCash(){
+  const me = String(CURRENT_DRIVER_NAME||'').trim();
+  const b = driverBalances(CURRENT_DRIVER_NAME);
+  const waiting = ALL_TXNS.filter(t=>t.type==='expense' && t.status==='pending' && String(t.driver||'').trim()===me)
+    .reduce((sum,t)=>sum+txnCompanyPart(t),0);
+  return Math.max(0, round2((Number(b.companyCash)||0) - waiting));
+}
+function computeExpenseSplit(amount){
+  const cash = driverFreeCash();
+  if(expState.own) return {company:0, me:round2(amount), mode:'me', cash};
+  const sp = autoSplit(amount, cash);
+  return {company:sp.company, me:sp.me, mode: sp.me<=0 ? 'company' : (sp.company<=0 ? 'me' : 'both'), cash};
+}
+function updateCashMeter(){
+  const box = document.getElementById('cash-meter');
+  if(!box) return;
+  const amount = parseFloat((document.getElementById('exp-amount')||{}).value)||0;
+  const ab = document.querySelector('#screen-expense .amount-box');
+  const sp = computeExpenseSplit(amount);
+  let st = 'ok';
+  if(amount>0){ if(sp.me>0) st='over'; else if(Math.abs(sp.cash-amount)<0.005) st='warn'; }
+  if(ab){ ab.classList.toggle('s-warn', st==='warn'); ab.classList.toggle('s-over', st==='over'); }
+  let pill, bar, left, right;
+  if(amount<=0){
+    pill = `<span class="cm-pill" style="background:#dcefe2;color:#1f7a4d;">${hxSvg('check',14,3)}Company cash</span>`;
+    bar = `<div style="width:100%;background:#2e8b57;"></div>`;
+    left = 'Cash left'; right = hxNum(sp.cash);
+  } else if(st==='ok'){
+    const pct = sp.cash ? Math.min(100, Math.round(amount/sp.cash*100)) : 0;
+    pill = `<span class="cm-pill" style="background:#dcefe2;color:#1f7a4d;">${hxSvg('check',14,3)}Company cash</span>`;
+    bar = `<div style="width:${pct}%;background:#2e8b57;"></div>`;
+    left = hxNum(amount)+' used'; right = 'Left '+hxNum(sp.cash-amount);
+  } else if(st==='warn'){
+    pill = `<span class="cm-pill" style="background:#fdf1d3;color:#7a5200;">⚠ Cash finished</span>`;
+    bar = `<div style="width:100%;background:#e2a12a;"></div>`;
+    left = hxNum(amount)+' used'; right = 'Left 0';
   } else {
-    document.getElementById('split-box').classList.remove('show');
-    if(mode==='company' && amount>0 && amount>driverBalances(CURRENT_DRIVER_NAME).companyCash){
-      showWarning('NOT ENOUGH COMPANY CASH');
-    }
+    const gp = amount ? Math.round(sp.company/amount*100) : 0;
+    pill = `<span class="cm-pill" style="background:#fbe3df;color:#b4382f;">👛 +${hxNum(sp.me)} yours</span>`;
+    bar = `<div style="width:${gp}%;background:#2e8b57;"></div><div style="width:${100-gp}%;background:#c0392b;"></div>`;
+    left = `<span style="color:#1f7a4d;">${hxNum(sp.company)} company cash</span>`; right = `<span style="color:#b4382f;">${hxNum(sp.me)} your money</span>`;
   }
+  box.innerHTML = `<div class="cm-top"><span>AED ${amount>0?hxNum(amount):'0'}</span>${pill}</div><div class="cm-bar">${bar}</div><div class="cm-l"><span>${left}</span><span>${right}</span></div>`;
 }
 function onAmountInput(){
-  const amount = parseFloat(document.getElementById('exp-amount').value)||0;
-  if(expState.pay==='both'){
-    const s = autoSplit(amount, driverBalances(CURRENT_DRIVER_NAME).companyCash);
-    document.getElementById('split-company').value = s.company || '';
-    document.getElementById('split-me').value = s.me || '';
-  }
-  if(expState.pay==='company'){
-    if(amount>0 && amount>driverBalances(CURRENT_DRIVER_NAME).companyCash) showWarning('NOT ENOUGH COMPANY CASH');
-    else document.getElementById('exp-warning').classList.remove('show');
-  }
+  document.getElementById('exp-warning').classList.remove('show');
+  updateCashMeter();
 }
 function onSplitEdit(which){
   // just leave user free edits; validated at save time
@@ -2932,7 +3028,6 @@ async function saveExpense(){
   const amount = parseFloat(document.getElementById('exp-amount').value);
   if(!amount || amount<=0){ toast('ENTER AMOUNT'); return; }
   if(!expState.category){ toast('PICK A TYPE'); return; }
-  if(!expState.pay){ toast('CHOOSE COMPANY / ME / BOTH'); return; }
   const noteVal = document.getElementById('exp-note').value.trim();
   if(expState.category==='other' && !noteVal){
     document.getElementById('note-box').classList.add('note-required');
@@ -2941,21 +3036,8 @@ async function saveExpense(){
     return;
   }
 
-  let companyAmount=0, meAmount=0;
-  if(expState.pay==='company') companyAmount = amount;
-  else if(expState.pay==='me') meAmount = amount;
-  else {
-    companyAmount = parseFloat(document.getElementById('split-company').value)||0;
-    meAmount = parseFloat(document.getElementById('split-me').value)||0;
-    if(companyAmount<0 || meAmount<0){
-      showWarning('AMOUNTS CANNOT BE NEGATIVE');
-      return;
-    }
-    if(Math.abs((companyAmount+meAmount) - amount) > 0.01){
-      showWarning('AMOUNTS DO NOT MATCH');
-      return;
-    }
-  }
+  const sp = computeExpenseSplit(amount);
+  const companyAmount = sp.company, meAmount = sp.me;
 
   const record = {
     id: 'e_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
@@ -2966,7 +3048,7 @@ async function saveExpense(){
     amount: round2(amount),
     companyAmount: round2(companyAmount),
     meAmount: round2(meAmount),
-    payMode: expState.pay,
+    payMode: sp.mode,
     note: noteVal,
     supplier: document.getElementById('exp-supplier').value.trim(),
     site: document.getElementById('exp-site').value.trim(),
@@ -3661,6 +3743,14 @@ function hxRow(t, o){
       ? `<div class="hx-av" style="background:${hxDrvColor(drv)};">${escapeHtml(initials(drv))}<span class="hx-bd" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,11,3)}</span></div>`
       : `<div class="hx-ic" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,21,2.3)}</div>`;
   }
+  let splitBar = '';
+  if(t.type==='expense' && (t.payMode==='me' || t.payMode==='both')){
+    const tot = Number(t.amount)||0;
+    const own = t.payMode==='me' ? tot : Math.min(tot, Number(t.meAmount)||0);
+    const co = Math.max(0, tot-own);
+    const op = tot ? Math.round(own/tot*100) : 0;
+    if(tot && own>0 && !rejected) splitBar = `<div class="hx-split" style="background:#f3c5bf;"><div style="width:${100-op}%;background:#2e8b57;"></div><div style="width:${op}%;background:#c0392b;"></div></div><div class="hx-splitl"><span style="color:#1f7a4d;">${co>0?hxNum(co)+' company':''}</span><span style="color:#b4382f;">${hxNum(own)} ${admin?'his own':'your own'}</span></div>`;
+  }
   return `<div class="hx" onclick="histCardTap(event,'${t.id}'${o.ctx?",'"+o.ctx+"'":''})">
     ${visual}
     <div class="hx-body">
@@ -3668,7 +3758,7 @@ function hxRow(t, o){
       ${bal}
       ${line1?`<div class="hx-sub">${line1}</div>`:''}
       ${line2?`<div class="hx-sub"${hist?'':` style="font-weight:700;color:${st.fg};"`}>${line2}</div>`:''}
-      ${o.extra||''}${chips}${reason}
+      ${splitBar}${o.extra||''}${chips}${reason}
     </div>
     ${bigPhoto||actions?`<div class="hx-full">${bigPhoto}${actions}</div>`:''}
   </div>`;
