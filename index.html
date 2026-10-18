@@ -518,6 +518,68 @@ body.has-tabs .bottom-bar{bottom:calc(58px + env(safe-area-inset-bottom))}
 .hx-split{height:8px;border-radius:4px;background:#dcefe2;display:flex;overflow:hidden;margin:7px 0 3px}
 .hx-split div{height:100%}
 .hx-splitl{display:flex;justify-content:space-between;font-size:12px;font-weight:700}
+/* ===== v76: Admin = "fresh light" look, Driver = "bold and big" look ===== */
+.tab{margin:0 4px;border-radius:14px;padding:5px 0}
+.tab.on{background:#e0f0e6}
+/* -- Admin home -- */
+body.role-admin #screen-home .topbar{background:#f3f8f4;color:#1b3328;position:static;padding:12px 16px 6px}
+body.role-admin #screen-home .topbar h1{font-size:17px;color:#1b3328}
+body.role-admin #screen-home .topbar .icon-btn{background:#fff;color:#1b3328;border:1px solid #dbe8df}
+body.role-admin #screen-home .topbar .adminlink{color:#1f7a4d;opacity:1;font-weight:700}
+body.role-admin #screen-home .topbar #home-driver-name{color:#5d7a6c;opacity:1}
+body.role-admin #screen-home .home-wrap{padding-top:8px}
+body.role-admin .hm-strip{width:100%;margin:0 0 14px;border-radius:14px}
+.stile.ahero{background:#1f7a4d;border:0;border-radius:20px;padding:16px;color:#fff}
+.stile.ahero .stile-lbl{color:rgba(255,255,255,.85)}
+.stile.ahero .stile-ic{background:rgba(255,255,255,.18)}
+.stile.ahero .stile-val{color:#fff;font-size:32px}
+.stile.ahero .ah-sub{color:rgba(255,255,255,.85)!important}
+.stile.ahero.low{background:#b4382f;border:0}
+.stile.ahero.low .stile-lbl{color:rgba(255,255,255,.9)}
+.stile.ahero.low .stile-val{color:#fff}
+.ah-mini{display:flex;gap:8px;margin-top:12px}
+.ah-mini div{flex:1;background:rgba(255,255,255,.16);border-radius:12px;padding:8px 10px}
+.ah-mini span{display:block;font-size:11px;letter-spacing:.3px;opacity:.85}
+.ah-mini b{font-size:15px;font-weight:700}
+.driver-row{border-radius:16px}
+.driver-row::before{display:none}
+.driver-row .drv-avatar{border-radius:50%}
+#admin-action-tiles .tile{padding:14px 8px;border-width:1px;border-radius:16px;font-size:14px;gap:4px}
+#admin-action-tiles .tile .ic{font-size:26px}
+/* -- Driver home: dark green top, big numbers, white sheet -- */
+#home-hero{display:none}
+body.role-driver #screen-home{background:#14452c;min-height:100vh}
+body.role-driver #screen-home.drv-low{background:#8f2a22}
+body.role-driver #screen-home .topbar{background:transparent;position:static;padding-bottom:6px}
+body.role-driver #screen-home .topbar #home-driver-name{opacity:.85}
+body.role-driver #home-hero{display:block;padding:2px 20px 20px;color:#fff}
+.dh-l{font-size:12px;letter-spacing:.6px;opacity:.88;font-weight:800;text-transform:uppercase}
+.dh-v{font-size:42px;font-weight:800;line-height:1.1;margin:2px 0}
+.dh-s{font-size:13px;opacity:.88;margin-top:4px}
+.dh-bar{height:10px;border-radius:5px;background:rgba(255,255,255,.22);display:flex;overflow:hidden;margin:10px 0 4px}
+.dh-bar div{height:100%}
+body.role-driver #screen-home .home-wrap{background:#f4f7f4;border-radius:26px 26px 0 0;min-height:calc(100vh - 200px);padding-top:18px}
+#screen-home .topbar h1{font-size:16px}
+.driver-row .drv-name{width:auto;flex:1}
+body.role-driver #driver-action-tiles{gap:10px}
+body.role-driver #driver-action-tiles .tile{border-width:1px;border-radius:18px;padding:16px 8px;font-size:14px;gap:4px}
+body.role-driver #driver-action-tiles .tile .ic{font-size:26px}
+body.role-driver #driver-action-tiles .tile.primary{flex-direction:column;border-radius:22px;padding:22px 10px;font-size:20px;background:#1f7a4d;border-color:#1f7a4d;gap:8px}
+body.role-driver #driver-action-tiles .tile.primary .ic{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:30px}
+body.role-driver .hm-strip{width:100%;margin-left:0;margin-right:0;border-radius:14px}
+body.role-driver #home-driver-extra .hm-strip + .hm-strip{margin-top:8px!important}
+#home-driver-extra .hx-card{margin:0;border:1px solid #dbe5dd;border-radius:18px;overflow:hidden}
+/* -- Driver Buy / Pay: big dark amount -- */
+.amount-box{background:#14452c;border:0;border-radius:22px;padding:22px 18px}
+.amount-box .cur{color:rgba(255,255,255,.8)}
+.amount-box input{color:#fff}
+.amount-box input::placeholder{color:rgba(255,255,255,.35)}
+.amount-box.s-warn{background:#6b4a08;border:0}
+.amount-box.s-warn input{color:#ffd37a}
+.amount-box.s-over{background:#7d261f;border:0}
+.amount-box.s-over input{color:#ffd0ca}
+.cm{border-radius:18px}
+.save-btn{border-radius:20px}
 </style>
 </head>
 <body>
@@ -568,6 +630,7 @@ body.has-tabs .bottom-bar{bottom:calc(58px + env(safe-area-inset-bottom))}
         <button class="adminlink" onclick="logoutUser()">🚪 Log Out</button>
       </div>
     </div>
+    <div id="home-hero"></div>
     <div class="home-wrap">
       <div id="stale-note" onclick="refreshNow()" style="display:none;background:#fff3cd;color:#8a6d00;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-weight:700;font-size:13px;text-align:center;cursor:pointer;"></div>
       <div id="home-load-error" style="display:none;background:var(--red-light);color:var(--red);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-weight:700;font-size:14px;text-align:center;">
@@ -609,7 +672,7 @@ body.has-tabs .bottom-bar{bottom:calc(58px + env(safe-area-inset-bottom))}
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">75</b> ·
+        App version <b id="home-app-version">76</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -628,7 +691,7 @@ body.has-tabs .bottom-bar{bottom:calc(58px + env(safe-area-inset-bottom))}
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 75</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 76</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -2496,7 +2559,12 @@ function renderHome(){
     if(errText) errText.textContent = friendlySyncError(lastLoadError);
   }
   const wrap = document.getElementById('home-balance-wrap');
+  const hero = document.getElementById('home-hero');
+  const homeScr = document.getElementById('screen-home');
+  if(hero) hero.innerHTML = '';
+  if(homeScr) homeScr.classList.remove('drv-low');
   if(!firstLoadDone || !lastLoadOk){
+    if(!IS_ADMIN_DEVICE && hero){ hero.innerHTML = `<div class="dh-l">Balance</div><div class="dh-v">${firstLoadDone?'—':'…'}</div>`; wrap.innerHTML = ''; } else
     wrap.innerHTML = `<div class="balance-cards" style="grid-template-columns:1fr;">
       <div class="bal-card"><div class="lbl">Balance</div><div class="val">${firstLoadDone?'—':'…'}</div></div>
     </div>`;
@@ -2518,10 +2586,11 @@ function renderHome(){
     const nWait = approvalsNeededCount();
     wrap.innerHTML = `
       <div class="admin-summary-row" style="grid-template-columns:1fr;">
-        <div class="stile${(totals.cash-totals.owed)<0?' low':''}">
+        <div class="stile ahero${(totals.cash-totals.owed)<0?' low':''}">
           <div class="stile-top"><span class="stile-ic">💵</span><span class="stile-lbl">${(totals.cash-totals.owed)<0?'Total owed to drivers':'Total cash in hand'}</span></div>
           <div class="stile-val">${fmt(Math.abs(totals.cash-totals.owed))}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px;">Cash left ${fmt(totals.cash)} − drivers' own money used ${fmt(totals.owed)}</div>
+          <div class="ah-sub" style="font-size:12px;margin-top:4px;">Cash left ${fmt(totals.cash)} − drivers' own money used ${fmt(totals.owed)}</div>
+          <div class="ah-mini"><div><span>TODAY SPENT</span><b>${fmt(todaySpend)}</b></div><div><span>WAITING</span><b>${nWait}</b></div></div>
         </div>
       </div>
       ${nWait ? `<button type="button" class="hm-strip amber" id="home-approvals-tile-wrap" onclick="goToApprovals()"><span>⏰ <b id="home-approvals-tile-badge">${nWait}</b> waiting for your approval</span><span>›</span></button>` : ''}
@@ -2546,18 +2615,17 @@ function renderHome(){
         <div class="drv-arrow">›</div>
       </button>` : '') + (formerDriverRecords().length ? `
       <button class="btn danger block" style="margin-top:8px;" onclick="deleteFormerDriverRecords()">🗑 Remove this row — delete old entries (${formerDriverRecords().length})</button>` : '') + `</div>
-      <div class="section-label" style="margin-top:4px;">Today · ${fmt(todaySpend)} spent</div>
     `;
   } else {
     const b = driverBalances(CURRENT_DRIVER_NAME);
     const net = netBalance(b);
     const cc = Math.max(0, Number(b.companyCash)||0), ow = Math.max(0, Number(b.driverOwed)||0);
     const gp = (cc+ow) ? Math.round(cc/(cc+ow)*100) : 0;
-    wrap.innerHTML = `<div class="balance-cards" style="grid-template-columns:1fr;">
-      <div class="bal-card${net<0?' low':''}" id="cashLeftCard" style="padding:20px 12px;"><div class="lbl" id="balLbl">${net<0?'👛 ':''}${netLabel(net)}</div><div class="val" id="cashLeftVal" style="font-size:34px;">${fmt(Math.abs(net))}</div>
-        ${net<0?`<div class="hm-bar" style="background:#f3c5bf;"><div style="width:${gp}%;background:#2e8b57;"></div><div style="width:${100-gp}%;background:#c0392b;"></div></div>`:''}
-        <div style="font-size:12px;color:var(--muted);margin-top:8px;">Cash left ${fmt(b.companyCash)} − your own money used ${fmt(b.driverOwed)}</div></div>
-    </div>`;
+    wrap.innerHTML = '';
+    if(homeScr) homeScr.classList.toggle('drv-low', net<0);
+    if(hero) hero.innerHTML = `<div id="cashLeftCard"><div class="dh-l" id="balLbl">${net<0?'👛 ':''}${netLabel(net)}</div><div class="dh-v" id="cashLeftVal">${fmt(Math.abs(net))}</div>
+      ${net<0?`<div class="dh-bar"><div style="width:${gp}%;background:#7ee0a5;"></div><div style="width:${100-gp}%;background:#ff8a80;"></div></div>`:''}
+      <div class="dh-s">Cash left ${fmt(b.companyCash)} − your own money used ${fmt(b.driverOwed)}</div></div>`;
   }
   const extra = document.getElementById('home-driver-extra');
   if(extra){
@@ -2626,6 +2694,8 @@ function updateTabbar(){
   const act = document.querySelector('.screen.active');
   const id = act ? act.id : '';
   const logged = IS_ADMIN_DEVICE || !!CURRENT_DRIVER_NAME;
+  document.body.classList.toggle('role-admin', !!(logged && IS_ADMIN_DEVICE));
+  document.body.classList.toggle('role-driver', !!(logged && !IS_ADMIN_DEVICE));
   const show = logged && ['screen-home','screen-today','screen-approvals','screen-admin'].indexOf(id) >= 0;
   document.body.classList.toggle('has-tabs', show);
   if(!show){ el.innerHTML=''; return; }
