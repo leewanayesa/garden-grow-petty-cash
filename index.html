@@ -275,6 +275,10 @@ input,select,textarea{font-family:inherit;}
 .hx-full{flex:0 0 100%;min-width:0;margin-top:10px;}
 .hx-full .hx-act{margin-top:0;}
 .hx-full img{margin-top:0 !important;margin-bottom:10px;}
+.hx-sq{width:54px;height:54px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+.hx-th img{width:100%;height:100%;object-fit:cover;border-radius:11px;border:1px solid #bcd0c1;background:#cfe0d3;}
+.hx-th-fb{width:100%;height:100%;border-radius:11px;background:#cfe0d3;border:1px solid #bcd0c1;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.hx-who2{display:inline-block;font-size:11px;font-weight:800;color:#14532d;border-radius:8px;padding:1px 7px;margin-right:5px;}
 .hx-bd{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;}
 .hx-body{flex:1;min-width:0;}
 .hx-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
@@ -583,7 +587,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">73</b> ·
+        App version <b id="home-app-version">74</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -602,7 +606,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 73</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 74</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -1442,7 +1446,6 @@ const SYNC_TIMEOUT_MS = 25000;
 // few seconds between saving a photo and it coming back from the server on
 // the next refresh — never a source of truth, never used for balances.
 const SESSION_PHOTOS = new Map();
-const PHOTO_PENDING = new Map();
 
 // The one place every failure reason turns into words a non-technical person
 // can actually act on. Deliberately does NOT default every unknown code to
@@ -1457,6 +1460,7 @@ function friendlySyncError(err){
   if(err==='not_logged_in') return 'Please log in first.';
   if(err==='too_many_attempts') return 'Too many wrong passwords. Please wait 10 minutes and try again.';
   if(err==='admin_required') return "Only the Admin device can do this.";
+  if(err==='photo_failed') return 'The receipt photo did not upload — nothing was saved. Please tap SAVE again.';
   if(err==='busy_try_again') return 'The server is busy with another save right now — please tap Retry in a moment.';
   if(err==='bad_response') return "Got an unexpected reply from the server. Please tap Retry — if this keeps happening, your Apps Script deployment may need updating.";
   if(typeof err==='string' && err.indexOf('http_')===0) return `Server error (${err.replace('http_','')}). Please tap Retry in a moment.`;
@@ -1642,7 +1646,6 @@ function applyServerData(data){
       // only for the brief window before that link comes back from a
       // refresh, or for very old rows saved before photos were stored.
       photo: r.photoUrl || null,
-      photoFailed: !r.photoUrl && (r.hasPhoto==='FAILED' || PHOTO_PENDING.has(r.id)),
     })).sort((a,b)=> (a.date+((a.time)||'00:00')).localeCompare(b.date+((b.time)||'00:00')));
     currentBalances = computeBalances(approvedOnly(ALL_TXNS));
   }
@@ -2989,25 +2992,30 @@ async function saveExpense(){
     if(!ok) return;
   }
   const saveBtn = document.getElementById('exp-save-btn');
-  setBusy(saveBtn, 'SAVING…');
+  setBusy(saveBtn, record.photo ? 'UPLOADING RECEIPT…' : 'SAVING…');
   const result = await postToSync({records:[record]});
   clearBusy(saveBtn);
   if(!result.ok){
+    if(result.error==='photo_failed'){
+      // All or nothing: the server refused the whole save because the receipt
+      // could not be stored. The photo is still on this screen — tap SAVE again.
+      showWarning('RECEIPT DID NOT UPLOAD — NOTHING WAS SAVED. TAP SAVE AGAIN.');
+      toast('❌ Receipt did not upload');
+      return;
+    }
     toast(friendlySyncError(result.error));
     return; // nothing saved anywhere — the driver can fix the connection and tap SAVE again
   }
-  const serverSaid = result.data && Array.isArray(result.data.photoFailed) ? result.data.photoFailed : null;
-  if(record.photo && serverSaid && serverSaid.includes(record.id)) PHOTO_PENDING.set(record.id, record.photo);
   lastSavedTxn = record;
   await refreshAll();
-  if(record.photo && !PHOTO_PENDING.has(record.id)){
-    const back = ALL_TXNS.find(x=>x.id===record.id);
-    if(back && !back.photo) { PHOTO_PENDING.set(record.id, record.photo); back.photoFailed = true; }
-  }
   showSavedScreen(`${CAT_MAP[record.category].lbl} · ${fmt(record.amount)}`, record.status);
-  if(PHOTO_PENDING.has(record.id)){
+  if(record.photo){
     const subEl = document.getElementById('saved-sub');
-    if(subEl) subEl.innerHTML += `<br><b style="color:#b4382f;">The receipt photo did not upload.</b><br><button type="button" class="btn" style="margin-top:10px;background:#f3b54a;color:#3a2a00;" onclick="resendPhoto('${record.id}')">📷 Send photo again</button>`;
+    const back = ALL_TXNS.find(x=>x.id===record.id);
+    if(subEl){
+      if(back && back.photo) subEl.innerHTML += '<br><b style="color:#1f7a45;">🧾 Receipt uploaded ✓</b>';
+      else if(back) subEl.innerHTML += '<br><b style="color:#b4382f;">⚠ Saved, but the receipt could not be confirmed. Tell Esa.</b>';
+    }
   }
 }
 
@@ -3571,36 +3579,45 @@ function hxChip(bg, fg, icon, text){
 function hxRow(t, o){
   o = o || {};
   const admin = IS_ADMIN_DEVICE;
+  const hist = o.ctx !== 'appr';          // History / strips use the photo-square layout; Approvals keeps the big photo
   const drv = String(t.driver||'').trim() || '—';
-  const who = admin ? drv : 'you';
   const kind = hxKind(t), st = HX_STYLE[kind];
-  const placeUsed = t.type==='expense' && (String(t.site||'').trim() || String(t.note||'').trim());
-  const noteLine = (t.type==='expense')
-    ? (String(t.site||'').trim() && String(t.note||'').trim() ? String(t.note).trim() : '')
-    : String(t.note||'').trim();
-  let title, bits = [];
-  if(admin){
-    const cat = t.type==='cash_in' ? 'cash given' : t.type==='reimbursement' ? 'paid back'
-      : String((CAT_MAP[t.category]||{lbl:t.category||'Expense'}).lbl).replace(/\s*\(write what\)\s*$/i,'');
-    title = drv + ' · ' + cat;
-    if(t.time) bits.push(t.time);
-    if(t.type==='expense'){ const si=String(t.site||'').trim(), nt=String(t.note||'').trim(); if(si) bits.push(si); if(nt) bits.push(nt); }
-    else if(noteLine) bits.push(noteLine);
-  } else {
-    title = hxTitle(t, who);
-    if(t.time) bits.push(t.time);
-    if(noteLine) bits.push(noteLine);
-  }
-  if((o.box || o.dated) && t.date && t.date!==localDateStr()) bits.unshift(hxDayLabel(t.date).replace(' · ',' '));
-  let sentence = '';
-  if(t.type==='expense'){
-    if(t.payMode==='company') sentence = 'Paid from company cash';
-    else if(t.payMode==='me') sentence = admin ? (drv + ' paid with own money') : 'You paid with your own money';
-    else sentence = 'Split — company ' + hxNum(t.companyAmount||0) + ' · own money ' + hxNum(t.meAmount||0);
-  }
+  const catLbl = t.type==='expense'
+    ? String((CAT_MAP[t.category]||{lbl:t.category||'Expense'}).lbl).replace(/\s*\(write what\)\s*$/i,'')
+    : '';
+  const si = String(t.site||'').trim(), nt = String(t.note||'').trim();
+  const place = t.type==='expense' ? [si, nt].filter(Boolean).join(' · ') : nt;
   const rejected = t.status==='rejected', pending = t.status==='pending';
   const amtColor = rejected ? '#7a8a80' : st.fg;
   const amtStyle = rejected ? 'text-decoration:line-through;' : '';
+  const payShort = t.type!=='expense' ? '' :
+    (t.payMode==='company' ? 'company cash' : t.payMode==='me' ? 'own money'
+      : ('split — company ' + hxNum(t.companyAmount||0) + ' · own ' + hxNum(t.meAmount||0)));
+  const dayPre = ((o.box || o.dated) && t.date && t.date!==localDateStr()) ? (hxDayLabel(t.date).replace(' · ',' ') + ' · ') : '';
+
+  let title, line1 = '', line2 = '';
+  if(hist){
+    if(t.type==='cash_in') title = admin ? 'Cash given' : 'Cash given to you';
+    else if(t.type==='reimbursement') title = admin ? 'Paid back' : 'Paid back to you';
+    else title = catLbl;
+    const first = drv.split(/\s+/)[0];
+    const whoTag = admin ? `<span class="hx-who2" style="background:${hxDrvColor(drv)};">${escapeHtml(first)}</span>` : '';
+    line1 = whoTag + escapeHtml(place);
+    const own = t.payMode==='me';
+    line2 = `${escapeHtml(dayPre + (t.time||''))}${payShort?` · <span style="${own?'color:#8a4b00;font-weight:700;':''}">${escapeHtml(payShort)}</span>`:''}`;
+  } else {
+    title = admin ? (drv + ' · ' + (t.type==='cash_in' ? 'cash given' : t.type==='reimbursement' ? 'paid back' : catLbl)) : hxTitle(t, 'you');
+    const bits = [];
+    if(dayPre || t.time) bits.push((dayPre + (t.time||'')).replace(/ · $/,''));
+    if(place) bits.push(place);
+    line1 = escapeHtml(bits.join(' · '));
+    if(t.type==='expense'){
+      line2 = t.payMode==='company' ? 'Paid from company cash'
+        : t.payMode==='me' ? (admin ? (drv + ' paid with own money') : 'You paid with your own money')
+        : ('Split — company ' + hxNum(t.companyAmount||0) + ' · own money ' + hxNum(t.meAmount||0));
+    }
+  }
+
   let chips = '';
   if(pending){ if(!admin) chips += hxChip('#fff3cd','#6b5200','clock','Admin will check it'); else if(!o.box) chips += hxChip('#fff3cd','#6b5200','clock','Waiting for approval'); }
   else if(rejected) chips += hxChip('#fde8e6','#a8231b','cross','Rejected');
@@ -3617,38 +3634,43 @@ function hxRow(t, o){
   } else if(!admin && rejected && t.type==='expense'){
     actions = `<div style="margin-top:10px;"><button type="button" class="btn" style="width:100%;padding:11px;font-size:14px;background:var(--amber);color:#3a2a00;" onclick="fixAndResubmit('${t.id}')">Fix &amp; Resubmit</button></div>`;
   }
-  // Receipt photo right on the card (big in the approval box, so Esa can check
-  // it before tapping Approve); tap it to enlarge. No photo on a purchase:
-  // a clear note (amber when the amount is above the receipt limit).
-  let photoHtml = '';
+  // Receipt: History shows it as the little square on the left; the Approvals
+  // page shows it big above Approve/Reject. No receipt on a purchase: a clear tag.
+  let bigPhoto = '';
   if(t.photo){
-    const big = !!o.box;
-    const src = photoThumb(t.photo, big ? 700 : 300);
-    photoHtml = `<img src="${escapeHtml(src)}" data-tid="${t.id}" data-w="${big?700:300}" loading="lazy" alt="Receipt photo" onclick="openFullPhoto('${t.id}')" onerror="photoFallback(this)" style="display:block;margin-top:10px;border-radius:12px;border:1px solid #d9e4dc;background:#eef2ee;object-fit:cover;${big?'width:100%;height:190px;':'width:96px;height:96px;'}">`;
-  } else if(t.photoFailed){
-    chips += hxChip('#fff1d6','#8a4b00','cross', admin ? 'Photo missing — driver will resend' : 'Photo did not upload');
-    if(!admin) actions += `<div style="margin-top:10px;"><button type="button" class="btn" style="width:100%;padding:11px;font-size:14px;background:#f3b54a;color:#3a2a00;" onclick="resendPhoto('${t.id}')">📷 Send photo again</button></div>`;
+    if(!hist){
+      const src = photoThumb(t.photo, 700);
+      bigPhoto = `<img src="${escapeHtml(src)}" data-tid="${t.id}" data-w="700" loading="lazy" alt="Receipt photo" onclick="openFullPhoto('${t.id}')" onerror="photoFallback(this)" style="display:block;border-radius:12px;border:1px solid #d9e4dc;background:#eef2ee;object-fit:cover;width:100%;height:190px;">`;
+    }
   } else if(t.type==='expense'){
     const must = (Number(t.amount)||0) >= (Number(THRESHOLDS.receiptAbove)||500);
-    if(!/NO RECEIPT/i.test(o.extra||'') && (o.box || must)) chips += hxChip(must?'#fff1d6':'#eef2ee', must?'#8a4b00':'#4b6355', 'cross', must ? 'No receipt photo (over the limit)' : 'No receipt photo');
+    if(!/NO RECEIPT/i.test(o.extra||'')) chips += hxChip(must?'#fff1d6':'#eef2ee', must?'#8a4b00':'#4b6355', 'cross', must ? 'No receipt (over the limit)' : 'No receipt added');
   }
   let bal = '';
   if(o.bal && o.bal[t.id]!==undefined && !pending && !rejected){
     const bv = o.bal[t.id];
     bal = `<div class="hx-bal">Balance <b style="color:${bv<0?'#a8231b':'#0b6b34'}">${hxSigned(bv)}</b></div>`;
   }
- return `<div class="hx" onclick="histCardTap(event,'${t.id}'${o.ctx?",'"+o.ctx+"'":''})">
-    ${admin
+  let visual;
+  if(hist){
+    visual = t.photo
+      ? `<div class="hx-sq hx-th" onclick="event.stopPropagation();openFullPhoto('${t.id}')"><img src="${escapeHtml(photoThumb(t.photo,160))}" data-tid="${t.id}" data-w="160" loading="lazy" alt="Receipt" onerror="photoFallback(this)"><span class="hx-bd" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,11,3)}</span></div>`
+      : `<div class="hx-sq" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,24,2.2)}</div>`;
+  } else {
+    visual = admin
       ? `<div class="hx-av" style="background:${hxDrvColor(drv)};">${escapeHtml(initials(drv))}<span class="hx-bd" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,11,3)}</span></div>`
-      : `<div class="hx-ic" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,21,2.3)}</div>`}
+      : `<div class="hx-ic" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,21,2.3)}</div>`;
+  }
+  return `<div class="hx" onclick="histCardTap(event,'${t.id}'${o.ctx?",'"+o.ctx+"'":''})">
+    ${visual}
     <div class="hx-body">
       <div class="hx-top"><span class="hx-title">${escapeHtml(title)}</span><span class="hx-amt" style="color:${amtColor};${amtStyle}">${st.sign} ${hxNum(t.amount)}</span></div>
       ${bal}
-      ${bits.length?`<div class="hx-sub">${bits.map(escapeHtml).join(' · ')}</div>`:''}
-      ${sentence?`<div class="hx-who" style="color:${st.fg};">${escapeHtml(sentence)}</div>`:''}
-      ${o.extra||''}${o.box?'':photoHtml}${chips}${reason}
+      ${line1?`<div class="hx-sub">${line1}</div>`:''}
+      ${line2?`<div class="hx-sub"${hist?'':` style="font-weight:700;color:${st.fg};"`}>${line2}</div>`:''}
+      ${o.extra||''}${chips}${reason}
     </div>
-    ${(o.box&&photoHtml)||actions?`<div class="hx-full">${o.box?photoHtml:''}${actions}</div>`:''}
+    ${bigPhoto||actions?`<div class="hx-full">${bigPhoto}${actions}</div>`:''}
   </div>`;
 }
 const HX_DRV_COLORS=['#dcefe2','#dbeaf6','#eadff3','#fbe9cf','#fadcd8','#e2e8e4'];
@@ -3771,12 +3793,14 @@ function renderTodayListBody(){
         else if(t.type==='expense') out += (Number(t.companyAmount)||0) + (Number(t.meAmount)||0);
         if(endBal===null && bal && bal[t.id]!==undefined) endBal = bal[t.id];
       });
+      const exps = grp.filter(t=>t.type==='expense' && t.status!=='rejected');
+      const rcpt = exps.length ? (' · Receipts ' + exps.filter(t=>t.photo).length + ' of ' + exps.length) : '';
       const who = IS_ADMIN_DEVICE ? (balDrv + ' balance end of day ') : 'Balance end of day ';
       const right = (endBal!==null) ? `<span>${escapeHtml(who)}<b style="color:${endBal<0?'#a8231b':'#0b6b34'};">${hxSigned(endBal)}</b></span>` : '<span></span>';
       const dtl = new Date(cur+'T00:00:00');
       const label = (cur===today) ? ('Today · ' + (isNaN(dtl)?cur:dtl.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}).replace(',',''))) : hxDayLabel(cur);
       html += `<div class="hx-band${cur===today?'':' old'}"><span class="d">${hxSvg('calendar',18,2.2)}${label}</span><span class="t">In <b>${hxNum(inn)}</b><br>Out <b>${hxNum(out)}</b></span></div>`
-        + `<div class="hx-dsub"><span>${n} ${n===1?'entry':'entries'}</span>${right}</div><div class="hx-card" style="margin-bottom:0;border-top:0;">${buf.join('')}</div>`;
+        + `<div class="hx-dsub"><span>${n} ${n===1?'entry':'entries'}${rcpt}</span>${right}</div><div class="hx-card" style="margin-bottom:0;border-top:0;">${buf.join('')}</div>`;
     };
     for(const t of shown){
       if(t.date!==cur){ flush(); cur = t.date; buf = []; n = 0; grp = []; }
@@ -3911,48 +3935,14 @@ function photoFallback(img){
   const n = (Number(img.dataset.n)||0) + 1;
   img.dataset.n = n;
   if(n < list.length){ img.src = list[n]; return; }
+  if(img.closest && img.closest('.hx-th')){
+    const fb = document.createElement('div'); fb.className = 'hx-th-fb'; fb.textContent = '🧾'; img.replaceWith(fb); return;
+  }
   const box = document.createElement('div');
   box.className = 'photo-fail';
   box.innerHTML = '🧾 Photo can\'t load here<br><span>Tap to open it</span>';
   box.onclick = ()=>{ if(t && t.photo) window.open(t.photo, '_blank', 'noopener'); };
   img.replaceWith(box);
-}
-// Driver: send a receipt photo again (kept in memory from the failed save, or
-// picked again from camera/gallery if the app was closed since).
-let resendTargetId = null;
-function resendPhoto(id){
-  const data = PHOTO_PENDING.get(id);
-  if(data){ attachPhotoTo(id, data); return; }
-  resendTargetId = id;
-  let inp = document.getElementById('resend-photo-input');
-  if(!inp){
-    inp = document.createElement('input');
-    inp.type='file'; inp.accept='image/*'; inp.id='resend-photo-input'; inp.style.display='none';
-    inp.onchange = ()=>{
-      const f = inp.files && inp.files[0]; if(!f) return;
-      const rd = new FileReader();
-      rd.onload = ev => compressImage(ev.target.result, 900, 0.7).then(d=>{
-        if(!d){ toast('Could not read this photo — try another'); return; }
-        attachPhotoTo(resendTargetId, d);
-      });
-      rd.readAsDataURL(f); inp.value='';
-    };
-    document.body.appendChild(inp);
-  }
-  inp.click();
-}
-async function attachPhotoTo(id, dataUrl){
-  toast('Sending photo…');
-  const res = await postToSync({attachPhoto:{id, photo:dataUrl}});
-  if(res.ok && res.data && res.data.photoAttached){
-    PHOTO_PENDING.delete(id);
-    toast('✅ Photo sent');
-    await refreshAll();
-    if(typeof refreshCurrentScreen==='function') refreshCurrentScreen();
-    return;
-  }
-  PHOTO_PENDING.set(id, dataUrl);
-  toast(res.ok ? 'Photo still could not be saved — try again in a minute' : friendlySyncError(res.error));
 }
 function openPhotoModal(id){ openDetail(id); }
 function openFullPhoto(id){
@@ -4012,9 +4002,7 @@ function renderDetail(){
     photo = `<img class="detail-photo" src="${escapeHtml(photoThumb(t.photo,1000))}" data-tid="${t.id}" data-w="1000" onerror="photoFallback(this)" alt="Receipt" onclick="openFullPhoto('${t.id}')">
       <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--muted);">Tap the photo to enlarge${/^https?:/.test(t.photo)?` · <a href="${escapeHtml(t.photo)}" target="_blank" rel="noopener" style="color:var(--green-dark);font-weight:700;">open original</a>`:''}</div>`;
   } else {
-    photo = t.photoFailed
-      ? `<div class="detail-nophoto" style="background:#fff1d6;color:#8a4b00;">🧾 ${IS_ADMIN_DEVICE?'Photo missing — the driver was asked to send it again':'Photo did not upload'}${IS_ADMIN_DEVICE?'':`<br><button type="button" class="btn" style="margin-top:10px;background:#f3b54a;color:#3a2a00;" onclick="closeDetail();resendPhoto('${t.id}')">📷 Send photo again</button>`}</div>`
-      : `<div class="detail-nophoto">🧾 No receipt photo</div>`;
+    photo = `<div class="detail-nophoto">🧾 No receipt added</div>`;
   }
   let actions = '';
   if(IS_ADMIN_DEVICE && t.deleteRequested){
