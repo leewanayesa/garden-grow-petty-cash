@@ -306,6 +306,8 @@ input,select,textarea{font-family:inherit;}
 .hx-sum button{flex:1;min-width:0;padding:8px 10px;border:0;border-left:1px solid #e5eee7;background:#fff;text-align:left;font-size:11.5px;color:#4b6355;}
 .hx-sum button:first-child{border-left:0;}
 .hx-sum b{display:block;font-size:16px;font-weight:800;margin-top:1px;}
+.photo-fail{margin-top:10px;padding:18px 12px;border-radius:12px;border:1px dashed #cfdcd2;background:#f3f6f3;color:#4b6355;text-align:center;font-size:13.5px;font-weight:700;cursor:pointer;}
+.photo-fail span{font-weight:400;font-size:12.5px;}
 .hx-pend.rej{border-color:#f1c4bf;}
 .hx-pend-h.rej{background:#fdecea;color:#a3302a;}
 .hx-pend-h .any{margin-left:auto;font-size:12px;font-weight:600;}
@@ -581,7 +583,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">72</b> ·
+        App version <b id="home-app-version">73</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -600,7 +602,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 72</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 73</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -1440,6 +1442,7 @@ const SYNC_TIMEOUT_MS = 25000;
 // few seconds between saving a photo and it coming back from the server on
 // the next refresh — never a source of truth, never used for balances.
 const SESSION_PHOTOS = new Map();
+const PHOTO_PENDING = new Map();
 
 // The one place every failure reason turns into words a non-technical person
 // can actually act on. Deliberately does NOT default every unknown code to
@@ -1638,7 +1641,8 @@ function applyServerData(data){
       // on any device); fall back to this session's own just-saved copy
       // only for the brief window before that link comes back from a
       // refresh, or for very old rows saved before photos were stored.
-      photo: r.photoUrl || SESSION_PHOTOS.get(r.id) || null,
+      photo: r.photoUrl || null,
+      photoFailed: !r.photoUrl && (r.hasPhoto==='FAILED' || PHOTO_PENDING.has(r.id)),
     })).sort((a,b)=> (a.date+((a.time)||'00:00')).localeCompare(b.date+((b.time)||'00:00')));
     currentBalances = computeBalances(approvedOnly(ALL_TXNS));
   }
@@ -2862,6 +2866,7 @@ function onPhotoSelected(e){
   const reader = new FileReader();
   reader.onload = function(ev){
     compressImage(ev.target.result, 900, 0.7).then(dataUrl=>{
+      if(!dataUrl){ toast('Could not read this photo — please retake it or choose another'); return; }
       expState.photo = dataUrl;
       document.getElementById('photo-preview-img').src = dataUrl;
       document.getElementById('photo-preview').style.display='block';
@@ -2893,6 +2898,7 @@ function compressImage(dataUrl, maxW, quality){
       canvas.getContext('2d').drawImage(img,0,0,w,h);
       resolve(canvas.toDataURL('image/jpeg', quality));
     };
+    img.onerror = function(){ resolve(null); };
     img.src = dataUrl;
   });
 }
@@ -2990,10 +2996,19 @@ async function saveExpense(){
     toast(friendlySyncError(result.error));
     return; // nothing saved anywhere — the driver can fix the connection and tap SAVE again
   }
-  if(record.photo) SESSION_PHOTOS.set(record.id, record.photo);
+  const serverSaid = result.data && Array.isArray(result.data.photoFailed) ? result.data.photoFailed : null;
+  if(record.photo && serverSaid && serverSaid.includes(record.id)) PHOTO_PENDING.set(record.id, record.photo);
   lastSavedTxn = record;
   await refreshAll();
+  if(record.photo && !PHOTO_PENDING.has(record.id)){
+    const back = ALL_TXNS.find(x=>x.id===record.id);
+    if(back && !back.photo) { PHOTO_PENDING.set(record.id, record.photo); back.photoFailed = true; }
+  }
   showSavedScreen(`${CAT_MAP[record.category].lbl} · ${fmt(record.amount)}`, record.status);
+  if(PHOTO_PENDING.has(record.id)){
+    const subEl = document.getElementById('saved-sub');
+    if(subEl) subEl.innerHTML += `<br><b style="color:#b4382f;">The receipt photo did not upload.</b><br><button type="button" class="btn" style="margin-top:10px;background:#f3b54a;color:#3a2a00;" onclick="resendPhoto('${record.id}')">📷 Send photo again</button>`;
+  }
 }
 
 /* ================= CASH IN ================= */
@@ -3609,7 +3624,10 @@ function hxRow(t, o){
   if(t.photo){
     const big = !!o.box;
     const src = photoThumb(t.photo, big ? 700 : 300);
-    photoHtml = `<img src="${escapeHtml(src)}" loading="lazy" alt="Receipt photo" onclick="openFullPhoto('${t.id}')" onerror="if(this.dataset.f!=='1'){this.dataset.f='1';this.src='${escapeHtml(t.photo)}';}" style="display:block;margin-top:10px;border-radius:12px;border:1px solid #d9e4dc;background:#eef2ee;object-fit:cover;${big?'width:100%;height:190px;':'width:96px;height:96px;'}">`;
+    photoHtml = `<img src="${escapeHtml(src)}" data-tid="${t.id}" data-w="${big?700:300}" loading="lazy" alt="Receipt photo" onclick="openFullPhoto('${t.id}')" onerror="photoFallback(this)" style="display:block;margin-top:10px;border-radius:12px;border:1px solid #d9e4dc;background:#eef2ee;object-fit:cover;${big?'width:100%;height:190px;':'width:96px;height:96px;'}">`;
+  } else if(t.photoFailed){
+    chips += hxChip('#fff1d6','#8a4b00','cross', admin ? 'Photo missing — driver will resend' : 'Photo did not upload');
+    if(!admin) actions += `<div style="margin-top:10px;"><button type="button" class="btn" style="width:100%;padding:11px;font-size:14px;background:#f3b54a;color:#3a2a00;" onclick="resendPhoto('${t.id}')">📷 Send photo again</button></div>`;
   } else if(t.type==='expense'){
     const must = (Number(t.amount)||0) >= (Number(THRESHOLDS.receiptAbove)||500);
     if(!/NO RECEIPT/i.test(o.extra||'') && (o.box || must)) chips += hxChip(must?'#fff1d6':'#eef2ee', must?'#8a4b00':'#4b6355', 'cross', must ? 'No receipt photo (over the limit)' : 'No receipt photo');
@@ -3875,16 +3893,75 @@ async function requestDeleteFromHistory(id){
 // Drive's small-picture link loads far faster (and more reliably) than the
 // full-size file; used for thumbnails and the details sheet. The enlarged view
 // and PDFs still use the original full link.
-function photoThumb(url, w){
+function photoCandidates(url, w){
   const m = /[?&]id=([\w-]+)/.exec(url||'');
-  if(m && /drive\.google\.com/.test(url)) return 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w'+(w||200);
-  return url;
+  if(m && /drive\.google\.com/.test(url)) return [
+    'https://lh3.googleusercontent.com/d/'+m[1]+'=w'+(w||200),
+    'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w'+(w||200),
+    url
+  ];
+  return [url];
+}
+function photoThumb(url, w){ return photoCandidates(url, w)[0]; }
+// If a picture will not load, try the next link; after the last one show a
+// plain tap-to-open box instead of a broken-picture icon.
+function photoFallback(img){
+  const t = ALL_TXNS.find(x=>x.id===img.dataset.tid);
+  const list = t ? photoCandidates(t.photo, Number(img.dataset.w)||700) : [];
+  const n = (Number(img.dataset.n)||0) + 1;
+  img.dataset.n = n;
+  if(n < list.length){ img.src = list[n]; return; }
+  const box = document.createElement('div');
+  box.className = 'photo-fail';
+  box.innerHTML = '🧾 Photo can\'t load here<br><span>Tap to open it</span>';
+  box.onclick = ()=>{ if(t && t.photo) window.open(t.photo, '_blank', 'noopener'); };
+  img.replaceWith(box);
+}
+// Driver: send a receipt photo again (kept in memory from the failed save, or
+// picked again from camera/gallery if the app was closed since).
+let resendTargetId = null;
+function resendPhoto(id){
+  const data = PHOTO_PENDING.get(id);
+  if(data){ attachPhotoTo(id, data); return; }
+  resendTargetId = id;
+  let inp = document.getElementById('resend-photo-input');
+  if(!inp){
+    inp = document.createElement('input');
+    inp.type='file'; inp.accept='image/*'; inp.id='resend-photo-input'; inp.style.display='none';
+    inp.onchange = ()=>{
+      const f = inp.files && inp.files[0]; if(!f) return;
+      const rd = new FileReader();
+      rd.onload = ev => compressImage(ev.target.result, 900, 0.7).then(d=>{
+        if(!d){ toast('Could not read this photo — try another'); return; }
+        attachPhotoTo(resendTargetId, d);
+      });
+      rd.readAsDataURL(f); inp.value='';
+    };
+    document.body.appendChild(inp);
+  }
+  inp.click();
+}
+async function attachPhotoTo(id, dataUrl){
+  toast('Sending photo…');
+  const res = await postToSync({attachPhoto:{id, photo:dataUrl}});
+  if(res.ok && res.data && res.data.photoAttached){
+    PHOTO_PENDING.delete(id);
+    toast('✅ Photo sent');
+    await refreshAll();
+    if(typeof refreshCurrentScreen==='function') refreshCurrentScreen();
+    return;
+  }
+  PHOTO_PENDING.set(id, dataUrl);
+  toast(res.ok ? 'Photo still could not be saved — try again in a minute' : friendlySyncError(res.error));
 }
 function openPhotoModal(id){ openDetail(id); }
 function openFullPhoto(id){
   const t = ALL_TXNS.find(x=>x.id===id);
   if(!t || !t.photo) return;
-  document.getElementById('photo-modal-img').src = t.photo;
+  const pm = document.getElementById('photo-modal-img');
+  const list = photoCandidates(t.photo, 1600); let k = 0;
+  pm.onerror = ()=>{ k++; if(k < list.length) pm.src = list[k]; };
+  pm.src = list[0];
   document.getElementById('photo-modal').classList.add('show');
 }
 let detailIds = [], detailIdx = 0, detailCtx = '';
@@ -3932,10 +4009,12 @@ function renderDetail(){
   const flags = riskFlagsHTML(t);
   let photo;
   if(t.photo){
-    photo = `<img class="detail-photo" src="${escapeHtml(photoThumb(t.photo,1000))}" onerror="if(this.dataset.f!=='1'){this.dataset.f='1';this.src='${escapeHtml(t.photo)}';}" alt="Receipt" onclick="openFullPhoto('${t.id}')">
+    photo = `<img class="detail-photo" src="${escapeHtml(photoThumb(t.photo,1000))}" data-tid="${t.id}" data-w="1000" onerror="photoFallback(this)" alt="Receipt" onclick="openFullPhoto('${t.id}')">
       <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--muted);">Tap the photo to enlarge${/^https?:/.test(t.photo)?` · <a href="${escapeHtml(t.photo)}" target="_blank" rel="noopener" style="color:var(--green-dark);font-weight:700;">open original</a>`:''}</div>`;
   } else {
-    photo = `<div class="detail-nophoto">🧾 No receipt photo</div>`;
+    photo = t.photoFailed
+      ? `<div class="detail-nophoto" style="background:#fff1d6;color:#8a4b00;">🧾 ${IS_ADMIN_DEVICE?'Photo missing — the driver was asked to send it again':'Photo did not upload'}${IS_ADMIN_DEVICE?'':`<br><button type="button" class="btn" style="margin-top:10px;background:#f3b54a;color:#3a2a00;" onclick="closeDetail();resendPhoto('${t.id}')">📷 Send photo again</button>`}</div>`
+      : `<div class="detail-nophoto">🧾 No receipt photo</div>`;
   }
   let actions = '';
   if(IS_ADMIN_DEVICE && t.deleteRequested){
