@@ -580,6 +580,57 @@ body.role-driver #home-driver-extra .hm-strip + .hm-strip{margin-top:8px!importa
 .amount-box.s-over input{color:#ffd0ca}
 .cm{border-radius:18px}
 .save-btn{border-radius:20px}
+/* ===== v77: History gallery (viewer + thumbnail strip) ===== */
+#hist-viewer{margin:6px 0 4px}
+.hv-view{margin:4px 16px;background:#fff;border-radius:18px;overflow:hidden;border:1px solid #dbe8df}
+.hv-view.own{border-color:#e3a09a}
+.hv-pic{position:relative;background:#dfe9e1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.hv-pic img{width:100%;height:100%;object-fit:contain;display:block}
+.hv-pic .photo-fail{margin:0;border:0;background:transparent;width:100%}
+.hv-none{text-align:center;font-weight:800;font-size:14px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.hv-none .big{font-size:40px;line-height:1}
+.hv-pic.warn{background:#fdf1d3;color:#8a4b00}
+.hv-pic.rej{background:#fbe3df;color:#b4382f}
+.hv-pic.cash{background:#dcefe2;color:#1f7a4d}
+.hv-nav{position:absolute;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.92);font-size:22px;font-weight:800;color:#14532d;line-height:1}
+.hv-nav.l{left:8px}.hv-nav.r{right:8px}
+.hv-cnt{position:absolute;left:10px;top:10px;background:#fff;border-radius:10px;padding:3px 10px;font-size:12px;font-weight:700}
+.hv-own{position:absolute;right:10px;top:10px;background:#fbe3df;color:#b4382f;border-radius:10px;padding:3px 10px;font-size:12px;font-weight:800}
+.hv-info{padding:10px 12px 12px}
+.hv-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.hv-t{font-weight:800;font-size:15px}
+.hv-s{font-size:12.5px;color:#5d7a6c;margin-top:2px}
+.hv-amt{font-weight:800;font-size:19px;white-space:nowrap}
+.hv-note{border-radius:10px;padding:7px 10px;margin-top:8px;font-size:13px;font-weight:700}
+.hv-more{display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:#1f7a4d}
+.hv-strip{display:flex;gap:8px;padding:8px 16px;overflow-x:auto}
+.hv-th{flex:none;width:52px;height:60px;border-radius:12px;border:2px solid transparent;background:#dfe9e1;padding:0;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:18px}
+.hv-th img{width:100%;height:100%;object-fit:cover}
+.hv-th.on{border-color:#1f7a4d}
+.hv-th.on.own{border-color:#c0392b}
+.hv-th.warn{background:#fdf1d3}
+.hv-th.rej{background:#fbe3df}
+.hv-th.cash{background:#dcefe2}
+.hv-wb{position:absolute;right:2px;bottom:2px;width:18px;height:18px;border-radius:50%;background:#c0392b;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center}
+.hv-fix{display:flex;justify-content:space-between;align-items:center;width:calc(100% - 32px);margin:2px 16px 4px;padding:10px 12px;border:0;border-radius:12px;background:#fbe3df;color:#b4382f;font-weight:800;font-size:14px}
+/* Admin + Driver History headers */
+body.role-admin #hist-driver-cash-card{background:#1f7a4d;border:0;border-radius:18px;text-align:left;padding:12px 14px!important}
+body.role-admin #hist-driver-cash-card.low{background:#b4382f}
+body.role-admin #hist-driver-cash-card .lbl{color:rgba(255,255,255,.9)}
+body.role-admin #hist-driver-cash-card .val{color:#fff}
+body.role-admin #hist-driver-sub{color:rgba(255,255,255,.88)!important}
+body.role-admin #hist-driver-bar{display:none!important}
+#hist-driver-pending{display:none!important}
+body.role-driver #screen-today{background:#14452c;min-height:100vh}
+body.role-driver #screen-today.drv-low{background:#8f2a22}
+body.role-driver #screen-today .topbar{background:transparent;color:#fff;position:static}
+body.role-driver #screen-today .topbar .back,body.role-driver #screen-today .topbar .icon-btn{background:rgba(255,255,255,.18);color:#fff}
+body.role-driver #screen-today #hist-driver-stats{display:block!important;margin:2px 0 0!important;padding:0 20px 16px}
+body.role-driver #hist-driver-cash-card,body.role-driver #hist-driver-cash-card.low{background:transparent;border:0;text-align:left;padding:0!important;color:#fff}
+body.role-driver #hist-driver-cash-card .lbl{color:rgba(255,255,255,.9)}
+body.role-driver #hist-driver-cash-card .val,body.role-driver #hist-driver-cash-card.low .val{color:#fff;font-size:38px!important}
+body.role-driver #hist-driver-sub{color:rgba(255,255,255,.88)!important}
+body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padding-top:4px;min-height:60vh}
 </style>
 </head>
 <body>
@@ -672,7 +723,7 @@ body.role-driver #home-driver-extra .hm-strip + .hm-strip{margin-top:8px!importa
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">76</b> ·
+        App version <b id="home-app-version">77</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -691,7 +742,7 @@ body.role-driver #home-driver-extra .hm-strip + .hm-strip{margin-top:8px!importa
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 76</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 77</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -922,10 +973,12 @@ body.role-driver #home-driver-extra .hm-strip + .hm-strip{margin-top:8px!importa
     </div>
     <div id="hist-driver-stats" class="balance-cards" style="display:none;margin:14px 16px 0;grid-template-columns:1fr;">
       <div class="bal-card" id="hist-driver-cash-card"><div class="lbl" id="hist-driver-lbl">Balance</div><div class="val" id="hist-driver-cash-val">…</div>
+        <div class="dh-bar" id="hist-driver-bar" style="display:none;"></div>
         <div id="hist-driver-sub" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
         <div id="hist-driver-pending" style="display:none;margin-top:10px;padding:8px 10px;background:#fff3cd;border-radius:10px;color:#6b5200;font-size:13px;font-weight:700;"></div></div>
     </div>
     <div id="hist-all-balances" style="display:none;margin:10px 16px 0;"></div>
+    <div id="hist-sheet">
     <div class="hist-filter-bar">
       <button class="hist-chip sel" data-hf="all" onclick="setHistFilter('all')">All</button>
       <button class="hist-chip" data-hf="today" onclick="setHistFilter('today')">Today</button>
@@ -937,7 +990,9 @@ body.role-driver #home-driver-extra .hm-strip + .hm-strip{margin-top:8px!importa
       <input type="date" id="hist-from" onchange="renderTodayListBody()">
       <input type="date" id="hist-to" onchange="renderTodayListBody()">
     </div>
+    <div id="hist-viewer"></div>
     <div class="hist-list" id="today-list"></div>
+    </div>
     <div class="bottom-bar">
       <button class="save-btn" onclick="generateHistoryStatement()">📄 GENERATE STATEMENT</button>
     </div>
@@ -3865,10 +3920,18 @@ function renderTodayListBody(){
     const base = histDriverFilter==='__other__' ? otherTxns() : txnsForDriver(histDriverFilter);
     const b = computeBalances(base);
     const nb = netBalance(b);
-    document.getElementById('hist-driver-lbl').textContent = IS_ADMIN_DEVICE ? (((histDriverFilter==='__other__')?'Other · ':(histDriverFilter+' · '))+netLabelAdmin(nb)) : netLabel(nb);
+    document.getElementById('hist-driver-lbl').textContent = (nb<0?'👛 ':'') + (IS_ADMIN_DEVICE ? (((histDriverFilter==='__other__')?'Other · ':(histDriverFilter+' · '))+netLabelAdmin(nb)) : netLabel(nb));
     document.getElementById('hist-driver-cash-val').textContent = fmt(Math.abs(nb));
     document.getElementById('hist-driver-sub').textContent = 'Cash left ' + fmt(b.companyCash) + ' − ' + (IS_ADMIN_DEVICE ? 'his own money used ' : 'your own money used ') + fmt(b.driverOwed);
     document.getElementById('hist-driver-cash-card').classList.toggle('low', nb<0);
+    const scr = document.getElementById('screen-today'); if(scr) scr.classList.toggle('drv-low', !IS_ADMIN_DEVICE && nb<0);
+    const hb = document.getElementById('hist-driver-bar');
+    if(hb){
+      const cc = Math.max(0, Number(b.companyCash)||0), ow = Math.max(0, Number(b.driverOwed)||0);
+      const gp = (cc+ow) ? Math.round(cc/(cc+ow)*100) : 0;
+      if(nb<0){ hb.innerHTML = `<div style="width:${gp}%;background:#7ee0a5;"></div><div style="width:${100-gp}%;background:#ff8a80;"></div>`; hb.style.display='flex'; }
+      else { hb.style.display='none'; hb.innerHTML=''; }
+    }
     const pe = document.getElementById('hist-driver-pending');
     if(pe){
       let pend = [];
@@ -3920,14 +3983,6 @@ function renderTodayListBody(){
   const attIds = new Set(attention.concat(fixList).map(t=>t.id));
   const main = rows.filter(t=>!attIds.has(t.id));
   let html = '';
-  if(fixList.length){
-    html += `<div class="hx-pend rej"><div class="hx-pend-h rej">${hxSvg('cross',20,2.5)}${fixList.length} ${fixList.length===1?'needs':'need'} fixing</div>`
-      + fixList.map(t=>hxRow(t,{dated:true})).join('') + '</div>';
-  }
-  if(attention.length){
-    html += `<div class="hx-pend"><div class="hx-pend-h">${hxSvg('clock',20,2.3)}${attention.length} waiting${IS_ADMIN_DEVICE?' for your':' for'} approval${histFilterKey!=='all'?'<span class="any">any day</span>':''}</div>`
-      + attention.map(t=>hxRow(t,{box:true})).join('') + '</div>';
-  }
   if(!main.length && !attention.length && !fixList.length){
     if(q) html = `<div class="empty-note">No entries match your search.</div>`;
     else if(histFilterKey!=='all' && ALL_TXNS.length){
@@ -3973,6 +4028,98 @@ function renderTodayListBody(){
     }
   }
   list.innerHTML = html;
+  histViewItems = attention.concat(fixList).concat(main.filter(t=>t.type==='expense')).slice(0,40);
+  renderHistViewer();
+}
+// ===== History gallery: big receipt viewer on top, thumbnail strip, list below =====
+let histViewItems = [], histViewId = null;
+function histOwn(t){
+  if(t.type!=='expense' || t.status==='rejected') return 0;
+  const tot = Number(t.amount)||0;
+  return t.payMode==='me' ? tot : (t.payMode==='both' ? Math.min(tot, Number(t.meAmount)||0) : 0);
+}
+function histCatLabel(t){
+  return String((CAT_MAP[t.category]||{lbl:t.category||'Expense'}).lbl).replace(/\s*\(write what\)\s*$/i,'');
+}
+function histViewSet(id){ histViewId = id; renderHistViewer(); }
+function histViewNav(d){
+  const i = histViewItems.findIndex(x=>x.id===histViewId);
+  const n = i + d;
+  if(n<0 || n>=histViewItems.length) return;
+  histViewId = histViewItems[n].id; renderHistViewer();
+}
+function renderHistViewer(){
+  const box = document.getElementById('hist-viewer');
+  if(!box) return;
+  const items = histViewItems;
+  if(!items.length){ box.innerHTML = ''; return; }
+  let idx = items.findIndex(x=>x.id===histViewId);
+  if(idx < 0){ idx = 0; histViewId = items[0].id; }
+  const t = items[idx];
+  const admin = IS_ADMIN_DEVICE;
+  const drv = String(t.driver||'').trim() || '—';
+  const first = drv.split(/\s+/)[0];
+  const own = histOwn(t);
+  const rejected = t.status==='rejected', pending = t.status==='pending';
+  const isExp = t.type==='expense';
+  const must = isExp && (Number(t.amount)||0) >= (Number(THRESHOLDS.receiptAbove)||500);
+  const st = HX_STYLE[hxKind(t)];
+  // picture area
+  let pic;
+  const picH = admin ? 170 : 150;
+  if(t.photo){
+    pic = `<div class="hv-pic" style="height:${picH}px;"><img src="${escapeHtml(photoThumb(t.photo,900))}" data-tid="${t.id}" data-w="900" alt="Receipt" onclick="openFullPhoto('${t.id}')" onerror="photoFallback(this)">`;
+  } else if(isExp){
+    pic = `<div class="hv-pic ${rejected?'rej':'warn'}" style="height:${picH}px;"><div class="hv-none"><span class="big">🧾✕</span>${must?'No receipt (over the limit)':'No receipt added'}</div>`;
+  } else {
+    pic = `<div class="hv-pic cash" style="height:${picH}px;"><div class="hv-none"><span class="big">${t.type==='cash_in'?'⬇':'↩'}</span>${t.type==='cash_in'?(admin?'Cash given':'Cash given to you'):(admin?'Paid back':'Paid back to you')}</div>`;
+  }
+  pic += `<button type="button" class="hv-nav l" aria-label="Previous" onclick="histViewNav(-1)">‹</button><button type="button" class="hv-nav r" aria-label="Next" onclick="histViewNav(1)">›</button><span class="hv-cnt">${idx+1} of ${items.length}</span>${own>0?`<span class="hv-own">👛 ${admin?'own money':'your money'}</span>`:''}</div>`;
+  // details
+  const title = isExp ? (histCatLabel(t) + (admin ? ' · ' + first : '')) : ((t.type==='cash_in' ? (admin?'Cash given':'Cash given to you') : (admin?'Paid back':'Paid back to you')) + (admin ? ' · ' + first : ''));
+  const place = isExp ? [String(t.site||'').trim(), String(t.note||'').trim()].filter(Boolean).join(' · ') : String(t.note||'').trim();
+  const when = (t.date && t.date!==localDateStr() ? hxDayLabel(t.date).replace(' · ',' ') + ' · ' : 'Today · ') + (t.time||'');
+  const payTxt = !isExp ? '' : (t.payMode==='company' ? ' · company cash' : t.payMode==='me' ? ' · own money' : '');
+  const amtColor = rejected ? '#7a8a80' : st.fg;
+  let split = '';
+  if(own>0){
+    const tot = Number(t.amount)||0, co = Math.max(0, tot-own), op = tot ? Math.round(own/tot*100) : 0;
+    split = `<div class="hx-split" style="background:#f3c5bf;margin-top:9px;"><div style="width:${100-op}%;background:#2e8b57;"></div><div style="width:${op}%;background:#c0392b;"></div></div><div class="hx-splitl"><span style="color:#1f7a4d;">${co>0?hxNum(co)+' company cash':''}</span><span style="color:#b4382f;">${hxNum(own)} ${admin?'his own money':'your own money'}</span></div>`;
+  }
+  let note = '';
+  if(t.deleteRequested) note += `<div class="hv-note" style="background:#ece9fb;color:#3a3ac1;">Delete requested</div>`;
+  if(rejected) note += `<div class="hv-note" style="background:#fde8e6;color:#a8231b;">Rejected${t.rejectionReason?' · '+escapeHtml(t.rejectionReason):''}</div>`;
+  else if(pending){
+    if(admin){
+      const nb = netBalance(driverBalances(drv));
+      const after = nb + hxDelta(t);
+      note += `<div class="hv-note" style="background:${after<0?'#fff7f6':'#f2f7f3'};color:${after<0?'#7a2a22':'#35503f'};">After you approve: ${escapeHtml(first)} ${after<0?'owed AED '+hxNum(Math.abs(after)):'cash in hand AED '+hxNum(after)}</div>`;
+    } else note += `<div class="hv-note" style="background:#fdf1d3;color:#7a5200;">Waiting · Admin will check it</div>`;
+  } else if(!admin) note += `<div class="hv-note" style="background:#e3f4e8;color:#0b5a2c;">Approved</div>`;
+  let actions = '';
+  if(admin && t.deleteRequested){
+    actions = `<div class="hx-act"><button type="button" style="border:0;background:#a8231b;color:#fff;" onclick="approveDeleteRequest('${t.id}')">Approve delete</button><button type="button" style="border:1.5px solid #35503f;background:#fff;color:#35503f;" onclick="rejectDeleteRequest('${t.id}')">Keep</button></div>`;
+  } else if(admin && pending){
+    actions = `<div class="hx-act"><button type="button" style="border:0;background:#2e8b57;color:#fff;" onclick="approveEntry('${t.id}')">${hxSvg('check',20,2.7)}Approve</button><button type="button" style="border:1.5px solid #e3a09a;background:#fff;color:#b4382f;" onclick="rejectEntry('${t.id}')">${hxSvg('cross',20,2.7)}Reject</button></div>`;
+  } else if(!admin && rejected && isExp){
+    actions = `<div style="margin-top:10px;"><button type="button" class="btn" style="width:100%;padding:11px;font-size:14px;background:var(--amber);color:#3a2a00;" onclick="fixAndResubmit('${t.id}')">Fix &amp; Resubmit</button></div>`;
+  }
+  const fixIds = admin ? [] : items.filter(x=>x.status==='rejected' && x.type==='expense');
+  const fixStrip = fixIds.length ? `<button type="button" class="hv-fix" onclick="histViewSet('${fixIds[0].id}')"><span>⚠ ${fixIds.length} ${fixIds.length===1?'needs':'need'} fixing</span><span>Fix ›</span></button>` : '';
+  const info = `<div class="hv-info"><div class="hv-top"><div><div class="hv-t">${escapeHtml(title)}</div><div class="hv-s">${escapeHtml(place?place+' · ':'')}${escapeHtml(when)}${escapeHtml(payTxt)}</div></div><div class="hv-amt" style="color:${amtColor};${rejected?'text-decoration:line-through;':''}">${st.sign} ${hxNum(t.amount)}</div></div>${split}${note}${actions}<span class="hv-more" onclick="openDetail('${t.id}')">Details ›</span></div>`;
+  // thumbnail strip
+  const strip = items.map(x=>{
+    const o = histOwn(x), xr = x.status==='rejected', xe = x.type==='expense';
+    const cls = (x.id===t.id?' on':'') + (o>0?' own':'') + (!x.photo ? (xr?' rej':(xe?' warn':' cash')) : '');
+    const inner = x.photo
+      ? `<img src="${escapeHtml(photoThumb(x.photo,160))}" data-tid="${x.id}" data-w="160" alt="" loading="lazy" onerror="photoFallback(this)">`
+      : (xe ? '🧾✕' : (x.type==='cash_in' ? '⬇' : '↩'));
+    return `<button type="button" class="hv-th${cls}" aria-label="Entry" onclick="histViewSet('${x.id}')">${inner}${o>0?'<span class="hv-wb">👛</span>':''}</button>`;
+  }).join('');
+  box.innerHTML = fixStrip + `<div class="hv-view${own>0?' own':''}">${pic}${info}</div><div class="hv-strip" id="hv-strip">${strip}</div>`;
+  const sEl = document.getElementById('hv-strip');
+  const on = sEl && sEl.querySelector('.on');
+  if(on) sEl.scrollLeft = Math.max(0, on.offsetLeft - 90);
 }
 // The only version that actually talks to the server: refetches live data,
 // then does the instant render above. Use this for genuinely re-entering or
@@ -4095,6 +4242,9 @@ function photoFallback(img){
   const n = (Number(img.dataset.n)||0) + 1;
   img.dataset.n = n;
   if(n < list.length){ img.src = list[n]; return; }
+  if(img.closest && img.closest('.hv-th')){
+    const fb2 = document.createElement('span'); fb2.textContent = '🧾'; img.replaceWith(fb2); return;
+  }
   if(img.closest && img.closest('.hx-th')){
     const fb = document.createElement('div'); fb.className = 'hx-th-fb'; fb.textContent = '🧾'; img.replaceWith(fb); return;
   }
