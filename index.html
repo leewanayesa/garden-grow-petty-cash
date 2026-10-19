@@ -277,6 +277,13 @@ input,select,textarea{font-family:inherit;}
 .hx-full img{margin-top:0 !important;margin-bottom:10px;}
 .hx-sq{width:54px;height:54px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
 .hx-th img{width:100%;height:100%;object-fit:cover;border-radius:11px;border:1px solid #bcd0c1;background:#cfe0d3;}
+.hx-nr{flex-direction:column;gap:1px;background:#eef2ee;border:1.5px dashed #b9c8be;color:#5d7a6c;font-size:9px;line-height:1.1;text-align:center}
+.hx-nr span{font-size:18px;opacity:.55}.hx-nr b{font-weight:700;font-size:9px}
+.hx-nr.must{background:#fff8e6;border-color:#e3b25a;color:#8a4b00}
+.rc-chips{display:flex;gap:6px;padding:8px 16px 2px;overflow-x:auto}
+.rc-chip{flex:none;border:1px solid #cfe3d6;background:#fff;color:#35503f;border-radius:14px;padding:6px 12px;font-size:13px;font-weight:700}
+.rc-chip.sel{background:#1f7a4d;border-color:#1f7a4d;color:#fff}
+.rc-chip.warn:not(.sel){background:#fff1d6;border-color:#f0d49a;color:#8a4b00}
 .hx-th-fb{width:100%;height:100%;border-radius:11px;background:#cfe0d3;border:1px solid #bcd0c1;display:flex;align-items:center;justify-content:center;font-size:22px;}
 .hx-who2{display:inline-block;font-size:11px;font-weight:800;color:#14532d;border-radius:8px;padding:1px 7px;margin-right:5px;}
 .hx-bd{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;}
@@ -723,7 +730,7 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">77</b> ·
+        App version <b id="home-app-version">78</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -742,7 +749,7 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 77</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 78</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -990,7 +997,7 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
       <input type="date" id="hist-from" onchange="renderTodayListBody()">
       <input type="date" id="hist-to" onchange="renderTodayListBody()">
     </div>
-    <div id="hist-viewer"></div>
+    <div class="rc-chips" id="rc-chips"></div>
     <div class="hist-list" id="today-list"></div>
     </div>
     <div class="bottom-bar">
@@ -3627,6 +3634,8 @@ async function sharePDFOrDownload(doc, filename, fallbackText){
 /* ================= HISTORY LIST (with period filters) ================= */
 let histFilterKey = 'all';
 let histLimit = 40;
+let histRcptFilter = 'all';
+function setRcptFilter(k){ histRcptFilter = k; histLimit = 40; renderTodayListBody(); }
 // When set (Admin tapping a driver's row on Home), History shows ONLY that
 // driver's entries plus their own separate Cash Left / Owed figures — this
 // is the driver "detail view" Esa asked for, reusing the existing History
@@ -3641,7 +3650,7 @@ function openHistory(driverName){
   const statsBox = document.getElementById('hist-driver-stats');
   const adminControls = document.getElementById('hist-admin-controls');
   if(adminControls) adminControls.style.display = IS_ADMIN_DEVICE ? 'block' : 'none';
-  histFilterKey = 'all'; histLimit = 40;
+  histFilterKey = 'all'; histLimit = 40; histRcptFilter = 'all';
   document.querySelectorAll('#screen-today .hist-chip').forEach(b=>b.classList.toggle('sel', b.dataset.hf==='all'));
   const prng = document.getElementById('hist-period-range'); if(prng) prng.style.display='none';
   const sb = document.getElementById('hist-search-btn'); if(sb) sb.style.display = IS_ADMIN_DEVICE ? 'flex' : 'none';
@@ -3851,7 +3860,7 @@ function hxRow(t, o){
     }
   } else if(t.type==='expense'){
     const must = (Number(t.amount)||0) >= (Number(THRESHOLDS.receiptAbove)||500);
-    if(!/NO RECEIPT/i.test(o.extra||'')) chips += hxChip(must?'#fff1d6':'#eef2ee', must?'#8a4b00':'#4b6355', 'cross', must ? 'No receipt (over the limit)' : 'No receipt added');
+    if(!hist && !/NO RECEIPT/i.test(o.extra||'')) chips += hxChip(must?'#fff1d6':'#eef2ee', must?'#8a4b00':'#4b6355', 'cross', must ? 'No receipt (over the limit)' : 'No receipt added');
   }
   let bal = '';
   if(o.bal && o.bal[t.id]!==undefined && !pending && !rejected){
@@ -3862,7 +3871,11 @@ function hxRow(t, o){
   if(hist){
     visual = t.photo
       ? `<div class="hx-sq hx-th" onclick="event.stopPropagation();openFullPhoto('${t.id}')"><img src="${escapeHtml(photoThumb(t.photo,160))}" data-tid="${t.id}" data-w="160" loading="lazy" alt="Receipt" onerror="photoFallback(this)"><span class="hx-bd" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,11,3)}</span></div>`
-      : `<div class="hx-sq" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,24,2.2)}</div>`;
+      : (t.type==='expense' && !rejected
+          ? ((Number(t.amount)||0) >= (Number(THRESHOLDS.receiptAbove)||500)
+              ? `<div class="hx-sq hx-nr must"><span>🧾</span><b>No receipt</b></div>`
+              : `<div class="hx-sq hx-nr"><span>🧾</span><b>No receipt</b></div>`)
+          : `<div class="hx-sq" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,24,2.2)}</div>`);
   } else {
     visual = admin
       ? `<div class="hx-av" style="background:${hxDrvColor(drv)};">${escapeHtml(initials(drv))}<span class="hx-bd" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,11,3)}</span></div>`
@@ -3958,6 +3971,20 @@ function renderTodayListBody(){
     );
   }
   rows = rows.slice().reverse();   // newest first
+  // v78: receipt filter chips (All / With receipt / No receipt)
+  const rcExp = rows.filter(t=>t.type==='expense' && t.status!=='rejected');
+  const rcWith = rcExp.filter(t=>t.photo).length, rcNone = rcExp.length - rcWith;
+  const rcBox = document.getElementById('rc-chips');
+  if(rcBox){
+    if(!rcExp.length) histRcptFilter = 'all';
+    rcBox.style.display = rcExp.length ? 'flex' : 'none';
+    rcBox.innerHTML =
+      `<button type="button" class="rc-chip${histRcptFilter==='all'?' sel':''}" onclick="setRcptFilter('all')">All ${rows.length}</button>`
+      + `<button type="button" class="rc-chip${histRcptFilter==='with'?' sel':''}" onclick="setRcptFilter('with')">🧾 With receipt ${rcWith}</button>`
+      + `<button type="button" class="rc-chip warn${histRcptFilter==='none'?' sel':''}" onclick="setRcptFilter('none')">No receipt ${rcNone}</button>`;
+  }
+  if(histRcptFilter==='with') rows = rows.filter(t=>t.type==='expense' && t.photo);
+  else if(histRcptFilter==='none') rows = rows.filter(t=>t.type==='expense' && t.status!=='rejected' && !t.photo);
   const matchQ = t=> !q || ((t.note||'').toLowerCase().includes(q) || (t.supplier||'').toLowerCase().includes(q) || (t.site||'').toLowerCase().includes(q));
   const drvOk = t=>{
     const d = (t.driver||'').trim();
@@ -3981,10 +4008,22 @@ function renderTodayListBody(){
   const cutoffStr = localDateStr(cutoff);
   const fixList = IS_ADMIN_DEVICE ? [] : ALL_TXNS.filter(t=>t.status==='rejected' && t.type==='expense' && t.date>=cutoffStr).filter(matchQ).slice().reverse();
   const attIds = new Set(attention.concat(fixList).map(t=>t.id));
-  const main = rows.filter(t=>!attIds.has(t.id));
+  const main = rows.filter(t=>histRcptFilter!=='all' || !attIds.has(t.id));
   let html = '';
-  if(!main.length && !attention.length && !fixList.length){
+  if(histRcptFilter==='all'){
+    if(fixList.length){
+      html += `<div class="hx-pend rej"><div class="hx-pend-h rej">${hxSvg('cross',20,2.5)}${fixList.length} ${fixList.length===1?'needs':'need'} fixing</div>`
+        + fixList.map(t=>hxRow(t,{dated:true})).join('') + '</div>';
+    }
+    if(attention.length){
+      html += `<div class="hx-pend"><div class="hx-pend-h">${hxSvg('clock',20,2.3)}${attention.length} waiting${IS_ADMIN_DEVICE?' for your':' for'} approval${histFilterKey!=='all'?'<span class="any">any day</span>':''}</div>`
+        + attention.map(t=>hxRow(t,{box:true})).join('') + '</div>';
+    }
+  }
+  if(!main.length && !(histRcptFilter==='all' && (attention.length || fixList.length))){
     if(q) html = `<div class="empty-note">No entries match your search.</div>`;
+    else if(histRcptFilter==='with') html = `<div class="empty-note">No receipt pictures yet.<br>They will show here when a receipt is added.</div>`;
+    else if(histRcptFilter==='none') html = `<div class="empty-note">Every purchase has a receipt. 🎉</div>`;
     else if(histFilterKey!=='all' && ALL_TXNS.length){
       const nm = {today:'today', week:'this week', month:'this month', period:'in these dates'}[histFilterKey] || 'in this period';
       html = `<div class="empty-note">Nothing ${nm} yet.<br><button class="btn" style="margin-top:12px;" onclick="setHistFilter('all')">See all entries</button></div>`;
@@ -4028,8 +4067,6 @@ function renderTodayListBody(){
     }
   }
   list.innerHTML = html;
-  histViewItems = attention.concat(fixList).concat(main.filter(t=>t.type==='expense')).slice(0,40);
-  renderHistViewer();
 }
 // ===== History gallery: big receipt viewer on top, thumbnail strip, list below =====
 let histViewItems = [], histViewId = null;
