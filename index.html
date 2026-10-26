@@ -502,6 +502,20 @@ body.has-tabs .bottom-bar{bottom:calc(58px + env(safe-area-inset-bottom))}
 .hm-strip{display:flex;justify-content:space-between;align-items:center;width:calc(100% + 32px);margin:0 -16px 14px;padding:12px 16px;border:0;font-weight:800;font-size:14px;text-align:left;cursor:pointer}
 .hm-strip.amber{background:#fdf1d3;color:#7a5200}
 .hm-strip.red{background:#fbe3df;color:#b4382f}
+.cc-strip{border-radius:14px;padding:11px 14px;margin:0 0 10px;font-size:13.5px;line-height:1.35}
+.cc-strip b{font-weight:800}
+.cc-strip.warn{background:#fdf1d3;color:#7a5200}
+.cc-strip.ok{background:#dcefe2;color:#1f7a4d}
+.hm-strip.plain{background:#fff;color:#14452c;border:1px solid #dbe5dd}
+.cc-card{background:#fff;border-radius:16px;padding:14px 16px;margin:0 0 12px;border:1px solid #dbe5dd}
+.cc-card .l{font-size:13px;color:#5d7a6c;font-weight:700}
+.cc-card .v{font-size:32px;font-weight:800;margin-top:2px}
+.cc-res{border-radius:16px;padding:14px 16px;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;font-weight:800}
+.cc-res.warn{background:#fdf1d3;color:#7a5200}.cc-res.ok{background:#dcefe2;color:#1f7a4d}
+body.role-driver #screen-count{background:#14452c;min-height:100vh}
+body.role-driver #screen-count .topbar{background:transparent;color:#fff;position:static}
+body.role-driver #screen-count .topbar .back,body.role-driver #screen-count .topbar .icon-btn{background:rgba(255,255,255,.18);color:#fff}
+#screen-count .cc-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padding:18px 16px 110px;min-height:calc(100vh - 80px)}
 .hm-bar{height:10px;border-radius:5px;background:#dcefe2;display:flex;overflow:hidden;margin:10px 0 6px}
 .hm-bar div{height:100%}
 .bal-card.low,.stile.low{background:#fbe3df;border:1.5px solid #c0392b}
@@ -588,38 +602,6 @@ body.role-driver #home-driver-extra .hm-strip + .hm-strip{margin-top:8px!importa
 .cm{border-radius:18px}
 .save-btn{border-radius:20px}
 /* ===== v77: History gallery (viewer + thumbnail strip) ===== */
-#hist-viewer{margin:6px 0 4px}
-.hv-view{margin:4px 16px;background:#fff;border-radius:18px;overflow:hidden;border:1px solid #dbe8df}
-.hv-view.own{border-color:#e3a09a}
-.hv-pic{position:relative;background:#dfe9e1;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.hv-pic img{width:100%;height:100%;object-fit:contain;display:block}
-.hv-pic .photo-fail{margin:0;border:0;background:transparent;width:100%}
-.hv-none{text-align:center;font-weight:800;font-size:14px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px}
-.hv-none .big{font-size:40px;line-height:1}
-.hv-pic.warn{background:#fdf1d3;color:#8a4b00}
-.hv-pic.rej{background:#fbe3df;color:#b4382f}
-.hv-pic.cash{background:#dcefe2;color:#1f7a4d}
-.hv-nav{position:absolute;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.92);font-size:22px;font-weight:800;color:#14532d;line-height:1}
-.hv-nav.l{left:8px}.hv-nav.r{right:8px}
-.hv-cnt{position:absolute;left:10px;top:10px;background:#fff;border-radius:10px;padding:3px 10px;font-size:12px;font-weight:700}
-.hv-own{position:absolute;right:10px;top:10px;background:#fbe3df;color:#b4382f;border-radius:10px;padding:3px 10px;font-size:12px;font-weight:800}
-.hv-info{padding:10px 12px 12px}
-.hv-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-.hv-t{font-weight:800;font-size:15px}
-.hv-s{font-size:12.5px;color:#5d7a6c;margin-top:2px}
-.hv-amt{font-weight:800;font-size:19px;white-space:nowrap}
-.hv-note{border-radius:10px;padding:7px 10px;margin-top:8px;font-size:13px;font-weight:700}
-.hv-more{display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:#1f7a4d}
-.hv-strip{display:flex;gap:8px;padding:8px 16px;overflow-x:auto}
-.hv-th{flex:none;width:52px;height:60px;border-radius:12px;border:2px solid transparent;background:#dfe9e1;padding:0;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:18px}
-.hv-th img{width:100%;height:100%;object-fit:cover}
-.hv-th.on{border-color:#1f7a4d}
-.hv-th.on.own{border-color:#c0392b}
-.hv-th.warn{background:#fdf1d3}
-.hv-th.rej{background:#fbe3df}
-.hv-th.cash{background:#dcefe2}
-.hv-wb{position:absolute;right:2px;bottom:2px;width:18px;height:18px;border-radius:50%;background:#c0392b;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center}
-.hv-fix{display:flex;justify-content:space-between;align-items:center;width:calc(100% - 32px);margin:2px 16px 4px;padding:10px 12px;border:0;border-radius:12px;background:#fbe3df;color:#b4382f;font-weight:800;font-size:14px}
 /* Admin + Driver History headers */
 body.role-admin #hist-driver-cash-card{background:#1f7a4d;border:0;border-radius:18px;text-align:left;padding:12px 14px!important}
 body.role-admin #hist-driver-cash-card.low{background:#b4382f}
@@ -652,6 +634,17 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
     <div class="confirm-actions">
       <button onclick="closeConfirmModal(false)">Cancel</button>
       <button class="yes" onclick="closeConfirmModal(true)">Yes</button>
+    </div>
+  </div>
+</div>
+<div class="confirm-overlay" id="reason-overlay">
+  <div class="confirm-box">
+    <p id="reason-title">Reason</p>
+    <div id="reason-msg" style="font-size:13px;color:var(--muted);margin:-8px 0 12px;"></div>
+    <input id="reason-input" type="text" maxlength="120" autocomplete="off" style="width:100%;box-sizing:border-box;padding:12px;border:2px solid var(--line);border-radius:10px;font-size:15px;margin-bottom:14px;">
+    <div class="confirm-actions">
+      <button id="reason-no" onclick="closeReasonModal(false)">Cancel</button>
+      <button id="reason-yes" class="yes" onclick="closeReasonModal(true)">OK</button>
     </div>
   </div>
 </div>
@@ -730,7 +723,7 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">78</b> ·
+        App version <b id="home-app-version">81</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -749,7 +742,7 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 78</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 81</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -908,6 +901,25 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
   </div>
 
   <!-- ============ CASH IN ============ -->
+  <div class="screen" id="screen-count">
+    <div class="topbar">
+      <button class="back" onclick="goBack()">←</button>
+      <h1>💵 Count my cash</h1>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
+      </div>
+    </div>
+    <div class="cc-sheet">
+      <div class="cc-card"><div class="l">The app says you should be holding</div><div class="v" id="cc-app" style="color:#0b6b34;">AED 0</div></div>
+      <div class="cc-card"><div class="l">Cash you are holding now</div>
+        <input type="text" inputmode="decimal" id="cc-input" placeholder="0" oninput="updateCountResult()" style="width:100%;box-sizing:border-box;margin-top:6px;border:1.5px solid #1f7a4d;border-radius:12px;padding:12px;font-size:26px;font-weight:800;"></div>
+      <div id="cc-result"></div>
+      <div id="cc-last" style="font-size:12.5px;color:#5d7a6c;text-align:center;margin-top:6px;"></div>
+    </div>
+    <div class="bottom-bar">
+      <button class="save-btn" id="cc-send-btn" onclick="sendCashCount()">SEND TO ESA</button>
+    </div>
+  </div>
   <div class="screen" id="screen-cashin">
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
@@ -1140,6 +1152,7 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
         <button class="hist-chip" data-fs="pending" onclick="setTxnStatusFilter('pending')">PENDING</button>
         <button class="hist-chip" data-fs="approved" onclick="setTxnStatusFilter('approved')">APPROVED</button>
         <button class="hist-chip" data-fs="rejected" onclick="setTxnStatusFilter('rejected')">REJECTED</button>
+        <button class="hist-chip" data-fs="void" onclick="setTxnStatusFilter('void')">VOIDED</button>
       </div>
       <div class="filter-row">
         <input type="date" id="f-from" onchange="renderTxnTable()">
@@ -1261,6 +1274,10 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
       <p style="font-size:12.5px;color:var(--muted);">Downloads everything currently on the server as a JSON file, so you have a copy on this phone. A full copy of your whole Google Sheet also saves itself automatically every night in Drive (folder "Garden Grow Petty Cash Backups") once that's set up — see the note in apps-script-sync.gs (one-time step in the Apps Script editor).</p>
       <button class="btn block" onclick="backupData()">⬇ Download Backup Now (JSON)</button>
 
+      <div class="section-title">Month lock</div>
+      <p style="font-size:12.5px;color:var(--muted);">Lock a month after you have checked it. Drivers can't add or change anything dated in a locked month. You can unlock it any time.</p>
+      <div id="month-lock-list"></div>
+
       <div class="section-title">Customize (Categories)</div>
       <p style="font-size:12.5px;color:var(--muted);">One per line, as "icon Label" (e.g. "🌱 Plants"). Leave blank to keep the built-in defaults. Renaming or removing a category never changes past entries — they keep showing the category they were saved with. Tapping a picture on Buy/Pay now fills in the note by itself, so there's no separate Quick Notes list to manage anymore.</p>
       <div class="field">
@@ -1350,8 +1367,12 @@ let THRESHOLDS = { receiptAbove: 500, highValueAbove: 1000, lowCashBelow: 300, o
 function slugifyCategoryLabel(lbl){
   return String(lbl||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'cat';
 }
+let LOCKED_MONTHS = [];   // 'YYYY-MM' months Esa has closed
+let CASH_COUNTS = [];     // latest "Count my cash" per driver
+function isLockedDate(d){ return LOCKED_MONTHS.indexOf(String(d||'').slice(0,7)) >= 0; }
 function applyServerConfig(config){
   if(!config) return;
+  if(Array.isArray(config.lockedMonths)) LOCKED_MONTHS = config.lockedMonths.map(String);
   if(Array.isArray(config.categories) && config.categories.length){
     CATEGORIES = config.categories;
     CAT_MAP = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
@@ -1615,6 +1636,8 @@ function friendlySyncError(err){
   if(err==='not_logged_in') return 'Please log in first.';
   if(err==='too_many_attempts') return 'Too many wrong passwords. Please wait 10 minutes and try again.';
   if(err==='admin_required') return "Only the Admin device can do this.";
+  if(err==='month_locked') return 'That month is closed. Ask Esa.';
+  if(err==='invalid_entry') return 'This entry looks wrong (amount or date). Please check it and try again.';
   if(err==='photo_failed') return 'The receipt photo did not upload — nothing was saved. Please tap SAVE again.';
   if(err==='busy_try_again') return 'The server is busy with another save right now — please tap Retry in a moment.';
   if(err==='bad_response') return "Got an unexpected reply from the server. Please tap Retry — if this keeps happening, your Apps Script deployment may need updating.";
@@ -1775,6 +1798,7 @@ function applyServerData(data){
       DRIVER_NAMES = data.drivers.map(n=>String(n||'').trim()).filter(Boolean);
     }
     applyServerConfig(data.config);
+    CASH_COUNTS = Array.isArray(data.cashCounts) ? data.cashCounts : [];
     ALL_TXNS = data.records.map(r=>({
       id: r.id,
       driver: (r.driver||'').trim(),
@@ -2656,6 +2680,7 @@ function renderHome(){
         </div>
       </div>
       ${nWait ? `<button type="button" class="hm-strip amber" id="home-approvals-tile-wrap" onclick="goToApprovals()"><span>⏰ <b id="home-approvals-tile-badge">${nWait}</b> waiting for your approval</span><span>›</span></button>` : ''}
+      ${countStripsHTML()}
       <div class="section-label">Drivers</div>
       <div class="driver-rows">` + DRIVER_NAMES.map(name=>{
       const b = driverBalances(name);
@@ -2698,9 +2723,10 @@ function renderHome(){
       const cut = new Date(); cut.setDate(cut.getDate()-14); const cutS = localDateStr(cut);
       const nFix = mine.filter(t=>t.status==='rejected' && t.type==='expense' && t.date>=cutS).length;
       const nWaitD = mine.filter(t=>t.status==='pending').length;
-      const recent = mine.filter(t=>t.status!=='rejected').slice().reverse().slice(0,3);
-      extra.innerHTML = (nFix ? `<button type="button" class="hm-strip red" style="margin-top:14px;margin-bottom:0;" onclick="openHistory()"><span>⚠ ${nFix} ${nFix===1?'needs':'need'} fixing</span><span>Fix ›</span></button>` : '')
-        + (nWaitD ? `<button type="button" class="hm-strip amber" style="margin-top:${nFix?0:14}px;margin-bottom:0;" onclick="openHistory()"><span>⏰ ${nWaitD} waiting for approval</span><span>›</span></button>` : '')
+      const recent = mine.filter(t=>t.status!=='rejected' && t.status!=='void').slice().reverse().slice(0,3);
+      extra.innerHTML = `<button type="button" class="hm-strip plain" style="margin-top:14px;margin-bottom:0;" onclick="openCashCount()"><span>💵 Count my cash</span><span>›</span></button>`
+        + (nFix ? `<button type="button" class="hm-strip red" style="margin-top:8px;margin-bottom:0;" onclick="openHistory()"><span>⚠ ${nFix} ${nFix===1?'needs':'need'} fixing</span><span>Fix ›</span></button>` : '')
+        + (nWaitD ? `<button type="button" class="hm-strip amber" style="margin-top:8px;margin-bottom:0;" onclick="openHistory()"><span>⏰ ${nWaitD} waiting for approval</span><span>›</span></button>` : '')
         + (recent.length ? `<div class="hm-recent-h">Recent</div><div class="hx-card">${recent.map(t=>hxRow(t,{dated:true})).join('')}</div>` : '');
     }
   }
@@ -2717,6 +2743,20 @@ function renderHome(){
 // One tap from Home straight into any Admin tab — used by the quick action
 // tiles on the Admin Home screen (Reimburse, Transactions, Reports, Drivers),
 // same pattern as goToApprovals() above.
+// Admin Home: each driver's latest "Count my cash" from the last 14 days.
+function countStripsHTML(){
+  const cut = Date.now() - 14*24*3600*1000;
+  return CASH_COUNTS.filter(c=>{ const t = new Date(c.at).getTime(); return !isNaN(t) && t>=cut; })
+    .sort((a,b)=> String(b.at).localeCompare(String(a.at)))
+    .map(c=>{
+      const first = String(c.driver||'').trim().split(/\s+/)[0];
+      const diff = round2(Number(c.diff)||0);
+      const ok = Math.abs(diff) < 0.01;
+      return `<div class="cc-strip ${ok?'ok':'warn'}"><b>${escapeHtml(first)} counted ${fmt(c.counted)}</b><br>`
+        + (ok ? `Matches the app ✓ · ${escapeHtml(countWhen(c.at))}` : `App said ${hxNum(c.appSays)} · <b>${diff<0?'short':'extra'} ${hxNum(Math.abs(diff))}</b> · ${escapeHtml(countWhen(c.at))}`)
+        + `</div>`;
+    }).join('');
+}
 function goAdminTab(tab){
   pushScreen('screen-admin');
   selectAdminTab(tab);
@@ -3149,6 +3189,7 @@ function removePhoto(){
 // second precision anyway. Returns the matching entry, or null.
 function findPossibleDuplicate(candidate){
   return ALL_TXNS.find(t=>
+    t.status!=='rejected' && t.status!=='void' &&
     t.type===candidate.type &&
     (t.driver||'').trim()===candidate.driver &&
     t.date===candidate.date &&
@@ -3170,6 +3211,15 @@ async function saveExpense(){
 
   const sp = computeExpenseSplit(amount);
   const companyAmount = sp.company, meAmount = sp.me;
+  // Above the receipt limit a driver must add a receipt photo — or say why
+  // there is none (the reason travels with the entry so Esa sees it).
+  let remarksVal = document.getElementById('exp-remarks').value.trim();
+  const rcptLimit = Number(THRESHOLDS.receiptAbove)||500;
+  if(!IS_ADMIN_DEVICE && !expState.photo && amount >= rcptLimit){
+    const why = await askReason('Receipt needed', `AED ${hxNum(amount)} is over the AED ${hxNum(rcptLimit)} limit. Add a receipt photo — or write why there is none.`, {required:true, green:true, yes:'Save without receipt', no:'Add receipt', placeholder:'Why no receipt?'});
+    if(why===null){ toast('Add the receipt photo, then tap Save'); return; }
+    remarksVal = (remarksVal ? remarksVal + ' · ' : '') + 'No receipt: ' + why;
+  }
 
   const record = {
     id: 'e_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
@@ -3186,7 +3236,7 @@ async function saveExpense(){
     site: document.getElementById('exp-site').value.trim(),
     receiptNo: document.getElementById('exp-receipt').value.trim(),
     vehicle: document.getElementById('exp-vehicle').value.trim(),
-    remarks: document.getElementById('exp-remarks').value.trim(),
+    remarks: remarksVal,
     photo: expState.photo,
     // Audit fix 2026-10-02: was `await settingsGet('driverName','')` — a
     // needless IndexedDB round trip on every single save, AND a real
@@ -3200,6 +3250,7 @@ async function saveExpense(){
     status: await entryStatus(),
     createdAt: Date.now(),
   };
+  if(!(await lockGuard(record.date))) return;
   const dupe = findPossibleDuplicate(record);
   if(dupe){
     const ok = await askConfirm(`You already have an entry like this today — ${CAT_MAP[dupe.category]?CAT_MAP[dupe.category].lbl:dupe.category} · ${fmt(dupe.amount)}. Save this as a separate, new entry anyway?`);
@@ -3234,6 +3285,50 @@ async function saveExpense(){
 }
 
 /* ================= CASH IN ================= */
+/* ================= COUNT MY CASH ================= */
+// What the driver should physically be holding: his cash left, minus company
+// cash already used by entries still waiting. Only a check — never changes a balance.
+function countAppSays(){ return round2(driverFreeCash()); }
+function countWhen(iso){
+  const d = new Date(iso); if(isNaN(d)) return '';
+  const day = localDateStr(d), today = localDateStr();
+  const y = new Date(); y.setDate(y.getDate()-1);
+  const hm = d.toTimeString().slice(0,5);
+  if(day===today) return 'Today ' + hm;
+  if(day===localDateStr(y)) return 'Yesterday';
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+}
+function openCashCount(){
+  document.getElementById('cc-app').textContent = fmt(countAppSays());
+  document.getElementById('cc-input').value = '';
+  const me = String(CURRENT_DRIVER_NAME||'').trim();
+  const last = CASH_COUNTS.find(c=>String(c.driver||'').trim()===me);
+  document.getElementById('cc-last').textContent = last ? ('Last count: ' + fmt(last.counted) + ' · ' + countWhen(last.at)) : '';
+  updateCountResult();
+  pushScreen('screen-count');
+}
+function updateCountResult(){
+  const box = document.getElementById('cc-result');
+  const raw = String(document.getElementById('cc-input').value||'').replace(/,/g,'').trim();
+  const counted = parseFloat(raw);
+  if(raw==='' || isNaN(counted)){ box.innerHTML = ''; return; }
+  const diff = round2(counted - countAppSays());
+  if(Math.abs(diff) < 0.01) box.innerHTML = `<div class="cc-res ok"><span>Result</span><span>✓ Matches</span></div>`;
+  else box.innerHTML = `<div class="cc-res warn"><span>${diff<0?'Short by':'Extra'}</span><span style="font-size:24px;">${hxNum(Math.abs(diff))}</span></div>`;
+}
+async function sendCashCount(){
+  const raw = String(document.getElementById('cc-input').value||'').replace(/,/g,'').trim();
+  const counted = parseFloat(raw);
+  if(raw==='' || isNaN(counted) || counted<0){ toast('TYPE THE CASH YOU ARE HOLDING'); return; }
+  const btn = document.getElementById('cc-send-btn');
+  setBusy(btn, 'SENDING…');
+  const result = await postToSync({cashCount:{counted: round2(counted), appSays: countAppSays()}});
+  clearBusy(btn);
+  if(!result.ok){ toast(friendlySyncError(result.error)); return; }
+  toast('✅ Sent to Esa');
+  await refreshAll();
+  goHome();
+}
 function openCashIn(){
   document.getElementById('ci-amount').value='';
   document.getElementById('ci-note').value='';
@@ -3260,6 +3355,7 @@ async function saveCashIn(){
     status: await entryStatus(),
     createdAt: Date.now(),
   };
+  if(!(await lockGuard(record.date))) return;
   const dupe = findPossibleDuplicate(record);
   if(dupe){
     const ok = await askConfirm(`You already logged a Cash In of ${fmt(dupe.amount)} today. Save this as a separate, new entry anyway?`);
@@ -3469,7 +3565,7 @@ async function buildAndDeliverStatementPDF(label, fromStr, toStr, opts){
   const loadResult = await refreshAll();
   if(!loadResult.ok){ const err = new Error('no_internet'); err.code='no_internet'; err.reason=loadResult.error; throw err; }
   const driverFilter = opts.driverFilter || null;
-  const scoped = driverFilter ? txnsForDriver(driverFilter) : approvedOnly(ALL_TXNS);
+  const scoped = driverFilter==='__other__' ? otherTxns() : (driverFilter ? txnsForDriver(driverFilter) : approvedOnly(ALL_TXNS));
   const txns = scoped.filter(t=> t.date>=fromStr && t.date<=toStr);
   const opening = computeBalances(scoped.filter(t=>t.date<fromStr));
   const closing = computeBalances(scoped.filter(t=>t.date<=toStr));
@@ -3477,7 +3573,7 @@ async function buildAndDeliverStatementPDF(label, fromStr, toStr, opts){
   // as before. Admin's combined (all-drivers) statement shows no driver line
   // at all instead of misleadingly saying "Driver: Esa"; a specific driver
   // Admin picked shows that driver's name.
-  const driverName = driverFilter || (IS_ADMIN_DEVICE ? '' : CURRENT_DRIVER_NAME);
+  const driverName = driverFilter==='__other__' ? 'Other' : (driverFilter || (IS_ADMIN_DEVICE ? '' : CURRENT_DRIVER_NAME));
   const doc = await buildStatementPDFDoc(label, fromStr, toStr, txns, opening, closing, driverName);
   const filename = `petty-cash-statement-${fromStr}_to_${toStr}.pdf`;
   if(opts.share===false){
@@ -3803,7 +3899,8 @@ function hxRow(t, o){
     : '';
   const si = String(t.site||'').trim(), nt = String(t.note||'').trim();
   const place = t.type==='expense' ? [si, nt].filter(Boolean).join(' · ') : nt;
-  const rejected = t.status==='rejected', pending = t.status==='pending';
+  const voided = t.status==='void';
+  const rejected = t.status==='rejected' || voided, pending = t.status==='pending';
   const amtColor = rejected ? '#7a8a80' : st.fg;
   const amtStyle = rejected ? 'text-decoration:line-through;' : '';
   const payShort = t.type!=='expense' ? '' :
@@ -3836,10 +3933,11 @@ function hxRow(t, o){
 
   let chips = '';
   if(pending){ if(!admin) chips += hxChip('#fff3cd','#6b5200','clock','Admin will check it'); else if(!o.box) chips += hxChip('#fff3cd','#6b5200','clock','Waiting for approval'); }
+  else if(voided) chips += hxChip('#eceeed','#5d6b62','cross','Voided');
   else if(rejected) chips += hxChip('#fde8e6','#a8231b','cross','Rejected');
   else if(!admin) chips += hxChip('#e3f4e8','#0b5a2c','check','Approved');
   if(t.deleteRequested) chips += hxChip('#ece9fb','#3a3ac1','clock','Delete requested');
-  const reason = (rejected && t.rejectionReason) ? `<div style="font-size:13px;color:#a8231b;margin-top:4px;">Reason: ${escapeHtml(t.rejectionReason)}</div>` : '';
+  const reason = (rejected && !voided && t.rejectionReason) ? `<div style="font-size:13px;color:#a8231b;margin-top:4px;">Reason: ${escapeHtml(t.rejectionReason)}</div>` : '';
   let actions = '';
   if(admin && o.box){
     if(t.deleteRequested){
@@ -3875,12 +3973,14 @@ function hxRow(t, o){
           ? ((Number(t.amount)||0) >= (Number(THRESHOLDS.receiptAbove)||500)
               ? `<div class="hx-sq hx-nr must"><span>🧾</span><b>No receipt</b></div>`
               : `<div class="hx-sq hx-nr"><span>🧾</span><b>No receipt</b></div>`)
-          : `<div class="hx-sq" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,24,2.2)}</div>`);
+          : `<div class="hx-sq" style="background:${voided?'#eceeed':st.bg};color:${voided?'#7a8a80':st.fg};">${hxSvg(kind,24,2.2)}</div>`);
   } else {
     visual = admin
       ? `<div class="hx-av" style="background:${hxDrvColor(drv)};">${escapeHtml(initials(drv))}<span class="hx-bd" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,11,3)}</span></div>`
       : `<div class="hx-ic" style="background:${st.bg};color:${st.fg};">${hxSvg(kind,21,2.3)}</div>`;
   }
+  const nrm = (t.type==='expense' && !t.photo) ? /No receipt:\s*(.+)$/i.exec(String(t.remarks||'')) : null;
+  const nrWhy = nrm ? `<div style="font-size:12.5px;color:#8a4b00;margin-top:3px;">Why no receipt: ${escapeHtml(nrm[1])}</div>` : '';
   let splitBar = '';
   if(t.type==='expense' && (t.payMode==='me' || t.payMode==='both')){
     const tot = Number(t.amount)||0;
@@ -3896,7 +3996,7 @@ function hxRow(t, o){
       ${bal}
       ${line1?`<div class="hx-sub">${line1}</div>`:''}
       ${line2?`<div class="hx-sub"${hist?'':` style="font-weight:700;color:${st.fg};"`}>${line2}</div>`:''}
-      ${splitBar}${o.extra||''}${chips}${reason}
+      ${splitBar}${o.extra||''}${chips}${reason}${nrWhy}
     </div>
     ${bigPhoto||actions?`<div class="hx-full">${bigPhoto}${actions}</div>`:''}
   </div>`;
@@ -3972,7 +4072,7 @@ function renderTodayListBody(){
   }
   rows = rows.slice().reverse();   // newest first
   // v78: receipt filter chips (All / With receipt / No receipt)
-  const rcExp = rows.filter(t=>t.type==='expense' && t.status!=='rejected');
+  const rcExp = rows.filter(t=>t.type==='expense' && t.status!=='rejected' && t.status!=='void');
   const rcWith = rcExp.filter(t=>t.photo).length, rcNone = rcExp.length - rcWith;
   const rcBox = document.getElementById('rc-chips');
   if(rcBox){
@@ -3984,7 +4084,7 @@ function renderTodayListBody(){
       + `<button type="button" class="rc-chip warn${histRcptFilter==='none'?' sel':''}" onclick="setRcptFilter('none')">No receipt ${rcNone}</button>`;
   }
   if(histRcptFilter==='with') rows = rows.filter(t=>t.type==='expense' && t.photo);
-  else if(histRcptFilter==='none') rows = rows.filter(t=>t.type==='expense' && t.status!=='rejected' && !t.photo);
+  else if(histRcptFilter==='none') rows = rows.filter(t=>t.type==='expense' && t.status!=='rejected' && t.status!=='void' && !t.photo);
   const matchQ = t=> !q || ((t.note||'').toLowerCase().includes(q) || (t.supplier||'').toLowerCase().includes(q) || (t.site||'').toLowerCase().includes(q));
   const drvOk = t=>{
     const d = (t.driver||'').trim();
@@ -4047,13 +4147,13 @@ function renderTodayListBody(){
         else if(t.type==='expense') out += (Number(t.companyAmount)||0) + (Number(t.meAmount)||0);
         if(endBal===null && bal && bal[t.id]!==undefined) endBal = bal[t.id];
       });
-      const exps = grp.filter(t=>t.type==='expense' && t.status!=='rejected');
+      const exps = grp.filter(t=>t.type==='expense' && t.status!=='rejected' && t.status!=='void');
       const rcpt = exps.length ? (' · Receipts ' + exps.filter(t=>t.photo).length + ' of ' + exps.length) : '';
       const who = IS_ADMIN_DEVICE ? (balDrv + ' balance end of day ') : 'Balance end of day ';
       const right = (endBal!==null) ? `<span>${escapeHtml(who)}<b style="color:${endBal<0?'#a8231b':'#0b6b34'};">${hxSigned(endBal)}</b></span>` : '<span></span>';
       const dtl = new Date(cur+'T00:00:00');
       const label = (cur===today) ? ('Today · ' + (isNaN(dtl)?cur:dtl.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}).replace(',',''))) : hxDayLabel(cur);
-      html += `<div class="hx-band${cur===today?'':' old'}"><span class="d">${hxSvg('calendar',18,2.2)}${label}</span><span class="t">In <b>${hxNum(inn)}</b><br>Out <b>${hxNum(out)}</b></span></div>`
+      html += `<div class="hx-band${cur===today?'':' old'}"><span class="d">${hxSvg('calendar',18,2.2)}${label}${isLockedDate(cur)?' 🔒':''}</span><span class="t">In <b>${hxNum(inn)}</b><br>Out <b>${hxNum(out)}</b></span></div>`
         + `<div class="hx-dsub"><span>${n} ${n===1?'entry':'entries'}${rcpt}</span>${right}</div><div class="hx-card" style="margin-bottom:0;border-top:0;">${buf.join('')}</div>`;
     };
     for(const t of shown){
@@ -4068,100 +4168,6 @@ function renderTodayListBody(){
   }
   list.innerHTML = html;
 }
-// ===== History gallery: big receipt viewer on top, thumbnail strip, list below =====
-let histViewItems = [], histViewId = null;
-function histOwn(t){
-  if(t.type!=='expense' || t.status==='rejected') return 0;
-  const tot = Number(t.amount)||0;
-  return t.payMode==='me' ? tot : (t.payMode==='both' ? Math.min(tot, Number(t.meAmount)||0) : 0);
-}
-function histCatLabel(t){
-  return String((CAT_MAP[t.category]||{lbl:t.category||'Expense'}).lbl).replace(/\s*\(write what\)\s*$/i,'');
-}
-function histViewSet(id){ histViewId = id; renderHistViewer(); }
-function histViewNav(d){
-  const i = histViewItems.findIndex(x=>x.id===histViewId);
-  const n = i + d;
-  if(n<0 || n>=histViewItems.length) return;
-  histViewId = histViewItems[n].id; renderHistViewer();
-}
-function renderHistViewer(){
-  const box = document.getElementById('hist-viewer');
-  if(!box) return;
-  const items = histViewItems;
-  if(!items.length){ box.innerHTML = ''; return; }
-  let idx = items.findIndex(x=>x.id===histViewId);
-  if(idx < 0){ idx = 0; histViewId = items[0].id; }
-  const t = items[idx];
-  const admin = IS_ADMIN_DEVICE;
-  const drv = String(t.driver||'').trim() || '—';
-  const first = drv.split(/\s+/)[0];
-  const own = histOwn(t);
-  const rejected = t.status==='rejected', pending = t.status==='pending';
-  const isExp = t.type==='expense';
-  const must = isExp && (Number(t.amount)||0) >= (Number(THRESHOLDS.receiptAbove)||500);
-  const st = HX_STYLE[hxKind(t)];
-  // picture area
-  let pic;
-  const picH = admin ? 170 : 150;
-  if(t.photo){
-    pic = `<div class="hv-pic" style="height:${picH}px;"><img src="${escapeHtml(photoThumb(t.photo,900))}" data-tid="${t.id}" data-w="900" alt="Receipt" onclick="openFullPhoto('${t.id}')" onerror="photoFallback(this)">`;
-  } else if(isExp){
-    pic = `<div class="hv-pic ${rejected?'rej':'warn'}" style="height:${picH}px;"><div class="hv-none"><span class="big">🧾✕</span>${must?'No receipt (over the limit)':'No receipt added'}</div>`;
-  } else {
-    pic = `<div class="hv-pic cash" style="height:${picH}px;"><div class="hv-none"><span class="big">${t.type==='cash_in'?'⬇':'↩'}</span>${t.type==='cash_in'?(admin?'Cash given':'Cash given to you'):(admin?'Paid back':'Paid back to you')}</div>`;
-  }
-  pic += `<button type="button" class="hv-nav l" aria-label="Previous" onclick="histViewNav(-1)">‹</button><button type="button" class="hv-nav r" aria-label="Next" onclick="histViewNav(1)">›</button><span class="hv-cnt">${idx+1} of ${items.length}</span>${own>0?`<span class="hv-own">👛 ${admin?'own money':'your money'}</span>`:''}</div>`;
-  // details
-  const title = isExp ? (histCatLabel(t) + (admin ? ' · ' + first : '')) : ((t.type==='cash_in' ? (admin?'Cash given':'Cash given to you') : (admin?'Paid back':'Paid back to you')) + (admin ? ' · ' + first : ''));
-  const place = isExp ? [String(t.site||'').trim(), String(t.note||'').trim()].filter(Boolean).join(' · ') : String(t.note||'').trim();
-  const when = (t.date && t.date!==localDateStr() ? hxDayLabel(t.date).replace(' · ',' ') + ' · ' : 'Today · ') + (t.time||'');
-  const payTxt = !isExp ? '' : (t.payMode==='company' ? ' · company cash' : t.payMode==='me' ? ' · own money' : '');
-  const amtColor = rejected ? '#7a8a80' : st.fg;
-  let split = '';
-  if(own>0){
-    const tot = Number(t.amount)||0, co = Math.max(0, tot-own), op = tot ? Math.round(own/tot*100) : 0;
-    split = `<div class="hx-split" style="background:#f3c5bf;margin-top:9px;"><div style="width:${100-op}%;background:#2e8b57;"></div><div style="width:${op}%;background:#c0392b;"></div></div><div class="hx-splitl"><span style="color:#1f7a4d;">${co>0?hxNum(co)+' company cash':''}</span><span style="color:#b4382f;">${hxNum(own)} ${admin?'his own money':'your own money'}</span></div>`;
-  }
-  let note = '';
-  if(t.deleteRequested) note += `<div class="hv-note" style="background:#ece9fb;color:#3a3ac1;">Delete requested</div>`;
-  if(rejected) note += `<div class="hv-note" style="background:#fde8e6;color:#a8231b;">Rejected${t.rejectionReason?' · '+escapeHtml(t.rejectionReason):''}</div>`;
-  else if(pending){
-    if(admin){
-      const nb = netBalance(driverBalances(drv));
-      const after = nb + hxDelta(t);
-      note += `<div class="hv-note" style="background:${after<0?'#fff7f6':'#f2f7f3'};color:${after<0?'#7a2a22':'#35503f'};">After you approve: ${escapeHtml(first)} ${after<0?'owed AED '+hxNum(Math.abs(after)):'cash in hand AED '+hxNum(after)}</div>`;
-    } else note += `<div class="hv-note" style="background:#fdf1d3;color:#7a5200;">Waiting · Admin will check it</div>`;
-  } else if(!admin) note += `<div class="hv-note" style="background:#e3f4e8;color:#0b5a2c;">Approved</div>`;
-  let actions = '';
-  if(admin && t.deleteRequested){
-    actions = `<div class="hx-act"><button type="button" style="border:0;background:#a8231b;color:#fff;" onclick="approveDeleteRequest('${t.id}')">Approve delete</button><button type="button" style="border:1.5px solid #35503f;background:#fff;color:#35503f;" onclick="rejectDeleteRequest('${t.id}')">Keep</button></div>`;
-  } else if(admin && pending){
-    actions = `<div class="hx-act"><button type="button" style="border:0;background:#2e8b57;color:#fff;" onclick="approveEntry('${t.id}')">${hxSvg('check',20,2.7)}Approve</button><button type="button" style="border:1.5px solid #e3a09a;background:#fff;color:#b4382f;" onclick="rejectEntry('${t.id}')">${hxSvg('cross',20,2.7)}Reject</button></div>`;
-  } else if(!admin && rejected && isExp){
-    actions = `<div style="margin-top:10px;"><button type="button" class="btn" style="width:100%;padding:11px;font-size:14px;background:var(--amber);color:#3a2a00;" onclick="fixAndResubmit('${t.id}')">Fix &amp; Resubmit</button></div>`;
-  }
-  const fixIds = admin ? [] : items.filter(x=>x.status==='rejected' && x.type==='expense');
-  const fixStrip = fixIds.length ? `<button type="button" class="hv-fix" onclick="histViewSet('${fixIds[0].id}')"><span>⚠ ${fixIds.length} ${fixIds.length===1?'needs':'need'} fixing</span><span>Fix ›</span></button>` : '';
-  const info = `<div class="hv-info"><div class="hv-top"><div><div class="hv-t">${escapeHtml(title)}</div><div class="hv-s">${escapeHtml(place?place+' · ':'')}${escapeHtml(when)}${escapeHtml(payTxt)}</div></div><div class="hv-amt" style="color:${amtColor};${rejected?'text-decoration:line-through;':''}">${st.sign} ${hxNum(t.amount)}</div></div>${split}${note}${actions}<span class="hv-more" onclick="openDetail('${t.id}')">Details ›</span></div>`;
-  // thumbnail strip
-  const strip = items.map(x=>{
-    const o = histOwn(x), xr = x.status==='rejected', xe = x.type==='expense';
-    const cls = (x.id===t.id?' on':'') + (o>0?' own':'') + (!x.photo ? (xr?' rej':(xe?' warn':' cash')) : '');
-    const inner = x.photo
-      ? `<img src="${escapeHtml(photoThumb(x.photo,160))}" data-tid="${x.id}" data-w="160" alt="" loading="lazy" onerror="photoFallback(this)">`
-      : (xe ? '🧾✕' : (x.type==='cash_in' ? '⬇' : '↩'));
-    return `<button type="button" class="hv-th${cls}" aria-label="Entry" onclick="histViewSet('${x.id}')">${inner}${o>0?'<span class="hv-wb">👛</span>':''}</button>`;
-  }).join('');
-  box.innerHTML = fixStrip + `<div class="hv-view${own>0?' own':''}">${pic}${info}</div><div class="hv-strip" id="hv-strip">${strip}</div>`;
-  const sEl = document.getElementById('hv-strip');
-  const on = sEl && sEl.querySelector('.on');
-  if(on) sEl.scrollLeft = Math.max(0, on.offsetLeft - 90);
-}
-// The only version that actually talks to the server: refetches live data,
-// then does the instant render above. Use this for genuinely re-entering or
-// refreshing the screen — never wire this to a filter/search control (use
-// renderTodayListBody() for those instead).
 async function renderTodayList(){
   const list = document.getElementById('today-list');
   const result = await refreshAll();
@@ -4176,7 +4182,7 @@ async function generateHistoryStatement(){
   const {from, to, label} = getHistRange();
   // Match whatever's currently on screen: if Admin has this filtered to one
   // driver (or "All Drivers"), the statement covers exactly that same scope.
-  const driverFilter = (histDriverFilter && histDriverFilter!=='__other__') ? histDriverFilter : null;
+  const driverFilter = histDriverFilter || null;
   toast('Preparing PDF…');
   try{
     await buildAndDeliverStatementPDF(label, from, to, {share:true, driverFilter});
@@ -4184,31 +4190,37 @@ async function generateHistoryStatement(){
     toast(e && e.code==='no_internet' ? friendlySyncError(e.reason) : 'Could not create PDF. Please try again.');
   }
 }
-// The driver-entered fields (supplier, site, receipt no., vehicle, remarks,
-// given-by) were always saved, but never shown anywhere except a raw CSV
-// export or the Sheet itself — this surfaces them right in History behind a
-// small "Details" link, so the normal card stays just as compact as before
-// and tapping Approve/Reject/Delete never accidentally toggles it.
-function buildHistDetailHTML(t){
-  const rows = [
-    ['Supplier', t.supplier], ['Site', t.site], ['Receipt No.', t.receiptNo],
-    ['Vehicle', t.vehicle], ['Given By', t.givenBy], ['Remarks', t.remarks]
-  ].filter(([,v])=>v);
-  if(!rows.length) return '';
-  const inner = rows.map(([lbl,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;"><span style="color:var(--muted);">${lbl}</span><span style="text-align:right;">${escapeHtml(v)}</span></div>`).join('');
-  return `<div style="margin-top:8px;">
-    <span style="color:var(--green-dark);font-size:12px;font-weight:700;cursor:pointer;" onclick="toggleHistDetail('${t.id}')">▾ Details</span>
-    <div id="det-${t.id}" style="display:none;margin-top:6px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;">${inner}</div>
-  </div>`;
-}
-function toggleHistDetail(id){
-  const el = document.getElementById('det-'+id);
-  if(el) el.style.display = (el.style.display==='none') ? 'block' : 'none';
-}
 // Actually, permanently removes the row from the sheet — used when Esa's own
 // (Admin) device deletes directly, and when Esa approves a driver's delete
 // request. Requires an awaited, successful server round-trip before the
 // entry disappears anywhere — no optimistic local removal.
+// Locked months: a driver can't add or change anything dated in a closed
+// month; Esa is asked to confirm before he changes one on purpose.
+async function lockGuard(dateStr){
+  if(!isLockedDate(dateStr)) return true;
+  if(!IS_ADMIN_DEVICE){ toast('That month is closed. Ask Esa.'); return false; }
+  return await askConfirm('This month is locked (closed). Change it anyway?', {yes:'Change anyway'});
+}
+async function lockGuardId(id){
+  const t = ALL_TXNS.find(x=>x.id===id);
+  return t ? await lockGuard(t.date) : true;
+}
+// VOID = the safe way to remove an entry: it stays in the history (crossed
+// out, marked Voided) but never counts toward any balance, total or
+// statement. Uses the existing status column — no new column needed.
+async function voidEntry(id){
+  const t = ALL_TXNS.find(x=>x.id===id);
+  if(!(await lockGuard(t ? t.date : ''))) return false;
+  if(!(await askConfirm('Void this entry? It stays in the history, crossed out, but no longer counts toward any balance.', {yes:'Void'}))) return false;
+  toast('Voiding…');
+  const payload = {statusUpdates:[{id, status:'void', reason:''}]};
+  if(t && t.deleteRequested) payload.clearDeleteRequests = [id];
+  const result = await postToSync(payload);
+  if(!result.ok){ toast("Couldn't void — check your connection and try again."); return false; }
+  await refreshAll();
+  toast('Voided');
+  return true;
+}
 async function deleteEntryEverywhere(id){
   const result = await postToSync({deletes:[id]});
   if(!result.ok) return result;
@@ -4238,16 +4250,12 @@ async function clearDeleteRequest(id){
 // other device only sends a request that Esa has to approve first.
 async function requestDeleteFromHistory(id){
   if(IS_ADMIN_DEVICE){
-    if(!(await askConfirm('Delete this entry? This cannot be undone.'))) return;
-    toast('Deleting…');
-    const result = await deleteEntryEverywhere(id);
-    if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
-    toast('Deleted');
-    // deleteEntryEverywhere() already refetched fresh data as part of doing
-    // the delete — re-rendering from what's already in memory instead of
-    // fetching AGAIN avoids a pointless second live round-trip.
+    const t0 = ALL_TXNS.find(x=>x.id===id);
+    if(t0 && t0.status==='void'){ await deleteTxn(id); renderTodayListBody(); return; }
+    await voidEntry(id);
     renderTodayListBody();
   } else {
+    if(!(await lockGuardId(id))) return;
     if(!(await askConfirm('Request deletion of this entry? Esa will need to approve it before it is actually removed.'))) return;
     toast('Sending request…');
     const result = await requestDeleteEntry(id);
@@ -4279,9 +4287,6 @@ function photoFallback(img){
   const n = (Number(img.dataset.n)||0) + 1;
   img.dataset.n = n;
   if(n < list.length){ img.src = list[n]; return; }
-  if(img.closest && img.closest('.hv-th')){
-    const fb2 = document.createElement('span'); fb2.textContent = '🧾'; img.replaceWith(fb2); return;
-  }
   if(img.closest && img.closest('.hx-th')){
     const fb = document.createElement('div'); fb.className = 'hx-th-fb'; fb.textContent = '🧾'; img.replaceWith(fb); return;
   }
@@ -4291,7 +4296,6 @@ function photoFallback(img){
   box.onclick = ()=>{ if(t && t.photo) window.open(t.photo, '_blank', 'noopener'); };
   img.replaceWith(box);
 }
-function openPhotoModal(id){ openDetail(id); }
 function openFullPhoto(id){
   const t = ALL_TXNS.find(x=>x.id===id);
   if(!t || !t.photo) return;
@@ -4332,7 +4336,7 @@ function renderDetail(){
   if(!t){ closeDetail(); return; }
   const typeLbl = t.type==='cash_in' ? '💰 Cash In' : (t.type==='reimbursement' ? '↩️ Reimbursement'
     : ((CAT_MAP[t.category]?CAT_MAP[t.category].ic:'🛒')+' '+(CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category)));
-  const stLbl = t.status==='pending' ? '⏳ Pending approval' : (t.status==='rejected' ? '❌ Rejected' : '✅ Approved');
+  const stLbl = t.status==='pending' ? '⏳ Pending approval' : (t.status==='rejected' ? '❌ Rejected' : (t.status==='void' ? '🚫 Voided' : '✅ Approved'));
   const payLbl = t.type!=='expense' ? '' :
     (t.payMode==='company' ? 'Company cash' : t.payMode==='me' ? 'Driver paid (personal)' :
      t.payMode==='both' ? ('Split — company '+fmt(t.companyAmount||0)+' / driver '+fmt(t.meAmount||0)) : (t.payMode||'').toUpperCase());
@@ -4374,7 +4378,7 @@ function renderDetail(){
     ${flags}
     <div style="margin-top:6px;">${rows.map(([l,v])=>`<div class="detail-row"><span>${l}</span><span>${escapeHtml(String(v))}</span></div>`).join('')}</div>
     ${actions?`<div style="display:flex;gap:8px;margin-top:14px;">${actions}</div>`:''}
-    ${(detailCtx==='' && !t.deleteRequested)?`<button class="btn block" style="margin-top:12px;background:#fff;color:var(--red);border:1.5px solid var(--red);" onclick="closeDetail();requestDeleteFromHistory('${t.id}')">${IS_ADMIN_DEVICE?'Delete this entry':'Request deletion'}</button>`:''}
+    ${(detailCtx==='' && !t.deleteRequested && (IS_ADMIN_DEVICE || t.status!=='void'))?`<button class="btn block" style="margin-top:12px;background:#fff;color:var(--red);border:1.5px solid var(--red);" onclick="closeDetail();requestDeleteFromHistory('${t.id}')">${IS_ADMIN_DEVICE?(t.status==='void'?'Delete forever':'Void this entry'):'Request deletion'}</button>`:''}
     <button class="btn block" style="margin-top:12px;" onclick="closeDetail()">Close</button>`;
 }
 // Approve/reject/etc. straight from the details sheet. After an approval or
@@ -4428,7 +4432,39 @@ async function selectAdminTab(tab){
   if(tab==='reimb') renderReimbTab();
   if(tab==='drivers') renderDriverManageList();
   if(tab==='reports') renderDailySummary();
-  if(tab==='settings'){ renderAdminSettingsStatus(); renderSyncStatus(); renderCustomizeFields(); }
+  if(tab==='settings'){ renderAdminSettingsStatus(); renderSyncStatus(); renderCustomizeFields(); renderMonthLockList(); }
+}
+function monthName(ym){
+  const [y,m] = String(ym).split('-').map(Number);
+  return new Date(y, (m||1)-1, 1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+}
+function renderMonthLockList(){
+  const box = document.getElementById('month-lock-list');
+  if(!box) return;
+  const cur = localDateStr().slice(0,7);
+  const set = new Set(LOCKED_MONTHS);
+  set.add(cur);
+  ALL_TXNS.forEach(t=>{ if(t.date && t.date.length>=7) set.add(t.date.slice(0,7)); });
+  const months = Array.from(set).filter(m=>/^\d{4}-\d{2}$/.test(m)).sort().reverse().slice(0,12);
+  box.innerHTML = months.map(m=>{
+    const lk = LOCKED_MONTHS.indexOf(m)>=0;
+    return `<div class="settings-row"><span><b>${escapeHtml(monthName(m))}</b>${m===cur?' <span style="color:var(--muted);font-size:12px;">(this month)</span>':''}</span>
+      <button type="button" class="btn" style="padding:8px 14px;${lk?'background:#fde8e6;color:#a8231b;border:1px solid #e3a09a;':'background:#dcefe2;color:#1f7a4d;border:1px solid #bfe0c9;'}" onclick="toggleMonthLock('${m}')">${lk?'🔒 Locked · Unlock':'Open · Lock'}</button></div>`;
+  }).join('');
+}
+async function toggleMonthLock(ym){
+  const lk = LOCKED_MONTHS.indexOf(ym)>=0;
+  const cur = localDateStr().slice(0,7);
+  const msg = lk ? `Unlock ${monthName(ym)}? Drivers will be able to add entries to it again.`
+    : (ym===cur ? `${monthName(ym)} is still running. Lock it anyway? Drivers won't be able to add entries to it.` : `Lock ${monthName(ym)}? Drivers won't be able to add or change entries in it.`);
+  if(!(await askConfirm(msg, {yes: lk?'Unlock':'Lock', green:true}))) return;
+  const next = lk ? LOCKED_MONTHS.filter(m=>m!==ym) : LOCKED_MONTHS.concat([ym]).sort();
+  toast(lk?'Unlocking…':'Locking…');
+  const result = await postToSync({config:{lockedMonths: next}});
+  if(!result.ok){ toast(friendlySyncError(result.error)); return; }
+  await refreshAll();
+  renderMonthLockList();
+  toast(lk?'Unlocked':'🔒 Locked');
 }
 function renderAdminSettingsStatus(){
   const el = document.getElementById('admin-login-status');
@@ -4791,6 +4827,7 @@ async function bulkApproveEntries(){
   const rows = pendingEntries().filter(t=>!bulkExcludedApprovalIds.has(t.id));
   if(!rows.length){ toast('Nothing selected to approve'); return; }
   if(!(await askConfirm(`Approve ${rows.length} entr${rows.length===1?'y':'ies'}? Anything unchecked stays pending.`))) return;
+  if(rows.some(t=>isLockedDate(t.date)) && !(await askConfirm('Some of these are in a locked month. Approve them anyway?', {yes:'Approve anyway'}))) return;
   toast('Approving…');
   const result = await postToSync({statusUpdates: rows.map(t=>({id:t.id, status:'approved'}))});
   if(!result.ok){ toast(friendlySyncError(result.error)); return; }
@@ -4836,12 +4873,9 @@ async function refreshAfterAdminAction(){
   return await refreshAll();
 }
 async function approveDeleteRequest(id){
-  if(!(await askConfirm('Permanently delete this entry? This cannot be undone.'))) return;
-  toast('Deleting…');
-  const result = await deleteEntryEverywhere(id);
-  if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
-  toast('Deleted');
-  await refreshAfterAdminAction();
+  // Approving a driver's delete request VOIDS the entry (kept in history, not counted).
+  const ok = await voidEntry(id);
+  if(ok) await refreshAfterAdminAction();
 }
 async function rejectDeleteRequest(id){
   toast('Keeping entry…');
@@ -4857,6 +4891,7 @@ async function setEntryStatus(id, status){
   return await postToSync({statusUpdates:[{id, status}]});
 }
 async function approveEntry(id){
+  if(!(await lockGuardId(id))) return;
   toast('Approving…');
   const result = await setEntryStatus(id, 'approved');
   if(!result.ok){ toast("Couldn't approve — check your connection and try again."); return; }
@@ -4864,10 +4899,11 @@ async function approveEntry(id){
   await refreshAfterAdminAction();
 }
 async function rejectEntry(id){
-  if(!(await askConfirm('Reject this entry? It will never count toward the balance.'))) return;
-  // Optional — a short reason helps the driver understand what to fix and
-  // resubmit correctly, but rejecting must never be blocked on typing one.
-  const reason = (prompt('Reason for rejecting (optional — shown to the driver):', '') || '').trim();
+  if(!(await lockGuardId(id))) return;
+  // One in-app box: confirm + an OPTIONAL reason (rejecting is never blocked
+  // on typing one). Cancel = nothing happens.
+  const reason = await askReason('Reject this entry?', 'It will never count toward the balance. Add a reason (optional) so the driver knows what to fix.', {yes:'Reject', no:'Cancel', placeholder:'Reason (optional)'});
+  if(reason===null) return;
   toast('Rejecting…');
   const result = await postToSync({statusUpdates:[{id, status:'rejected', reason}]});
   if(!result.ok){ toast("Couldn't reject — check your connection and try again."); return; }
@@ -4933,14 +4969,14 @@ function renderTxnTable(){
     const cat = t.type==='expense' ? (CAT_MAP[t.category]?CAT_MAP[t.category].lbl:t.category) : (t.type==='cash_in'?'—':'—');
     const paid = t.type==='expense' ? t.payMode.toUpperCase() : '—';
     const typeLbl = t.type==='cash_in'?'Cash In':(t.type==='expense'?'Expense':'Reimburse');
-    let statusLbl = t.status==='pending' ? '⏳ Pending' : (t.status==='rejected' ? '❌ Rejected' : '✅ Approved');
+    let statusLbl = t.status==='pending' ? '⏳ Pending' : (t.status==='rejected' ? '❌ Rejected' : (t.status==='void' ? '🚫 Voided' : '✅ Approved'));
     if(t.deleteRequested) statusLbl += ' · 🗑 Delete Requested';
     return `<tr style="cursor:pointer;" onclick="openDetail('${t.id}','txns')">
       <td>${t.date}</td><td>${typeLbl}</td><td>${escapeHtml(cat)}</td><td>${fmt(t.amount)}</td>
       <td>${paid}</td><td>${escapeHtml(t.note||'')}</td>
       <td>${t.photo?'📷':''}</td>
       <td>${statusLbl}${riskFlagsHTML(t)}</td>
-      <td><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="event.stopPropagation();deleteTxn('${t.id}')">Delete</button></td>
+      <td><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="event.stopPropagation();deleteTxn('${t.id}')">${t.status==='void'?'Delete forever':'Void'}</button></td>
     </tr>`;
   }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No transactions found.</td></tr>`;
   const cardsEl = document.getElementById('txn-cards');
@@ -4951,7 +4987,7 @@ function renderTxnTable(){
 // second look. Thresholds are Esa's own (Admin → Settings), so this stays
 // meaningful as his business grows instead of using fixed guesses forever.
 function riskFlagsHTML(t){
-  if(t.type!=='expense') return '';
+  if(t.type!=='expense' || t.status==='void' || t.status==='rejected') return '';
   let html = '';
   const amt = Number(t.amount)||0;
   if(amt >= (THRESHOLDS.highValueAbove||Infinity)){
@@ -4983,6 +5019,7 @@ function renderTxnCard(t){
   const paid = t.type==='expense' ? ` · ${t.payMode.toUpperCase()}` : '';
   let statusTag = t.status==='pending' ? `<span class="hi-tag" style="background:#fff3cd;color:#8a6d00;">⏳ PENDING</span>`
     : t.status==='rejected' ? `<span class="hi-tag" style="background:#fde3e3;color:#a11;">❌ REJECTED</span>`
+    : t.status==='void' ? `<span class="hi-tag" style="background:#eceeed;color:#5d6b62;">🚫 VOIDED</span>`
     : `<span class="hi-tag" style="background:#e3f5e8;color:#177a3a;">✅ APPROVED</span>`;
   if(t.deleteRequested) statusTag += ` <span class="hi-tag" style="background:#e6e6ff;color:#3a3ac1;">🗑 DELETE REQUESTED</span>`;
   const flags = riskFlagsHTML(t);
@@ -4990,11 +5027,14 @@ function renderTxnCard(t){
     <div class="hi-top"><span>${escapeHtml(cat)}</span><span>${fmt(t.amount)}</span></div>
     <div class="hi-sub">${escapeHtml(t.driver||'—')} · ${t.date}${paid}${t.note?' · '+escapeHtml(t.note):''}</div>
     ${statusTag}${flags}
-    <div style="margin-top:8px;display:flex;gap:8px;"><button class="btn" style="padding:6px 10px;font-size:11px;background:var(--green-dark);color:#fff;" onclick="openDetail('${t.id}','txns')">👁 Details${t.photo?' &amp; receipt':''}</button><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="deleteTxn('${t.id}')">Delete</button></div>
+    <div style="margin-top:8px;display:flex;gap:8px;"><button class="btn" style="padding:6px 10px;font-size:11px;background:var(--green-dark);color:#fff;" onclick="openDetail('${t.id}','txns')">👁 Details${t.photo?' &amp; receipt':''}</button><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="deleteTxn('${t.id}')">${t.status==='void'?'Delete forever':'Void'}</button></div>
   </div>${t.photo?`<img class="hist-thumb" loading="lazy" src="${escapeHtml(photoThumb(t.photo,200))}" onclick="openDetail('${t.id}','txns')">`:''}</div>`;
 }
 async function deleteTxn(id){
-  if(!(await askConfirm('Delete this entry? This cannot be undone.'))) return;
+  const t = ALL_TXNS.find(x=>x.id===id);
+  if(t && t.status!=='void'){ if(await voidEntry(id)) await refreshAdmin(); return; }
+  if(!(await lockGuardId(id))) return;
+  if(!(await askConfirm('Delete this voided entry forever? This cannot be undone.', {yes:'Delete forever'}))) return;
   toast('Deleting…');
   const result = await deleteEntryEverywhere(id);
   if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
@@ -5028,14 +5068,14 @@ function renderReimbTab(){
   document.getElementById('reimb-warning').classList.remove('show');
   const rows = ALL_TXNS.filter(t=>t.type==='reimbursement').slice().reverse();
   document.getElementById('reimb-tbody').innerHTML = rows.map(t=>{
-    const statusLbl = t.status==='pending' ? ' ⏳' : (t.status==='rejected' ? ' ❌' : '');
+    const statusLbl = t.status==='pending' ? ' ⏳' : (t.status==='rejected' ? ' ❌' : (t.status==='void' ? ' 🚫' : ''));
     const method = t.remarks ? ` (${escapeHtml(t.remarks)})` : '';
     return `<tr><td>${t.date}</td><td>${escapeHtml(t.driver||'')}</td><td>${fmt(t.amount)}${statusLbl}</td><td>${escapeHtml(t.note||'')}${method}</td></tr>`;
   }).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">No reimbursements yet.</td></tr>`;
   const cardsEl = document.getElementById('reimb-cards');
   if(cardsEl){
     cardsEl.innerHTML = rows.map(t=>{
-      const statusLbl = t.status==='pending' ? '⏳ Pending' : (t.status==='rejected' ? '❌ Rejected' : '✅ Approved');
+      const statusLbl = t.status==='pending' ? '⏳ Pending' : (t.status==='rejected' ? '❌ Rejected' : (t.status==='void' ? '🚫 Voided' : '✅ Approved'));
       const method = t.remarks ? ` · ${escapeHtml(t.remarks)}` : '';
       return `<div class="hist-item" style="cursor:pointer;" onclick="histCardTap(event,'${t.id}')"><div class="hi-ic">↩️</div><div class="hi-body">
         <div class="hi-top"><span>${escapeHtml(t.driver||'')}</span><span>${fmt(t.amount)}</span></div>
@@ -5090,6 +5130,7 @@ async function saveReimbursement(){
     status: await entryStatus(),
     createdAt: Date.now(),
   };
+  if(!(await lockGuard(record.date))) return;
   const saveBtn = document.getElementById('reimb-save-btn');
   setBusy(saveBtn, 'SAVING…');
   const result = await postToSync({records:[record]});
@@ -5219,6 +5260,30 @@ function askConfirm(message, opts){
   yesBtn.classList.toggle('green', !!(opts && opts.green));
   box.classList.add('show');
   return new Promise(resolve=>{ _confirmResolve = resolve; });
+}
+let _reasonResolve = null, _reasonRequired = false;
+// A friendly in-app box with one line to type (replaces the plain phone
+// pop-up). Resolves to the typed text, or null if cancelled.
+function askReason(title, msg, opts){
+  opts = opts || {};
+  document.getElementById('reason-title').textContent = title;
+  document.getElementById('reason-msg').textContent = msg || '';
+  const inp = document.getElementById('reason-input');
+  inp.value = ''; inp.style.borderColor = ''; inp.placeholder = opts.placeholder || '';
+  _reasonRequired = !!opts.required;
+  document.getElementById('reason-yes').textContent = opts.yes || 'OK';
+  document.getElementById('reason-yes').classList.toggle('green', !!opts.green);
+  document.getElementById('reason-no').textContent = opts.no || 'Cancel';
+  document.getElementById('reason-overlay').classList.add('show');
+  setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 80);
+  return new Promise(resolve=>{ _reasonResolve = resolve; });
+}
+function closeReasonModal(ok){
+  const inp = document.getElementById('reason-input');
+  const v = inp.value.trim();
+  if(ok && _reasonRequired && !v){ inp.style.borderColor = '#c0392b'; inp.focus(); return; }
+  document.getElementById('reason-overlay').classList.remove('show');
+  if(_reasonResolve){ const r = _reasonResolve; _reasonResolve = null; r(ok ? v : null); }
 }
 function closeConfirmModal(result){
   document.getElementById('confirm-overlay').classList.remove('show');
