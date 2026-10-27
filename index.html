@@ -746,7 +746,7 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">89</b> ·
+        App version <b id="home-app-version">91</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -765,7 +765,7 @@ body.role-driver #hist-sheet{background:#f4f7f4;border-radius:26px 26px 0 0;padd
         <img src="logo-mark-v2.png" alt="Garden Grow" style="width:110px;height:110px;">
         <h2 style="color:var(--green-dark);margin:10px 0 4px;">Welcome</h2>
         <p style="color:var(--muted);font-size:14px;">Log in to continue.</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 89</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 91</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -3043,7 +3043,7 @@ function buildVillaWho(){
   const sel = !!expState.villa;
   let combo;
   if(shownNo){
-    combo = `<div class="vw-combo${sel?' sel':''}"><button type="button" class="vw-main" onclick="pickVilla()"><span class="h">🏡</span><span class="tx"><small>${sel?'VILLA · AREA':'LAST VILLA · TAP TO USE'}</small><b>Villa ${escapeHtml(shownNo)}${shownArea?' · '+escapeHtml(shownArea):''}</b></span></button><button type="button" class="vw-chg" onclick="toggleVillaPanel()">✏️<br>Change</button></div>`;
+    combo = `<div class="vw-combo${sel?' sel':''}"><button type="button" class="vw-main" onclick="${sel?'toggleVillaPanel()':'pickVilla()'}"><span class="h">🏡</span><span class="tx"><small>${sel?'✓ SELECTED · TAP TO CHANGE':'LAST VILLA · TAP TO USE'}</small><b>Villa ${escapeHtml(shownNo)}${shownArea?' · '+escapeHtml(shownArea):''}</b></span></button></div>`;
   } else {
     combo = `<div class="vw-combo"><button type="button" class="vw-main" onclick="toggleVillaPanel()"><span class="h">🏡</span><span class="tx"><small>VILLA · AREA</small><b>Tap to choose villa</b></span></button></div>`;
   }
@@ -3324,7 +3324,9 @@ function driverFreeCash(){
     .reduce((sum,t)=>sum+txnCompanyPart(t),0)
     + ALL_TXNS.filter(t=>t.type==='handover' && t.status==='pending' && String(t.driver||'').trim()===me)
     .reduce((sum,t)=>sum+(Number(t.amount)||0),0);
-  return Math.max(0, round2((Number(b.companyCash)||0) - waiting));
+  // Real cash in hand = company cash left minus the driver's own money still owed
+  // (same figure the Home card shows). Display/check only — engine untouched.
+  return Math.max(0, round2((Number(b.companyCash)||0) - (Number(b.driverOwed)||0) - waiting));
 }
 function computeExpenseSplit(amount){
   const cash = driverFreeCash();
@@ -4252,6 +4254,8 @@ function hxRow(t, o){
     } else {
       actions = `<div class="hx-act"><button type="button" style="border:0;background:#2e8b57;color:#fff;" onclick="approveEntry('${t.id}')">${hxSvg('check',20,2.7)}Approve</button><button type="button" style="border:1.5px solid #e3a09a;background:#fff;color:#b4382f;" onclick="rejectEntry('${t.id}')">${hxSvg('cross',20,2.7)}Reject</button></div>`;
     }
+  } else if(admin && rejected && !voided){
+    actions = `<div class="hx-act"><button type="button" style="border:1.5px solid #e3a09a;background:#fff;color:#b4382f;" onclick="deleteRejected('${t.id}')">🗑 Delete entry</button></div>`;
   } else if(!admin && rejected && t.type==='expense'){
     actions = `<div style="margin-top:10px;"><button type="button" class="btn" style="width:100%;padding:11px;font-size:14px;background:var(--amber);color:#3a2a00;" onclick="fixAndResubmit('${t.id}')">Fix &amp; Resubmit</button></div>`;
   }
@@ -4560,6 +4564,7 @@ async function requestDeleteFromHistory(id){
   if(IS_ADMIN_DEVICE){
     const t0 = ALL_TXNS.find(x=>x.id===id);
     if(t0 && t0.status==='void'){ await deleteTxn(id); renderTodayListBody(); return; }
+    if(t0 && t0.status==='rejected'){ await deleteRejected(id); renderTodayListBody(); return; }
     await voidEntry(id);
     renderTodayListBody();
   } else {
@@ -4686,7 +4691,7 @@ function renderDetail(){
     ${flags}
     <div style="margin-top:6px;">${rows.map(([l,v])=>`<div class="detail-row"><span>${l}</span><span>${escapeHtml(String(v))}</span></div>`).join('')}</div>
     ${actions?`<div style="display:flex;gap:8px;margin-top:14px;">${actions}</div>`:''}
-    ${(detailCtx==='' && !t.deleteRequested && (IS_ADMIN_DEVICE || t.status!=='void'))?`<button class="btn block" style="margin-top:12px;background:#fff;color:var(--red);border:1.5px solid var(--red);" onclick="closeDetail();requestDeleteFromHistory('${t.id}')">${IS_ADMIN_DEVICE?(t.status==='void'?'Delete forever':'Void this entry'):'Request deletion'}</button>`:''}
+    ${(detailCtx==='' && !t.deleteRequested && (IS_ADMIN_DEVICE || t.status!=='void'))?`<button class="btn block" style="margin-top:12px;background:#fff;color:var(--red);border:1.5px solid var(--red);" onclick="closeDetail();requestDeleteFromHistory('${t.id}')">${IS_ADMIN_DEVICE?(t.status==='void'?'Delete forever':(t.status==='rejected'?'Delete entry':'Void this entry')):'Request deletion'}</button>`:''}
     <button class="btn block" style="margin-top:12px;" onclick="closeDetail()">Close</button>`;
 }
 // Approve/reject/etc. straight from the details sheet. After an approval or
@@ -5180,6 +5185,18 @@ async function refreshAfterAdminAction(){
   if(id==='screen-approvals'){ const r = await refreshAll(); renderApprovalsScreen(); return r; }
   return await refreshAll();
 }
+// Esa removes a REJECTED entry for good — gone from the sheet, so it also
+// disappears from the driver's phone on its next refresh. It never counted
+// toward any balance, so no figure changes.
+async function deleteRejected(id){
+  if(!(await lockGuardId(id))) return;
+  if(!(await askConfirm('Delete this rejected entry for good? It will disappear from the driver\'s phone too.', {yes:'Delete'}))) return;
+  toast('Deleting…');
+  const result = await deleteEntryEverywhere(id);
+  if(!result.ok){ toast("Couldn't delete — check your connection and try again."); return; }
+  toast('Deleted');
+  await refreshAfterAdminAction();
+}
 async function approveDeleteRequest(id){
   // Approving a driver's delete request VOIDS the entry (kept in history, not counted).
   const ok = await voidEntry(id);
@@ -5335,7 +5352,7 @@ function renderTxnCard(t){
     <div class="hi-top"><span>${escapeHtml(cat)}</span><span>${fmt(t.amount)}</span></div>
     <div class="hi-sub">${escapeHtml(t.driver||'—')} · ${t.date}${paid}${t.note?' · '+escapeHtml(t.note):''}</div>
     ${statusTag}${flags}
-    <div style="margin-top:8px;display:flex;gap:8px;"><button class="btn" style="padding:6px 10px;font-size:11px;background:var(--green-dark);color:#fff;" onclick="openDetail('${t.id}','txns')">👁 Details${t.photo?' &amp; receipt':''}</button><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="deleteTxn('${t.id}')">${t.status==='void'?'Delete forever':'Void'}</button></div>
+    <div style="margin-top:8px;display:flex;gap:8px;"><button class="btn" style="padding:6px 10px;font-size:11px;background:var(--green-dark);color:#fff;" onclick="openDetail('${t.id}','txns')">👁 Details${t.photo?' &amp; receipt':''}</button><button class="btn" style="padding:6px 10px;font-size:11px;" onclick="${t.status==='rejected'?`deleteRejected('${t.id}')`:`deleteTxn('${t.id}')`}">${t.status==='void'?'Delete forever':(t.status==='rejected'?'Delete':'Void')}</button></div>
   </div>${t.photo?`<img class="hist-thumb" loading="lazy" src="${escapeHtml(photoThumb(t.photo,200))}" onclick="openDetail('${t.id}','txns')">`:''}</div>`;
 }
 async function deleteTxn(id){
