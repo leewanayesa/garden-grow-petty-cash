@@ -671,7 +671,17 @@ body .topbar img{filter:none}
 body .topbar .h92-chip{color:#fff}
 .h92-admin{position:absolute;left:12px;top:48px;background:#1b8a2f!important;color:#fff!important;border-radius:16px!important;padding:6px 12px!important;font-size:13px;z-index:2}
 .h92-menubtn{position:absolute;right:12px;top:10px;width:42px;height:42px;border-radius:13px;border:0;background:#0f3a20;color:#fff;font-size:22px;font-weight:900;z-index:3}
-.h92-menu{position:absolute;right:12px;top:58px;background:#fff;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:6px;z-index:60;min-width:210px;text-align:left}
+/* v98: simple plain-beige Home header (logo · name · date · menu), no wave */
+body #screen-home .topbar.hx98{background:#f3ead3!important;min-height:0!important;padding:12px 14px!important;text-align:left!important;display:block!important;position:sticky!important;top:0;z-index:20;border-bottom:3px solid #1b8a2f}
+body #screen-home .topbar.hx98::after,body #screen-home .topbar.hx98::before{display:none!important}
+.hx98-row{display:flex;align-items:center;gap:10px}
+.hx98-mk{width:50px;height:50px;border-radius:14px;background:#fff;object-fit:contain;padding:2px;box-shadow:0 2px 6px rgba(0,0,0,.18);flex:none}
+.hx98-tx{flex:1;min-width:0;line-height:1.15}
+body #screen-home .topbar.hx98 .hx98-tx b{display:block;font-size:19px;font-weight:900;color:#14452c!important;opacity:1!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none!important;padding:0!important}
+body #screen-home .topbar.hx98 .hx98-tx small{display:block;font-size:12.5px;font-weight:700;color:#5d6f62!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body #screen-home .topbar.hx98 .hx98-admin{background:#1b8a2f!important;color:#fff!important;border:0;border-radius:16px!important;padding:8px 12px!important;font-size:13px;font-weight:800;flex:none}
+.hx98-mn{width:44px;height:44px;border-radius:13px;border:0;background:#14452c;color:#fff;font-size:22px;font-weight:900;flex:none}
+.h92-menu{position:absolute;right:12px;top:66px;background:#fff;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:6px;z-index:60;min-width:210px;text-align:left}
 .h92-menu button{display:flex;gap:10px;align-items:center;width:100%;border:0;background:none;padding:13px 12px;font-size:16px;font-weight:800;color:#12301e;border-radius:12px;text-align:left}
 .h92-menu button:active{background:#e3f4e8}
 body.role-admin .drv-only{display:none!important}
@@ -803,11 +813,13 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
 
   <!-- ============ DRIVER HOME ============ -->
   <div class="screen active" id="screen-home">
-    <div class="topbar">
-      <span class="h92-chip" id="home-driver-name"></span>
-      <button class="adminlink h92-admin" id="home-admin-link" onclick="goAdmin()" style="display:none;">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
-      <img class="js-fulllogo h92-logo" alt="Garden Grow">
-      <button class="h92-menubtn" id="home-menu-btn" onclick="toggleHomeMenu()" aria-label="Menu">☰</button>
+    <div class="topbar hx98">
+      <div class="hx98-row">
+        <img class="hx98-mk" src="logo-mark-v2.png" alt="Garden Grow">
+        <div class="hx98-tx"><b id="home-driver-name"></b><small id="home-hx-sub">Garden Grow</small></div>
+      <button class="adminlink hx98-admin" id="home-admin-link" onclick="goAdmin()" style="display:none;">Admin <span id="home-approvals-badge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;"></span></button>
+      <button class="hx98-mn" id="home-menu-btn" onclick="toggleHomeMenu()" aria-label="Menu">☰</button>
+      </div>
       <div class="h92-menu" id="home-menu" style="display:none;">
         <button onclick="homeMenuGo(refreshCurrentScreen)">🔄 Refresh</button>
         <button onclick="homeMenuGo(openSummaryPeriod)">📱 Send Summary</button>
@@ -859,7 +871,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">97</b> ·
+        App version <b id="home-app-version">98</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -871,7 +883,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
     <div class="home-wrap">
       <div style="text-align:center;margin-bottom:22px;">
         <p style="color:var(--ink);font-size:17px;font-weight:800;">Log in to continue</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 97</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 98</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -1824,7 +1836,7 @@ const EXPECTED_SCHEMA_VERSION = 7;
 // v96: this app's own version. Sent along with every data load (&v=) so the
 // server can note which version each phone runs; Esa sees it in Admin ->
 // Drivers -> "Phones & app version". Bump with the visible version number.
-const APP_VERSION = 97;
+const APP_VERSION = 98;
 let PHONE_VERSIONS = null;  // [{name, role, v, at}] — Admin phone only; null = not received
 let SCHEMA_OUTDATED = false;
 function updateSchemaBanner(){
@@ -2789,6 +2801,15 @@ function base64ToArrayBuffer(b64){
 function updateHomeDriverLabel(name){
   document.getElementById('home-driver-name').textContent =
     IS_ADMIN_DEVICE ? ('🔐 ' + name) : name;
+  updateHomeHeaderDate_();
+}
+// v98: "Garden Grow · Wed 18 Nov" under the name in the Home header.
+function updateHomeHeaderDate_(){
+  const el = document.getElementById('home-hx-sub'); if(!el) return;
+  let d = '';
+  try{ d = new Date().toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}).replace(',', ''); }catch(e){}
+  // Admin's header also holds the Admin button, so it shows just the date.
+  el.textContent = (IS_ADMIN_DEVICE && d) ? d : ('Garden Grow' + (d ? ' · ' + d : ''));
 }
 
 // Admin's Home now shows one row per driver (each with their OWN separate
@@ -2798,6 +2819,7 @@ function updateHomeDriverLabel(name){
 // entries — no other driver's numbers, and no shared "company" total.
 function renderHome(){
   updateAdminLinkVisibility();
+  updateHomeHeaderDate_();
   // Driver actions (Buy/Pay, Cash In, History, Send Summary) vs. Admin
   // quick actions (Reimburse, Transactions, Reports, Drivers) — a device only
   // ever shows the set that matches how it's logged in.
