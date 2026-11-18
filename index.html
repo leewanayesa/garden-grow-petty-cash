@@ -145,7 +145,7 @@ input,select,textarea{font-family:inherit;}
 .pv-av{width:38px;height:38px;border-radius:50%;background:#e3f1e7;display:flex;align-items:center;justify-content:center;font-weight:900;color:#1f7a4d;flex:none}
 .pv-nm{flex:1;min-width:0}.pv-nm b{font-size:15px;color:#1b3328}.pv-nm div{font-size:12px;color:var(--muted)}
 .pv-pill{padding:6px 10px;border-radius:20px;font-weight:900;font-size:13px;white-space:nowrap}
-.pv-ok{background:#d8f0df;color:#14532d}.pv-old{background:#ffe1dc;color:#8f2a22}
+.pv-ok{background:#d8f0df;color:#14532d}.pv-upd{background:#fff1c7;color:#6b4e00}.pv-old{background:#ffe1dc;color:#8f2a22}
 .pv-tip{background:#fff6d6;border-radius:10px;padding:9px 10px;font-size:12.5px;margin-top:8px;color:#3a2a00}
 .driver-manage-row .dm-name{flex:1;font-weight:700;color:var(--green-dark);}
 .driver-manage-row button{padding:8px 12px;font-size:12.5px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:700;color:var(--muted);}
@@ -689,9 +689,9 @@ body.role-driver #driver-action-tiles .tile.primary .ic{width:auto;height:auto;b
 #driver-action-tiles .tile.ho{background:#fff1c9;color:#5a3f00}
 .tile-sub{display:block;font-size:12.5px;font-weight:700;opacity:.95;margin-top:2px}
 .rep-h{grid-column:1/-1;font-size:12px;font-weight:900;letter-spacing:.8px;color:#12301e;margin:4px 2px -2px}
-.rep-row{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.rep-card{background:#f3f6f1;border:0;border-radius:20px;padding:10px 3px;text-align:center;font-weight:900;font-size:14px;color:#12301e;min-width:0}
-.rep-card i{display:flex;width:46px;height:46px;border-radius:50%;background:#fff;margin:0 auto 5px;align-items:center;justify-content:center;font-style:normal;font-size:24px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.rep-row{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px} /* v97: up to 4; JS sets the column count so 1-3 cards stretch */
+.rep-card{background:#f3f6f1;border:0;border-radius:20px;padding:10px 2px;text-align:center;font-weight:900;font-size:13px;color:#12301e;min-width:0}
+.rep-card i{display:flex;width:50px;height:50px;border-radius:50%;background:#fff;margin:0 auto 5px;align-items:center;justify-content:center;font-style:normal;font-size:27px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .rep-card b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rep-card small{display:block;font-weight:600;color:#5b7263;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hm-outbox{display:block;width:100%;margin:12px 0 0;padding:12px 14px;border:0;border-radius:14px;background:#e3f4e8;color:#0c5a1a;font-weight:800;font-size:14px;text-align:left}
@@ -859,7 +859,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">96</b> ·
+        App version <b id="home-app-version">97</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -871,7 +871,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
     <div class="home-wrap">
       <div style="text-align:center;margin-bottom:22px;">
         <p style="color:var(--ink);font-size:17px;font-weight:800;">Log in to continue</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 96</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 97</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -1824,7 +1824,7 @@ const EXPECTED_SCHEMA_VERSION = 7;
 // v96: this app's own version. Sent along with every data load (&v=) so the
 // server can note which version each phone runs; Esa sees it in Admin ->
 // Drivers -> "Phones & app version". Bump with the visible version number.
-const APP_VERSION = 96;
+const APP_VERSION = 97;
 let PHONE_VERSIONS = null;  // [{name, role, v, at}] — Admin phone only; null = not received
 let SCHEMA_OUTDATED = false;
 function updateSchemaBanner(){
@@ -5154,10 +5154,14 @@ function renderPhoneVersions_(){
   const html = rows.map(r=>{
     const v = r.d ? Number(r.d.v)||0 : 0;
     const ok = v >= APP_VERSION;
-    if(!ok) anyOld = true;
+    // v95+ phones fetch new versions by themselves, so a reported v96 is just
+    // "on its way", not a problem — only an unreported phone needs a tap.
+    const selfUpdating = !ok && v >= 95;
+    if(!ok && !selfUpdating) anyOld = true;
     const pill = ok ? `<span class="pv-pill pv-ok">✅ v${v}</span>`
-      : (v ? `<span class="pv-pill pv-old">⚠️ v${v}</span>` : `<span class="pv-pill pv-old">⚠️ Old</span>`);
-    const sub = r.d ? ('Seen ' + pvAgo_(r.d.at)) : 'Not reported yet';
+      : (selfUpdating ? `<span class="pv-pill pv-upd">🔄 v${v}</span>`
+      : (v ? `<span class="pv-pill pv-old">⚠️ v${v}</span>` : `<span class="pv-pill pv-old">⚠️ Old</span>`));
+    const sub = r.d ? ('Seen ' + pvAgo_(r.d.at) + (selfUpdating ? ' · updating by itself' : '')) : 'Not reported yet';
     const initial = escapeHtml(String(r.label).trim().charAt(0).toUpperCase() || '?');
     return `<div class="pv-row"><div class="pv-av">${initial}</div><div class="pv-nm"><b>${escapeHtml(r.label)}</b><div>${escapeHtml(sub)}</div></div>${pill}</div>`;
   }).join('');
@@ -5933,8 +5937,10 @@ function renderRepeatCards_(){
   const list = ALL_TXNS.filter(t=>t.type==='expense' && String(t.driver||'').trim()===me && t.status!=='rejected' && t.status!=='void' && CAT_MAP[t.category] && t.category!=='other')
     .slice().sort((a,b)=>txnStamp_(b).localeCompare(txnStamp_(a)));
   const seen = {}, out = [];
-  for(const t of list){ const k = t.category+'|'+Math.round(Number(t.amount)||0)+'|'+(t.site||''); if(seen[k]) continue; seen[k]=1; out.push(t); if(out.length>=3) break; }
+  for(const t of list){ const k = t.category+'|'+Math.round(Number(t.amount)||0)+'|'+(t.site||''); if(seen[k]) continue; seen[k]=1; out.push(t); if(out.length>=4) break; }
   HOME_REPEATS = out;
+  // v97: 4 cards share one row; with fewer, they stretch to fill it (no empty gap).
+  box.style.gridTemplateColumns = 'repeat(' + Math.max(1, out.length) + ',1fr)';
   if(h) h.style.display = out.length ? 'block' : 'none';
   box.innerHTML = out.map((t,i)=>`<button type="button" class="rep-card" onclick="repeatEntry(${i})"><i>${CAT_MAP[t.category].ic}</i><b>${escapeHtml(catShort_(t.category))} ${hxNum(t.amount)}</b><small>${escapeHtml(String(t.site||'').split(' · ')[0]||' ')}</small></button>`).join('');
 }
