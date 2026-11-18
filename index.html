@@ -527,6 +527,7 @@ table.admin-table td{padding:9px 8px;border-top:1px solid var(--line);white-spac
 .tabbar{display:none;position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;background:#fff;border-top:1px solid #cfe3d6;z-index:60;padding:6px 0 calc(8px + env(safe-area-inset-bottom));justify-content:space-around}
 body.has-tabs .tabbar{display:flex}
 body.has-tabs{padding-bottom:66px}
+body.has-tabs .app{padding-bottom:calc(96px + env(safe-area-inset-bottom))} /* v100: last button never hides under the bottom bar */
 body.has-tabs .bottom-bar{bottom:calc(58px + env(safe-area-inset-bottom))}
 .tab{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12px;font-weight:700;color:#5d7a6c;padding:2px 0;position:relative}
 .tab .tic{font-size:21px;line-height:1.2}
@@ -895,7 +896,7 @@ body.role-admin .btn:not(.primary):not([style*="color"]){color:#12301e}
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">99</b> ·
+        App version <b id="home-app-version">100</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -907,7 +908,7 @@ body.role-admin .btn:not(.primary):not([style*="color"]){color:#12301e}
     <div class="home-wrap">
       <div style="text-align:center;margin-bottom:22px;">
         <p style="color:var(--ink);font-size:17px;font-weight:800;">Log in to continue</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 99</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 100</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -1422,7 +1423,7 @@ body.role-admin .btn:not(.primary):not([style*="color"]){color:#12301e}
       </div>
       <div class="settings-row">
         <span>App Version</span>
-        <span style="font-weight:700;" id="settings-app-version">v99</span>
+        <span style="font-weight:700;" id="settings-app-version">v100</span>
       </div>
       <div class="settings-row">
         <span>Google Sheet Sync</span>
@@ -1860,7 +1861,7 @@ const EXPECTED_SCHEMA_VERSION = 7;
 // v96: this app's own version. Sent along with every data load (&v=) so the
 // server can note which version each phone runs; Esa sees it in Admin ->
 // Drivers -> "Phones & app version". Bump with the visible version number.
-const APP_VERSION = 99;
+const APP_VERSION = 100;
 document.addEventListener('DOMContentLoaded', ()=>{ const e=document.getElementById('settings-app-version'); if(e) e.textContent='v'+APP_VERSION; });
 let PHONE_VERSIONS = null;  // [{name, role, v, at}] — Admin phone only; null = not received
 let SCHEMA_OUTDATED = false;
