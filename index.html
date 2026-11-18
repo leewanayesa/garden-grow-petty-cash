@@ -137,6 +137,16 @@ input,select,textarea{font-family:inherit;}
 /* Admin Settings: manage driver roster */
 .driver-manage-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
 .driver-manage-row:last-child{border-bottom:none;}
+/* v96: Admin -> Drivers -> Phones & app version */
+.pv-card{background:#fff;border:2px solid #1f7a4d;border-radius:16px;padding:14px;margin-bottom:18px}
+.pv-h{font-weight:900;font-size:16px;color:#1b3328}
+.pv-sub{color:var(--muted);font-size:12.5px;margin:2px 0 8px}
+.pv-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #e6efe9}
+.pv-av{width:38px;height:38px;border-radius:50%;background:#e3f1e7;display:flex;align-items:center;justify-content:center;font-weight:900;color:#1f7a4d;flex:none}
+.pv-nm{flex:1;min-width:0}.pv-nm b{font-size:15px;color:#1b3328}.pv-nm div{font-size:12px;color:var(--muted)}
+.pv-pill{padding:6px 10px;border-radius:20px;font-weight:900;font-size:13px;white-space:nowrap}
+.pv-ok{background:#d8f0df;color:#14532d}.pv-old{background:#ffe1dc;color:#8f2a22}
+.pv-tip{background:#fff6d6;border-radius:10px;padding:9px 10px;font-size:12.5px;margin-top:8px;color:#3a2a00}
 .driver-manage-row .dm-name{flex:1;font-weight:700;color:var(--green-dark);}
 .driver-manage-row button{padding:8px 12px;font-size:12.5px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:700;color:var(--muted);}
 .driver-manage-row button.danger{color:var(--red);border-color:var(--red-light);}
@@ -849,7 +859,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">95</b> ·
+        App version <b id="home-app-version">96</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -861,7 +871,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
     <div class="home-wrap">
       <div style="text-align:center;margin-bottom:22px;">
         <p style="color:var(--ink);font-size:17px;font-weight:800;">Log in to continue</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 95</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 96</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -1344,6 +1354,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
 
     <!-- Drivers -->
     <div class="admin-panel" data-panel="drivers">
+      <div id="phone-versions-box"></div>
       <div class="section-title" style="margin-top:0;">Drivers</div>
       <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Add a new driver, rename one, remove one, or change their password. Each driver now has their own separate password — use 🔑 Password to set or change one, then tell that driver directly (WhatsApp, in person). A driver added without a password here still works using the old shared one until you set a real one.</p>
       <div id="driver-manage-list" style="margin-bottom:12px;"></div>
@@ -1810,6 +1821,11 @@ function updateConnBanner(){
 // Apps Script is older than this, some features (like delete requests) will
 // silently do nothing — this makes that failure visible instead of confusing.
 const EXPECTED_SCHEMA_VERSION = 7;
+// v96: this app's own version. Sent along with every data load (&v=) so the
+// server can note which version each phone runs; Esa sees it in Admin ->
+// Drivers -> "Phones & app version". Bump with the visible version number.
+const APP_VERSION = 96;
+let PHONE_VERSIONS = null;  // [{name, role, v, at}] — Admin phone only; null = not received
 let SCHEMA_OUTDATED = false;
 function updateSchemaBanner(){
   const el = document.getElementById('schema-banner');
@@ -1912,7 +1928,7 @@ async function loadFromServer(){
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), SYNC_TIMEOUT_MS);
   try{
-    const resp = await fetch(SYNC_URL + '?token=' + encodeURIComponent(AUTH_TOKEN), { method:'GET', cache:'no-store', signal: controller.signal });
+    const resp = await fetch(SYNC_URL + '?token=' + encodeURIComponent(AUTH_TOKEN) + '&v=' + APP_VERSION, { method:'GET', cache:'no-store', signal: controller.signal });
     if(!resp.ok) return {ok:false, error:'http_'+resp.status};
     const data = await resp.json().catch(()=>null);
     // IMPORTANT: check data.ok===false FIRST. The server replies with a normal
@@ -1935,6 +1951,9 @@ async function loadFromServer(){
     }
     applyServerData(data);
     saveDataCache_(data);
+    // v96: only Esa's phone is sent this list (never a driver's).
+    PHONE_VERSIONS = Array.isArray(data.devices) ? data.devices : null;
+    if(IS_ADMIN_DEVICE){ try{ const pp = document.querySelector('.admin-panel[data-panel="drivers"].active'); if(pp) renderPhoneVersions_(); }catch(e){} }
     return {ok:true};
   }catch(e){
     return {ok:false, error: e.name==='AbortError' ? 'timeout' : 'network'};
@@ -4879,7 +4898,7 @@ async function selectAdminTab(tab){
   // genuinely fresh fetch, not a repeat one: flicking between tabs within a
   // few seconds reuses the data just fetched a moment ago instead of hitting
   // the Google Sheet again for each tap.
-  if(tab==='dash' || tab==='approvals' || tab==='txns' || tab==='reimb' || tab==='reports'){
+  if(tab==='dash' || tab==='approvals' || tab==='txns' || tab==='reimb' || tab==='reports' || tab==='drivers'){
     const result = await refreshIfStale();
     if(!result.ok){ toast(friendlySyncError(result.error)); }
   }
@@ -5103,8 +5122,55 @@ async function deleteFormerDriverRecords(){
   renderHome();
   toast(`${done} old entr${done===1?'y':'ies'} deleted`);
 }
+// v96: "Phones & app version" box at the top of Admin -> Drivers.
+function pvAgo_(ms){
+  const t = Number(ms); if(!t) return '';
+  const d = Date.now() - t;
+  if(d < 2*60*1000) return 'just now';
+  if(d < 60*60*1000) return Math.round(d/60000) + ' min ago';
+  const dt = new Date(t), now = new Date();
+  const hm = dt.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  if(dt.toDateString()===now.toDateString()) return 'today ' + hm;
+  const y = new Date(now); y.setDate(now.getDate()-1);
+  if(dt.toDateString()===y.toDateString()) return 'yesterday ' + hm;
+  return dt.toLocaleDateString([], {day:'numeric', month:'short'}) + ' ' + hm;
+}
+function renderPhoneVersions_(){
+  const box = document.getElementById('phone-versions-box');
+  if(!box) return;
+  if(!IS_ADMIN_DEVICE){ box.innerHTML = ''; return; }
+  if(!Array.isArray(PHONE_VERSIONS)){
+    box.innerHTML = `<div class="pv-card"><div class="pv-h">📱 Phones &amp; app version</div>
+      <div class="pv-sub">Waiting for the latest data… (if this stays, the Apps Script needs the v96 update)</div></div>`;
+    return;
+  }
+  const norm = s=>String(s||'').trim().toLowerCase();
+  const find = (role, name)=>PHONE_VERSIONS.filter(d=>d.role===role && norm(d.name)===norm(name))
+    .sort((a,b)=>Number(b.at||0)-Number(a.at||0))[0];
+  const rows = DRIVER_NAMES.map(n=>({name:n, label:n, d:find('driver', n), me:false}));
+  const adminD = PHONE_VERSIONS.filter(d=>d.role==='admin').sort((a,b)=>Number(b.at||0)-Number(a.at||0))[0];
+  rows.push({name:'Esa', label:'Esa (Admin)', d:adminD || {v:APP_VERSION, at:Date.now()}, me:true});
+  let anyOld = false;
+  const html = rows.map(r=>{
+    const v = r.d ? Number(r.d.v)||0 : 0;
+    const ok = v >= APP_VERSION;
+    if(!ok) anyOld = true;
+    const pill = ok ? `<span class="pv-pill pv-ok">✅ v${v}</span>`
+      : (v ? `<span class="pv-pill pv-old">⚠️ v${v}</span>` : `<span class="pv-pill pv-old">⚠️ Old</span>`);
+    const sub = r.d ? ('Seen ' + pvAgo_(r.d.at)) : 'Not reported yet';
+    const initial = escapeHtml(String(r.label).trim().charAt(0).toUpperCase() || '?');
+    return `<div class="pv-row"><div class="pv-av">${initial}</div><div class="pv-nm"><b>${escapeHtml(r.label)}</b><div>${escapeHtml(sub)}</div></div>${pill}</div>`;
+  }).join('');
+  box.innerHTML = `<div class="pv-card">
+    <div class="pv-h">📱 Phones &amp; app version</div>
+    <div class="pv-sub">Newest version: <b>v${APP_VERSION}</b> · each phone reports when it opens</div>
+    ${html}
+    ${anyOld ? `<div class="pv-tip">⚠️ <b>Old version.</b> On that phone: open the app → menu → <b>Update app now</b>. After that it reports here and updates by itself from then on.</div>` : ''}
+  </div>`;
+}
 function renderDriverManageList(){
   renderFormerDriversBox();
+  renderPhoneVersions_();
   const wrap = document.getElementById('driver-manage-list');
   if(!wrap) return;
   if(!DRIVER_NAMES.length){
