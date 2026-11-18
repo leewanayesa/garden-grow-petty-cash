@@ -849,7 +849,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">94</b> ·
+        App version <b id="home-app-version">95</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -861,7 +861,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
     <div class="home-wrap">
       <div style="text-align:center;margin-bottom:22px;">
         <p style="color:var(--ink);font-size:17px;font-weight:800;">Log in to continue</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 94</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 95</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -5813,26 +5813,28 @@ function registerSW(){
       });
     });
   }).catch(()=>{});
-  let reloadedOnce = false;
-  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-    if(reloadedOnce) return;
-    // Audit fix 2026-10-02: a new version finishing its install can land at
-    // ANY moment, including the few seconds right after someone opens the
-    // app and is mid-typing their password on the login screen — this
-    // listener used to reload unconditionally, which would wipe that
-    // half-typed password out from under them for no visible reason (looks
-    // exactly like "I typed it and the app just reset"). Harmless to simply
-    // skip the reload in that one moment: the new service worker is already
-    // active and controlling, so the very next time the app is closed and
-    // reopened it loads the new version anyway — nothing is lost by waiting.
-    const loginVisible = document.getElementById('screen-login').classList.contains('active');
-    const pwField = document.getElementById('login-pin');
-    if(loginVisible && pwField && pwField.value){
-      return;
-    }
+  // v95 — fully automatic updates. The phone checks for a new version when the
+  // app opens, every time it comes back to the front, and every 10 minutes.
+  // When a new version is ready it reloads by itself, but ONLY when nobody is
+  // in the middle of typing an entry (Buy/Pay, Cash In, Count, login password);
+  // otherwise it waits and applies the moment the driver is back on Home.
+  let updatePending = false, reloadedOnce = false;
+  function safeToReload_(){
+    const act = document.querySelector('.screen.active'); const id = act ? act.id : 'screen-home';
+    if(id==='screen-login'){ const pw=document.getElementById('login-pin'); return !(pw && pw.value); }
+    return ['screen-home','screen-saved','screen-today','screen-approvals'].indexOf(id)>=0;
+  }
+  function maybeApplyUpdate_(){
+    if(!updatePending || reloadedOnce) return;
+    if(!safeToReload_()) return;
     reloadedOnce = true;
     location.reload();
-  });
+  }
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{ updatePending = true; maybeApplyUpdate_(); });
+  setInterval(maybeApplyUpdate_, 15000);
+  function checkForUpdate_(){ try{ navigator.serviceWorker.getRegistration().then(r=>{ if(r) r.update().catch(()=>{}); }); }catch(e){} }
+  setInterval(checkForUpdate_, 10*60*1000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible'){ checkForUpdate_(); setTimeout(maybeApplyUpdate_, 1500); } });
 }
 
 /* ================= v92: simpler driver flow ================= */
