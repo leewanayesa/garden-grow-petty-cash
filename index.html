@@ -768,6 +768,30 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
 .ci-right{background:#ffe9a8!important;color:#3a2a00!important;border-left:2px solid #fff!important}
 .ci-ic{background:#f2b705!important;color:#fff!important}
 .ci-bar{box-shadow:0 2px 6px rgba(15,58,32,.2)!important}
+/* ===== v99: Admin pages follow the driver look (same header, colours, cards, buttons) ===== */
+/* Every page header = the simple plain-beige Home header: beige + thin green line, no wave */
+body .screen .topbar{background:#f3ead3!important;border-bottom:3px solid #1b8a2f!important}
+body .screen .topbar::after,body .screen .topbar::before{display:none!important}
+body .screen .topbar h1{color:#14452c!important;font-weight:900!important}
+/* Big money cards: same dark green as the driver's CASH IN HAND */
+body.role-admin .stile.ahero:not(.low),body.role-admin #hist-driver-cash-card:not(.low){background:#0f3a20!important}
+/* Tabs: soft grey pills, selected = dark green (like driver chips) */
+body.role-admin .admin-tab{border:0!important;background:#f3f6f1!important;color:#12301e!important;font-weight:800!important;padding:10px 16px!important}
+body.role-admin .admin-tab.sel{background:#0f3a20!important;color:#fff!important}
+/* Boxes: soft grey rounded tiles, no thin borders (like driver tiles) */
+body.role-admin .stat-card{background:#f3f6f1!important;border:0!important;border-radius:20px!important}
+body.role-admin .stat-card .lbl,body.role-admin .stile .stile-lbl{color:#5b7263!important;font-weight:800!important;letter-spacing:.6px}
+body.role-admin .stat-card .val,body.role-admin .stile:not(.ahero) .stile-val{font-weight:900!important;color:#12301e}
+body.role-admin .stile.ahero .stile-val{font-weight:900!important}
+/* Buttons: big, bold, rounded; main ones bright green like BUY / PAY */
+body.role-admin .btn{border:0!important;border-radius:16px!important;font-weight:900!important;padding:14px 16px!important}
+body.role-admin .btn:not(.primary):not([style*="background"]){background:#f3f6f1!important}
+body.role-admin .btn.primary{background:#1b8a2f!important;color:#fff!important}
+/* Headings: bold dark green capitals like "YOUR RECENT — TAP ONCE" */
+body.role-admin .section-title{font-weight:900!important;color:#12301e!important;letter-spacing:1px!important}
+/* Inputs: rounded and soft */
+body.role-admin .field input,body.role-admin .field select,body.role-admin .field textarea,body.role-admin .filter-bar input,body.role-admin .filter-bar select{border-radius:14px!important;background:#f7f9f6!important;border:1.5px solid #dfe8e1!important}
+body.role-admin .btn:not(.primary):not([style*="color"]){color:#12301e}
 </style>
 </head>
 <body>
@@ -871,7 +895,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
         </button>
       </div>
       <div style="text-align:center;margin-top:26px;color:var(--muted);font-size:12px;">
-        App version <b id="home-app-version">98</b> ·
+        App version <b id="home-app-version">99</b> ·
         <button type="button" class="more-toggle" style="display:inline;padding:6px 4px;font-size:12px;width:auto;" onclick="forceUpdateApp()">Update app now</button>
       </div>
     </div>
@@ -883,7 +907,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
     <div class="home-wrap">
       <div style="text-align:center;margin-bottom:22px;">
         <p style="color:var(--ink);font-size:17px;font-weight:800;">Log in to continue</p>
-        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 98</p>
+        <p style="color:var(--muted);font-size:11px;margin-top:4px;opacity:.7;">App version 99</p>
       </div>
 
       <!-- Saved people on this device: one tap = in (Face / Fingerprint if on) -->
@@ -1231,7 +1255,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
   <div class="screen" id="screen-admin">
     <div class="topbar">
       <button class="back" onclick="goBack()">←</button>
-      <h1>⚙️ Admin / Management</h1>
+      <h1>⚙️ Admin</h1>
       <div class="topbar-actions">
         <button class="icon-btn" onclick="refreshCurrentScreen()" title="Refresh">🔄</button>
         <button class="icon-btn" onclick="goHomeHard()" title="Home">🏠</button>
@@ -1398,7 +1422,7 @@ body.role-driver #driver-action-tiles .tile.primary{box-shadow:0 2px 6px rgba(15
       </div>
       <div class="settings-row">
         <span>App Version</span>
-        <span style="font-weight:700;">v2.1</span>
+        <span style="font-weight:700;" id="settings-app-version">v99</span>
       </div>
       <div class="settings-row">
         <span>Google Sheet Sync</span>
@@ -1836,7 +1860,8 @@ const EXPECTED_SCHEMA_VERSION = 7;
 // v96: this app's own version. Sent along with every data load (&v=) so the
 // server can note which version each phone runs; Esa sees it in Admin ->
 // Drivers -> "Phones & app version". Bump with the visible version number.
-const APP_VERSION = 98;
+const APP_VERSION = 99;
+document.addEventListener('DOMContentLoaded', ()=>{ const e=document.getElementById('settings-app-version'); if(e) e.textContent='v'+APP_VERSION; });
 let PHONE_VERSIONS = null;  // [{name, role, v, at}] — Admin phone only; null = not received
 let SCHEMA_OUTDATED = false;
 function updateSchemaBanner(){
